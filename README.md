@@ -1,2 +1,0 @@
-# handyspark
-Handy Spark
