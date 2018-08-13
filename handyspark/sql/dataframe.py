@@ -1,12 +1,14 @@
-import datetime
-import numpy as np
-import pandas as pd
-import time
 from copy import deepcopy
+import datetime
 from handyspark.plot import correlations, histogram, boxplot
 from handyspark.util import exception_summary
+import inspect
+import numpy as np
 from operator import itemgetter, add
-from pyspark.sql import DataFrame, GroupedData
+import pandas as pd
+from pyspark.sql import DataFrame, GroupedData, functions as F
+import time
+import unicodedata
 
 _MAPPING = {'string': str,
             'date': datetime.date,
@@ -24,7 +26,87 @@ _MAPPING = {'string': str,
 class HandyException(Exception):
     pass
 
-class Imputed(object):
+class HandyTransform(object):
+    _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
+    _mapping.update({'float': 'float', 'int': 'integer'})
+
+    @staticmethod
+    def gen_pandas_udf(f, args=None, returnType=None):
+        sig = inspect.signature(f)
+        if args is None:
+            args = tuple(sig.parameters.keys())
+        else:
+            assert isinstance(args, (list, tuple)), "args must be list or tuple"
+        name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
+        if returnType is None:
+            returnType = str(sig.return_annotation.__name__)
+        else:
+            assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
+        returnType = HandyTransform._mapping.get(returnType, 'double')
+        @F.pandas_udf(returnType=returnType)
+        def udf(*args):
+            return f(*args)
+        return udf(*args).alias(name)
+
+    @staticmethod
+    def gen_grouped_pandas_udf(sdf, f):
+        sig = inspect.signature(f)
+        args = tuple(sig.parameters.keys())
+        name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
+        returnType = HandyTransform._mapping.get(str(sig.return_annotation.__name__), 'double')
+        schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
+        @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
+        def pudf(pdf):
+            computed = pdf.apply(lambda row: f(*tuple(row[p] for p in f.__code__.co_varnames)), axis=1)
+            return pdf.assign(__computed=computed).rename(columns={'__computed': name})
+        return pudf
+
+    @staticmethod
+    def transform(sdf, f, name=None, args=None, returnType=None):
+        if name is None:
+            name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
+        return sdf.withColumn(name, HandyTransform.gen_pandas_udf(f, args, returnType))
+
+    @staticmethod
+    def apply(sdf, f):
+        return sdf.select(HandyTransform.gen_pandas_udf(f))
+
+    @staticmethod
+    def assign(sdf, **kwargs):
+        for c, f in kwargs.items():
+            sdf = sdf.transform(f, name=c)
+        return sdf
+
+class HandyString(object):
+    __available = (list(filter(lambda n: n[0] != '_',
+                               (map(itemgetter(0),
+                                    inspect.getmembers(pd.Series.str([]),
+                                                       predicate=inspect.ismethod))))))
+    def __init__(self, df):
+        self._df = df
+
+    def __generic_str_function(self, f, colname, name=None, returnType='str'):
+        if name is None:
+            name=colname
+        return HandyTransform.transform(self._df, f, name=name, args=(colname,), returnType=returnType)
+
+    @staticmethod
+    def _remove_accents(input):
+        return unicodedata.normalize('NFKD', input).encode('ASCII', 'ignore').decode('unicode_escape')
+
+    def remove_accents(self, colname):
+        return self.__generic_str_function(lambda col: col.apply(HandyString._remove_accents), colname)
+
+    def upper(self, colname):
+        return self.__generic_str_function(lambda col: col.str.upper(), colname)
+
+    def contains(self, colname, **kwargs):
+        return self.__generic_str_function(lambda col: col.str.__getattribute__('contains')(**kwargs),
+                                           colname,
+                                           name='{}.contains({})'.format(colname, kwargs.get('pat', '')),
+                                           returnType='bool')
+
+class HandyImputer(object):
     pass
 
 class Handy(object):
@@ -194,6 +276,22 @@ class Handy(object):
         res = HandyFrame(self._df.na.fill(self._imputed_values), self)
         return res
 
+    def fill(self, *args, **kwargs):
+        # TO DO
+        # include stratified
+        if len(args) and isinstance(args[0], DataFrame):
+            return self.__fill_target(args[0])
+        else:
+            try:
+                strategy = kwargs['strategy']
+            except KeyError:
+                strategy = None
+            try:
+                categorical = kwargs['categorical']
+            except KeyError:
+                categorical = []
+            return self.__fill_self(*args, categorical=categorical, strategy=strategy)
+
     def missing_data(self, ratio=False):
         self._summaries()
         base = 1.0
@@ -246,15 +344,6 @@ class Handy(object):
         else:
             return self._df.sample(withReplacement=False, fraction=fraction, seed=seed)
 
-    def corr(self, plot=True, ax=None):
-        pdf = correlations(self._df, self._numerical, ax=ax, plot=plot)
-        return pdf
-
-    def boxplot(self, colnames, ax=None):
-        if not isinstance(colnames, (tuple, list)):
-            colnames = [colnames]
-        return boxplot(self._df, colnames, ax)
-
     def value_counts(self, colname):
         values = self._value_counts(colname).collect()
         return pd.Series(map(itemgetter(1), values),
@@ -266,6 +355,19 @@ class Handy(object):
         # include stratified
         return self._value_counts(colname).filter(lambda t: t[0] is not None).take(1)[0][0]
 
+    def corr(self, colnames=None):
+        if colnames is None:
+            colnames = self._numerical
+        if not isinstance(colnames, (tuple, list)):
+            colnames = [colnames]
+        pdf = correlations(self._df, colnames, ax=None, plot=False)
+        return pdf
+
+    def boxplot(self, colnames, ax=None):
+        if not isinstance(colnames, (tuple, list)):
+            colnames = [colnames]
+        return boxplot(self._df, colnames, ax)
+
     def hist(self, colname, bins=10, ax=None):
         # TO DO
         # include split per response/columns
@@ -275,22 +377,6 @@ class Handy(object):
         else:
             pdf = histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
             return pdf
-
-    def fill(self, *args, **kwargs):
-        # TO DO
-        # include stratified
-        if len(args) and isinstance(args[0], DataFrame):
-            return self.__fill_target(args[0])
-        else:
-            try:
-                strategy = kwargs['strategy']
-            except KeyError:
-                strategy = None
-            try:
-                categorical = kwargs['categorical']
-            except KeyError:
-                categorical = []
-            return self.__fill_self(*args, categorical=categorical, strategy=strategy)
 
 
 class HandyGrouped(GroupedData):
@@ -328,8 +414,6 @@ class HandyFrame(DataFrame):
             def wrapper(*args, **kwargs):
                 try:
                     res = attr(*args, **kwargs)
-#                except HandyException as e:
-#                    raise e
                 except Exception as e:
                     time.sleep(1)
                     print(exception_summary())
@@ -345,6 +429,9 @@ class HandyFrame(DataFrame):
         else:
             return attr
 
+    def __repr__(self):
+        return "HandyFrame[%s]" % (", ".join("%s: %s" % c for c in self.dtypes))
+
     @property
     def handy(self):
         return self._handy
@@ -352,6 +439,10 @@ class HandyFrame(DataFrame):
     @property
     def notHandy(self):
         return DataFrame(self._jdf, self.sql_ctx)
+
+    @property
+    def str(self):
+        return HandyString(self)
 
     @property
     def stages(self):
@@ -405,6 +496,23 @@ class HandyFrame(DataFrame):
             self._safety = True
             return super().collect()
 
+    def transform(self, f, name=None):
+        return HandyTransform.transform(self, f, name)
+        #if name is None:
+        #    name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
+        #return self.withColumn(name, gen_pandas_udf(f))
+
+    def assign(self, **kwargs):
+        return HandyTransform.assign(self, **kwargs)
+        #tdf = self
+        #for c, f in kwargs.items():
+        #    tdf = tdf.transform(f, name=c)
+        #return tdf
+
+    def apply(self, f):
+        return HandyTransform.apply(self, f)
+        #return self.select(gen_pandas_udf(f))
+
     def missing_data(self, ratio=False):
         return self._handy.missing_data(ratio)
 
@@ -414,8 +522,8 @@ class HandyFrame(DataFrame):
     def fill(self, *args, **kwargs):
         return self._handy.fill(*args, **kwargs)
 
-    def corr_matrix(self, plot=True, ax=None):
-        return self._handy.corr(plot, ax)
+    def corr_matrix(self, colnames=None):
+        return self._handy.corr(colnames)
 
     def hist(self, colname, bins=10, ax=None):
         return self._handy.hist(colname, bins, ax)
