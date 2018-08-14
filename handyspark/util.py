@@ -38,14 +38,6 @@ def exception_summary():
     except Exception as e:
         return 'This is awkward... \n{}'.format(str(e))
 
-### LOC
-def loc(sdf, rows):
-    return (sdf
-            .withColumn('_miid', F.monotonically_increasing_id())
-            .withColumn('_row_id', F.row_number().over(Window().orderBy(F.col('_miid'))))
-            .filter(F.col('_row_id').between(*rows))
-            .drop('_miid', '_row_id'))
-
 def get_buckets(rdd, buckets):
     if buckets < 1:
         raise ValueError("number of buckets must be >= 1")
@@ -89,3 +81,16 @@ def get_buckets(rdd, buckets):
     buckets = [i * inc + minv for i in range(buckets)]
     buckets.append(maxv)  # fix accumulated error
     return buckets
+
+### LOC
+def loc(sdf, rows):
+    return (sdf
+            .withColumn('_miid', F.monotonically_increasing_id())
+            .withColumn('_row_id', F.row_number().over(Window().orderBy(F.col('_miid'))))
+            .filter(F.col('_row_id').between(*rows))
+            .drop('_miid', '_row_id'))
+
+# Forward fill
+#from pyspark.sql import Window
+#window = Window.orderBy('time').rowsBetween(Window.unboundedPreceding, Window.currentRow)
+#sdf = sdf.withColumn(col,  F.last(sdf[col], ignorenulls=True).over(window))

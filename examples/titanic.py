@@ -9,7 +9,7 @@ spark = SparkSession.builder.getOrCreate()
 
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 hdf = HandyFrame(sdf)
-print(hdf.str.contains('Name', pat='Mr.').take(1))
+print(hdf.str.find('Name', sub='Mr.', alias='FindMr').take(1))
 hdf = hdf.fill('Age', strategy='median').fillna({'Embarked': 'S'})
 print(hdf.handy._imputed_values)
 print(hdf.corr_matrix())

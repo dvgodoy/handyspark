@@ -1,110 +1,15 @@
 from copy import deepcopy
-import datetime
 from handyspark.plot import correlations, histogram, boxplot
+from handyspark.sql.string import HandyString
+from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import exception_summary
-import inspect
 import numpy as np
 from operator import itemgetter, add
 import pandas as pd
-from pyspark.sql import DataFrame, GroupedData, functions as F
-import time
-import unicodedata
-
-_MAPPING = {'string': str,
-            'date': datetime.date,
-            'timestamp': datetime.datetime,
-            'boolean': np.bool,
-            'binary': np.byte,
-            'byte': np.int8,
-            'short': np.int16,
-            'integer': np.int32,
-            'long': np.int64,
-            'float': np.float32,
-            'double': np.float64}
-
+from pyspark.sql import DataFrame, GroupedData
 
 class HandyException(Exception):
     pass
-
-class HandyTransform(object):
-    _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
-    _mapping.update({'float': 'float', 'int': 'integer'})
-
-    @staticmethod
-    def gen_pandas_udf(f, args=None, returnType=None):
-        sig = inspect.signature(f)
-        if args is None:
-            args = tuple(sig.parameters.keys())
-        else:
-            assert isinstance(args, (list, tuple)), "args must be list or tuple"
-        name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
-        if returnType is None:
-            returnType = str(sig.return_annotation.__name__)
-        else:
-            assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
-        returnType = HandyTransform._mapping.get(returnType, 'double')
-        @F.pandas_udf(returnType=returnType)
-        def udf(*args):
-            return f(*args)
-        return udf(*args).alias(name)
-
-    @staticmethod
-    def gen_grouped_pandas_udf(sdf, f):
-        sig = inspect.signature(f)
-        args = tuple(sig.parameters.keys())
-        name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
-        returnType = HandyTransform._mapping.get(str(sig.return_annotation.__name__), 'double')
-        schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
-        @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
-        def pudf(pdf):
-            computed = pdf.apply(lambda row: f(*tuple(row[p] for p in f.__code__.co_varnames)), axis=1)
-            return pdf.assign(__computed=computed).rename(columns={'__computed': name})
-        return pudf
-
-    @staticmethod
-    def transform(sdf, f, name=None, args=None, returnType=None):
-        if name is None:
-            name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
-        return sdf.withColumn(name, HandyTransform.gen_pandas_udf(f, args, returnType))
-
-    @staticmethod
-    def apply(sdf, f):
-        return sdf.select(HandyTransform.gen_pandas_udf(f))
-
-    @staticmethod
-    def assign(sdf, **kwargs):
-        for c, f in kwargs.items():
-            sdf = sdf.transform(f, name=c)
-        return sdf
-
-class HandyString(object):
-    __available = (list(filter(lambda n: n[0] != '_',
-                               (map(itemgetter(0),
-                                    inspect.getmembers(pd.Series.str([]),
-                                                       predicate=inspect.ismethod))))))
-    def __init__(self, df):
-        self._df = df
-
-    def __generic_str_function(self, f, colname, name=None, returnType='str'):
-        if name is None:
-            name=colname
-        return HandyTransform.transform(self._df, f, name=name, args=(colname,), returnType=returnType)
-
-    @staticmethod
-    def _remove_accents(input):
-        return unicodedata.normalize('NFKD', input).encode('ASCII', 'ignore').decode('unicode_escape')
-
-    def remove_accents(self, colname):
-        return self.__generic_str_function(lambda col: col.apply(HandyString._remove_accents), colname)
-
-    def upper(self, colname):
-        return self.__generic_str_function(lambda col: col.str.upper(), colname)
-
-    def contains(self, colname, **kwargs):
-        return self.__generic_str_function(lambda col: col.str.__getattribute__('contains')(**kwargs),
-                                           colname,
-                                           name='{}.contains({})'.format(colname, kwargs.get('pat', '')),
-                                           returnType='bool')
 
 class HandyImputer(object):
     pass
@@ -415,7 +320,6 @@ class HandyFrame(DataFrame):
                 try:
                     res = attr(*args, **kwargs)
                 except Exception as e:
-                    time.sleep(1)
                     print(exception_summary())
                     raise e
 
@@ -498,20 +402,12 @@ class HandyFrame(DataFrame):
 
     def transform(self, f, name=None):
         return HandyTransform.transform(self, f, name)
-        #if name is None:
-        #    name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
-        #return self.withColumn(name, gen_pandas_udf(f))
+
+    def apply(self, f, name=None):
+        return HandyTransform.apply(self, f, name)
 
     def assign(self, **kwargs):
         return HandyTransform.assign(self, **kwargs)
-        #tdf = self
-        #for c, f in kwargs.items():
-        #    tdf = tdf.transform(f, name=c)
-        #return tdf
-
-    def apply(self, f):
-        return HandyTransform.apply(self, f)
-        #return self.select(gen_pandas_udf(f))
 
     def missing_data(self, ratio=False):
         return self._handy.missing_data(ratio)
