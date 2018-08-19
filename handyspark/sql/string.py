@@ -41,7 +41,7 @@ class HandyString(object):
                     try:
                         alias = kwargs.pop('alias')
                     except KeyError:
-                        alias = '{}.{}'.format(args[0], name)
+                        alias = '{}.{}'.format(colname, name)
                     return self.__generic_str_function(f=lambda col: col.str.__getattribute__(name)(**kwargs),
                                                        colname=colname,
                                                        name=alias,

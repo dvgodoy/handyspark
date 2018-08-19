@@ -1,15 +1,12 @@
 from copy import deepcopy
-from handyspark.plot import correlations, histogram, boxplot
+from handyspark.plot import correlations, histogram, boxplot, scatterplot
 from handyspark.sql.string import HandyString
 from handyspark.sql.transform import _MAPPING, HandyTransform
-from handyspark.util import exception_summary
+from handyspark.util import HandyException
 import numpy as np
 from operator import itemgetter, add
 import pandas as pd
-from pyspark.sql import DataFrame, GroupedData
-
-class HandyException(Exception):
-    pass
+from pyspark.sql import DataFrame, GroupedData, functions as F
 
 class HandyImputer(object):
     pass
@@ -21,7 +18,7 @@ class Handy(object):
         self._nclasses = None
         self._classes = None
 
-        self._imputed_values = None
+        self._imputed_values = {}
         self._summary = None
         self._means = None
         self._medians = None
@@ -60,7 +57,7 @@ class Handy(object):
                 pdf = self._df.select(list(self._group_cols) + [item])
                 if n != -1:
                     pdf = pdf.limit(n)
-                return pdf.toPandas().set_index(list(self._group_cols))
+                return pdf.notHandy.toPandas().set_index(list(self._group_cols))
 
     @property
     def stages(self):
@@ -102,9 +99,12 @@ class Handy(object):
 
     def _update_types(self):
         self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
-        self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string'], self._types)))
+        self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string', 'array', 'map'],
+                                                         self._types)))
         self._double = list(map(itemgetter(0), filter(lambda t: t[1] in ['double', 'float'], self._types)))
-        self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['double', 'float'], self._types)))
+        self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['double', 'float', 'array', 'map'],
+                                                           self._types)))
+        self._array = list(map(itemgetter(0), filter(lambda t: t[1] in ['array', 'map'], self._types)))
 
     def _take_array(self, colname, n):
         datatype = self._df.select(colname).schema.fields[0].dataType.typeName()
@@ -120,7 +120,7 @@ class Handy(object):
     def _summaries(self):
         # TO DO
         # include stratified
-        self._summary = self._df.summary().toPandas().set_index('summary')
+        self._summary = self._df.notHandy.summary().toPandas().set_index('summary')
         for col in self._numerical:
             self._summary[col] = self._summary[col].astype('double')
 
@@ -128,32 +128,30 @@ class Handy(object):
         self._medians = self._summary.loc['50%', self._double]
         self._counts = self._summary.loc['count'].astype('double')
 
-    def _value_counts(self, colname):
-        # TO DO
-        # include stratified
-        values = (self._df.select(colname).rdd
-                  .map(lambda row: (itemgetter(0)(row), 1))
+    def _value_counts(self, colnames):
+        values = (self._df.select(colnames)
+                  .rdd
+                  .map(tuple)
+                  .map(lambda t: (t, 1))
                   .reduceByKey(add)
                   .sortBy(itemgetter(1), ascending=False))
         return values
 
     def __fill_target(self, target):
-        # TO DO
-        # include stratified
-        res = HandyFrame(target.na.fill(self._imputed_values), self)
+        joined_df = None
+        fill_dict = {}
+        items = self._imputed_values.items()
+        for k, v in items:
+            if isinstance(v, dict):
+                strat_df = target.filter(k).fillna(v)
+                joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
+            else:
+                fill_dict.update({k: v})
+        res = HandyFrame(joined_df.na.fill(fill_dict), self)
         return res
 
     def _fill_values(self, colnames, categorical, strategy):
-        # TO DO
-        # include stratified
-        #
-        #joined_df = None
-        #for i in range(1, 4):
-        #    strat_df = sdf.filter('Pclass == {}'.format(i)).fillna({'Fare': i})
-        #    joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
-
         self._summaries()
-
         values = {}
         values.update(dict(self._means[map(itemgetter(0),
                                      filter(lambda t: t[1] == 'mean', zip(colnames, strategy)))]))
@@ -163,9 +161,7 @@ class Handy(object):
                             for col in categorical if col in self._categorical]))
         self._imputed_values = values
 
-    def __fill_self(self, *colnames, categorical, strategy):
-        # TO DO
-        # include stratified
+    def __fill_self(self, *colnames, categorical, strategy, strata=None):
         if not len(colnames):
             colnames = self._double
         if strategy is None:
@@ -177,13 +173,31 @@ class Handy(object):
         else:
             strategy = [strategy] * len(colnames)
 
-        self._fill_values(colnames, categorical, strategy)
-        res = HandyFrame(self._df.na.fill(self._imputed_values), self)
-        return res
+        if strata is None:
+            self._fill_values(colnames, categorical, strategy)
+            res = HandyFrame(self._df.na.fill(self._imputed_values), self)
+            return res
+        else:
+            combinations = self._value_counts(strata).map(itemgetter(0)).collect()
+            joined_df = None
+            for t in combinations:
+                clause = ' and '.join('{} == "{}"'.format(n, v[0] if isinstance(v, tuple) else v)
+                                      for n, v in zip(strata, t))
+                strat_df = HandyFrame(self._df.filter(clause)).fill(colnames,
+                                                                    categorical=categorical,
+                                                                    strategy=strategy)
+                self._imputed_values.update({clause: strat_df.statistics_})
+                joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
+            return HandyFrame(self._df, self)
+
+    def disassemble(self, colname, new_colnames=None):
+        size = self._df.select(F.min(F.size(colname))).take(1)[0][0]
+        if new_colnames is None:
+            new_colnames = ['{}_{}'.format(colname, i) for i in range(size)]
+        res = self._df.select('*', *(F.col(colname).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
+        return HandyFrame(res, self)
 
     def fill(self, *args, **kwargs):
-        # TO DO
-        # include stratified
         if len(args) and isinstance(args[0], DataFrame):
             return self.__fill_target(args[0])
         else:
@@ -195,7 +209,11 @@ class Handy(object):
                 categorical = kwargs['categorical']
             except KeyError:
                 categorical = []
-            return self.__fill_self(*args, categorical=categorical, strategy=strategy)
+            try:
+                strata = kwargs['strata']
+            except KeyError:
+                strata = None
+            return self.__fill_self(*args, categorical=categorical, strategy=strategy, strata=strata)
 
     def missing_data(self, ratio=False):
         self._summaries()
@@ -217,7 +235,7 @@ class Handy(object):
                 self._is_classification = True
                 self._classes = self._df.select(colname).rdd.map(itemgetter(0)).distinct().collect()
                 self._nclasses = len(self._classes)
-        return self._df
+        return HandyFrame(self._df, self)
 
     def sample(self, fraction, strata=None, seed=None):
         # TO DO:
@@ -247,18 +265,16 @@ class Handy(object):
                     .map(itemgetter(1))
                     .toDF(colnames))
         else:
-            return self._df.sample(withReplacement=False, fraction=fraction, seed=seed)
+            return HandyFrame(self._df.sample(withReplacement=False, fraction=fraction, seed=seed), self)
 
     def value_counts(self, colname):
         values = self._value_counts(colname).collect()
         return pd.Series(map(itemgetter(1), values),
-                         index=map(itemgetter(0), values),
+                         index=map(lambda t: t[0][0], values),
                          name=colname)
 
     def mode(self, colname):
-        # TO DO
-        # include stratified
-        return self._value_counts(colname).filter(lambda t: t[0] is not None).take(1)[0][0]
+        return self._value_counts(colname).filter(lambda t: t[0] is not None).take(1)[0][0][0]
 
     def corr(self, colnames=None):
         if colnames is None:
@@ -272,6 +288,9 @@ class Handy(object):
         if not isinstance(colnames, (tuple, list)):
             colnames = [colnames]
         return boxplot(self._df, colnames, ax)
+
+    def scatterplot(self, col1, col2, ax=None):
+        return scatterplot(self._df, col1, col2, ax=ax)
 
     def hist(self, colname, bins=10, ax=None):
         # TO DO
@@ -311,7 +330,7 @@ class HandyFrame(DataFrame):
         self._safety_off = safety_off
         self._safety = not self._safety_off
         self._safety_limit = 1000
-        self.__overriden = ['collect']
+        self.__overriden = ['collect', 'take']
 
     def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)
@@ -319,9 +338,10 @@ class HandyFrame(DataFrame):
             def wrapper(*args, **kwargs):
                 try:
                     res = attr(*args, **kwargs)
+                except HandyException as e:
+                    raise HandyException(str(e), summary=False)
                 except Exception as e:
-                    print(exception_summary())
-                    raise e
+                    raise HandyException(str(e), summary=True)
 
                 if name != 'notHandy':
                     if isinstance(res, DataFrame):
@@ -384,6 +404,14 @@ class HandyFrame(DataFrame):
     def statistics_(self):
         return self._handy.statistics_
 
+    @property
+    def values(self):
+        # safety limit will kick in, unless explicitly off before
+        tdf = self._df.select(self._numerical)
+        if self._safety:
+            tdf = tdf.limit(self._safety_limit)
+        return np.array(tdf.rdd.map(tuple).collect())
+
     def set_safety_limit(self, limit):
         self._safety_limit = limit
 
@@ -393,12 +421,15 @@ class HandyFrame(DataFrame):
 
     def collect(self):
         if self._safety:
-            # print('\nINFO: Safety is ON - returning up to 1,000 instances.')
+            print('\nINFO: Safety is ON - returning up to {} instances.'.format(self._safety_limit))
             return super().limit(self._safety_limit).collect()
         else:
-            print('\nWARNING: Safety is OFF - `collect()` will return ALL instances!')
             self._safety = True
             return super().collect()
+
+    def take(self, num):
+        self._safety_off = True
+        return super().take(num)
 
     def transform(self, f, name=None):
         return HandyTransform.transform(self, f, name)
@@ -426,6 +457,9 @@ class HandyFrame(DataFrame):
 
     def boxplot(self, colnames, ax=None):
         return self._handy.boxplot(colnames, ax)
+
+    def scatterplot(self, col1, col2, ax=None):
+        return self._handy.scatterplot(col1, col2, ax)
 
     def value_counts(self, colname):
         return self._handy.value_counts(colname)

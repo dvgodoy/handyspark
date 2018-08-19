@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from handyspark.util import get_buckets
@@ -17,10 +18,10 @@ def correlations(sdf, colnames, ax=None, plot=True):
     return pdf
 
 ### Scatterplot
-def scatterplot(sdf, col1, col2, ax=None):
+def scatterplot(sdf, col1, col2, n=30, ax=None):
     stages = []
     for col in [col1, col2]:
-        splits = get_buckets(sdf.select(col).rdd.map(itemgetter(0)), 30)
+        splits = get_buckets(sdf.select(col).rdd.map(itemgetter(0)), n)
         stages.append(Bucketizer(splits=splits,
                                  inputCol=col,
                                  outputCol="__{}_bucket".format(col),
@@ -29,31 +30,47 @@ def scatterplot(sdf, col1, col2, ax=None):
     pipeline = Pipeline(stages=stages)
     model = pipeline.fit(sdf)
     counts = (model
-              .transform(sdf.dropna())
-              .select(["__{}_bucket".format(col) for col in [col1, col2]])
+              .transform(sdf.select(col1, col2).dropna())
+              .select(*("__{}_bucket".format(col) for col in (col1, col2)))
               .rdd
               .map(lambda row: (row[0:], 1))
               .reduceByKey(add)
               .collect())
     splits = [bucket.getSplits() for bucket in model.stages]
+    splits = [list(map(np.mean, zip(split[1:], split[:-1]))) for split in splits]
 
     df_counts = pd.DataFrame([(splits[0][int(v[0][0])],
                                splits[1][int(v[0][1])],
                                v[1]) for v in counts],
-                             columns=[col1, col2, 'Count'])
-    df_counts['Count'] /= df_counts.Count.sum()
+                             columns=[col1, col2, 'Proportion'])
+
+    #df_counts = (model
+    #             .transform(sdf.select(col1, col2).dropna())
+    #             .select(*("__{}_bucket".format(col) for col in (col1, col2)))
+    #             .withColumnRenamed("__{}_bucket".format(col1), col1)
+    #             .withColumnRenamed("__{}_bucket".format(col2), col2)
+    #             .crosstab(col1, col2)
+    #             .withColumnRenamed('{}_{}'.format(col1, col2), col1)
+    #             .toPandas()
+    #             .melt(id_vars=col1, var_name=col2, value_name='Count')
+    #             .query('Count > 0'))
+
+    #df_counts.loc[:, col1] = pd.to_numeric(df_counts[col1])
+    #df_counts.loc[:, col2] = pd.to_numeric(df_counts[col2])
+    df_counts.loc[:, 'Proportion'] /= df_counts.Proportion.sum()
 
     sns.scatterplot(data=df_counts,
                     x=col1,
                     y=col2,
-                    size='Count',
+                    size='Proportion',
                     ax=ax)
     return
 
 ### Histogram
 def histogram(sdf, colname, bins=10, categorical=False, ax=None):
     if categorical:
-        values = (sdf.select(colname).rdd
+        values = (sdf.select(colname)
+                  .rdd
                   .map(lambda row: (itemgetter(0)(row), 1))
                   .reduceByKey(add)
                   .sortBy(itemgetter(1), ascending=False)
@@ -103,7 +120,7 @@ def _calc_tukey(col_summ):
 
 ### Boxplot
 def boxplot(sdf, colnames, ax=None):
-    pdf = sdf.select(colnames).summary().toPandas().set_index('summary')
+    pdf = sdf.select(colnames).notHandy.summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()
