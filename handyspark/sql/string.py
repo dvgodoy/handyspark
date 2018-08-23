@@ -47,5 +47,6 @@ class HandyString(object):
                                                        name=alias,
                                                        returnType=self.__types.get(name, 'str'))
                 return wrapper
-            raise e
+            else:
+                raise e
 

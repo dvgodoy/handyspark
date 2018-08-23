@@ -11,7 +11,7 @@ from pyspark.sql import functions as F
 
 ### Correlations
 def correlations(sdf, colnames, ax=None, plot=True):
-    correlations = Statistics.corr(sdf.select(colnames).rdd.map(lambda row: row[0:]))
+    correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]))
     pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
     if plot:
         sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
