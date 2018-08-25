@@ -1,5 +1,5 @@
 from copy import deepcopy
-from handyspark.plot import correlations, histogram, boxplot, scatterplot
+from handyspark.plot import correlations, histogram, boxplot, scatterplot, model_scatterplot
 from handyspark.sql.string import HandyString
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
@@ -28,6 +28,7 @@ class Handy(object):
         self._group_cols = None
         self._strata = None
         self._strata_combinations = None
+        self._model_scatterplot = None
 
         self._update_types()
         self.set_response(response)
@@ -37,7 +38,7 @@ class Handy(object):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k != '_df':
+            if k not in ['_df', '_model_scatterplot']:
                 setattr(result, k, deepcopy(v, memo))
         return result
 
@@ -116,8 +117,9 @@ class Handy(object):
         return HandyStrata(self, strata)
 
     def _set_combinations(self, combinations):
-        assert len(combinations[0]) == len(self._strata)
-        self._strata_combinations = combinations
+        if self._strata is not None:
+            assert len(combinations[0]) == len(self._strata)
+            self._strata_combinations = combinations
 
     def _update_types(self):
         self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
@@ -205,22 +207,9 @@ class Handy(object):
         else:
             strategy = [strategy] * len(colnames)
 
-        #if strata is None:
         self._fill_values(colnames, categorical, strategy)
         res = HandyFrame(self._df.na.fill(self._imputed_values), self)
         return res
-        #else:
-        #    combinations = self._value_counts(strata).map(itemgetter(0)).collect()
-        #    joined_df = None
-        #    for t in combinations:
-        #        clause = ' and '.join('{} == "{}"'.format(n, v[0] if isinstance(v, tuple) else v)
-        #                              for n, v in zip(strata, t))
-        #        strat_df = HandyFrame(self._df.filter(clause), self).fill(colnames,
-        #                                                                  categorical=categorical,
-        #                                                                  strategy=strategy)
-        #        self._imputed_values.update({clause: strat_df.statistics_})
-        #        joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
-        #    return HandyFrame(self._df, self)
 
     def disassemble(self, colname, new_colnames=None):
         size = self._df.select(F.min(F.size(colname))).take(1)[0][0]
@@ -265,36 +254,6 @@ class Handy(object):
                 self._nclasses = len(self._classes)
         return HandyFrame(self._df, self)
 
-    # def sample(self, fraction, strata=None, seed=None):
-    #     # TO DO:
-    #     # StringIndexer for categorical columns
-    #     stratified = False
-    #     if isinstance(strata, (list, tuple)):
-    #         strata = list(set(strata).intersection(set(self._df.columns)))
-    #         if not len(strata):
-    #             strata = None
-    #         else:
-    #             classes = self._df.select(strata).distinct().rdd.map(lambda row: row[0:]).collect()
-    #     else:
-    #         if self.is_classification:
-    #             strata = [self._response]
-    #             classes = [(c, ) for c in self.classes]
-    #
-    #     if isinstance(strata, (list, tuple)):
-    #         stratified = True
-    #
-    #     if stratified:
-    #         # So the whole object (self) is not included in the closure
-    #         colnames = self._df.columns
-    #         return (self._df.rdd.map(lambda row: (tuple(row[col] for col in strata), row[0:]))
-    #                 .sampleByKey(withReplacement=False,
-    #                              fractions={cl: fraction for cl in classes},
-    #                              seed=seed)
-    #                 .map(itemgetter(1))
-    #                 .toDF(colnames))
-    #     else:
-    #         return HandyFrame(self._df.sample(withReplacement=False, fraction=fraction, seed=seed), self)
-
     def value_counts(self, colname):
         values = self._value_counts(colname).collect()
         return pd.Series(map(itemgetter(1), values),
@@ -316,6 +275,9 @@ class Handy(object):
         if not isinstance(colnames, (tuple, list)):
             colnames = [colnames]
         return boxplot(self._df, colnames, ax)
+
+    def _strata_scatterplot(self, col1, col2, ax=None):
+        self._model_scatterplot = model_scatterplot(self._df, col1, col2)
 
     def scatterplot(self, col1, col2, ax=None):
         return scatterplot(self._df, col1, col2, ax=ax)
@@ -513,7 +475,7 @@ class Bucket(object):
         self._bins = bins
 
     def __repr__(self):
-        return 'Bucket({},{})'.format(self._colname, self._bins)
+        return 'Bucket_{}_{}'.format(self._colname, self._bins)
 
     @property
     def colname(self):
@@ -521,9 +483,17 @@ class Bucket(object):
 
     def _get_buckets(self, df):
         buckets = ([-float('inf')] +
-                   get_buckets(df.select(self._colname).rdd.map(itemgetter(0)), self._bins - 2) +
+                   get_buckets(df.select(self._colname).rdd.map(itemgetter(0)), self._bins) +
                    [float('inf')])
         return buckets
+
+    def _get_clauses(self, buckets):
+        clauses = []
+        clauses.append('{} < {:.4f}'.format(self._colname, buckets[1]))
+        for b, e in zip(buckets[1:-2], buckets[2:-1]):
+            clauses.append('{} >= {:.4f} and {} < {:.4f}'.format(self._colname, b, self._colname, e))
+        clauses.append('{} >= {:.4f}'.format(self._colname, buckets[-2]))
+        return clauses
 
 class HandyStrata(object):
     __handy_methods = (list(filter(lambda n: n[0] != '_',
@@ -534,21 +504,35 @@ class HandyStrata(object):
     def __init__(self, handy, strata):
         self._handy = handy
         self._df = handy._df
-        self._strata = []
-        self._todrop = []
+        self._strata = strata
+        self._col_clauses = []
+        self._colnames = []
 
-        for col in strata:
+        temp_df = self._df
+        for col in self._strata:
+            clauses = []
             colname = str(col)
-            self._strata.append(colname)
+            self._colnames.append(colname)
             if isinstance(col, Bucket):
-                self._todrop.append(colname)
-                bucketizer = Bucketizer(splits=col._get_buckets(self._df), inputCol=col.colname, outputCol=colname)
-                self._df = HandyFrame(bucketizer.transform(self._df), self._handy)
+                buckets = col._get_buckets(self._df)
+                clauses = col._get_clauses(buckets)
+                bucketizer = Bucketizer(splits=buckets, inputCol=col.colname, outputCol=colname)
+                temp_df = HandyFrame(bucketizer.transform(temp_df), self._handy)
+            self._col_clauses.append(clauses)
 
-        self._combinations = self._df._handy._value_counts(self._strata).map(itemgetter(0)).collect()
-        self._clauses = [' and '.join('{} == "{}"'.format(str(n), v[0] if isinstance(v, tuple) else v)
-                                      for n, v in zip(self._strata, t)) for t in self._combinations]
+        combinations = temp_df._handy._value_counts(self._colnames).map(itemgetter(0)).collect()
+        self._combinations = [tuple(value if not len(clauses) else clauses[int(value)]
+                                    for value, clauses in zip(comb, self._col_clauses))
+                              for comb in combinations]
+        self._clauses = [' and '.join(value if isinstance(col, Bucket)
+                                      else  '{} == "{}"'.format(str(col),
+                                                                value[0] if isinstance(value, tuple) else value)
+                                      for col, value in zip(self._strata, comb))
+                         for comb in self._combinations]
         self._strat_df = [self._df.filter(clause) for clause in self._clauses]
+        # Shares the same HANDY object among all sub dataframes
+        for df in self._strat_df:
+            df._handy = self._handy
         self._handy._set_combinations(self._combinations)
         self._imputed_values = {}
 
@@ -560,6 +544,11 @@ class HandyStrata(object):
             if name in self.__handy_methods:
                 def wrapper(*args, **kwargs):
                     try:
+                        try:
+                            attr_strata = getattr(self._handy, '_strata_{}'.format(name))
+                            attr_strata(*args, **kwargs)
+                        except AttributeError:
+                            pass
                         res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
                     except HandyException as e:
                         raise HandyException(str(e), summary=False)

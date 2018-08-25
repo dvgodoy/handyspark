@@ -17,8 +17,7 @@ def correlations(sdf, colnames, ax=None, plot=True):
         sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
     return pdf
 
-### Scatterplot
-def scatterplot(sdf, col1, col2, n=30, ax=None):
+def model_scatterplot(sdf, col1, col2, n=30):
     stages = []
     for col in [col1, col2]:
         splits = get_buckets(sdf.select(col).rdd.map(itemgetter(0)), n)
@@ -29,6 +28,14 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
 
     pipeline = Pipeline(stages=stages)
     model = pipeline.fit(sdf)
+    return model
+
+### Scatterplot
+def scatterplot(sdf, col1, col2, n=30, ax=None):
+    model = sdf._handy._model_scatterplot
+    if model is None:
+        model = model_scatterplot(sdf, col1, col2, n)
+
     counts = (model
               .transform(sdf.select(col1, col2).dropna())
               .select(*("__{}_bucket".format(col) for col in (col1, col2)))
@@ -44,20 +51,8 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
                                v[1]) for v in counts],
                              columns=[col1, col2, 'Proportion'])
 
-    #df_counts = (model
-    #             .transform(sdf.select(col1, col2).dropna())
-    #             .select(*("__{}_bucket".format(col) for col in (col1, col2)))
-    #             .withColumnRenamed("__{}_bucket".format(col1), col1)
-    #             .withColumnRenamed("__{}_bucket".format(col2), col2)
-    #             .crosstab(col1, col2)
-    #             .withColumnRenamed('{}_{}'.format(col1, col2), col1)
-    #             .toPandas()
-    #             .melt(id_vars=col1, var_name=col2, value_name='Count')
-    #             .query('Count > 0'))
-
-    #df_counts.loc[:, col1] = pd.to_numeric(df_counts[col1])
-    #df_counts.loc[:, col2] = pd.to_numeric(df_counts[col2])
-    df_counts.loc[:, 'Proportion'] /= df_counts.Proportion.sum()
+    total = df_counts.Proportion.sum()
+    df_counts.loc[:, 'Proportion'] = df_counts.Proportion.apply(lambda p: round(p / total, 4))
 
     sns.scatterplot(data=df_counts,
                     x=col1,
@@ -67,8 +62,14 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
     return
 
 ### Histogram
-def histogram(sdf, colname, bins=10, categorical=False, ax=None):
+def histogram(sdf, colname, bins=10, categorical=False, ax=None, base=None):
+    stratified = True
+    if base is None:
+        base = sdf
+        stratified = False
+
     if categorical:
+        # TO DO: include all values from base
         values = (sdf.select(colname)
                   .rdd
                   .map(lambda row: (itemgetter(0)(row), 1))
@@ -82,6 +83,9 @@ def histogram(sdf, colname, bins=10, categorical=False, ax=None):
         pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
         return pdf
     else:
+        if stratified:
+            bins, _ = base.select(colname).rdd.map(itemgetter(0)).histogram(bins)
+
         start_values, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(bins)
         mid_point_bins = start_values[:-1]
         if ax is None:
@@ -119,8 +123,11 @@ def _calc_tukey(col_summ):
     return lfence, ufence
 
 ### Boxplot
-def boxplot(sdf, colnames, ax=None):
-    pdf = sdf.select(colnames).notHandy.summary().toPandas().set_index('summary')
+def boxplot(sdf, colnames, ax=None, base=None):
+    if base is None:
+        base = sdf
+
+    pdf = base.select(colnames).notHandy.summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()
@@ -141,13 +148,6 @@ def boxplot(sdf, colnames, ax=None):
                       .rdd
                       .map(lambda x: (x[0], x[0]))
                       .reduce(minmax))
-
-        #minmax = (outlier.filter('not __{}_outlier'.format(colname))
-        #          .select(F.min(colname).alias('__{}_min'.format(colname)),
-        #                  F.max(colname).alias('__{}_max'.format(colname)))
-        #          .collect()[0])
-        #minv = minmax['__{}_min'.format(colname)]
-        #maxv = minmax['__{}_max'.format(colname)]
 
         fliers = (outlier
                   .filter('__{}_outlier'.format(colname))
