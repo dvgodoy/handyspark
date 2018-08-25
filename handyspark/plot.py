@@ -17,7 +17,7 @@ def correlations(sdf, colnames, ax=None, plot=True):
         sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
     return pdf
 
-def model_scatterplot(sdf, col1, col2, n=30):
+def strat_scatterplot(sdf, col1, col2, n=30):
     stages = []
     for col in [col1, col2]:
         splits = get_buckets(sdf.select(col).rdd.map(itemgetter(0)), n)
@@ -28,13 +28,18 @@ def model_scatterplot(sdf, col1, col2, n=30):
 
     pipeline = Pipeline(stages=stages)
     model = pipeline.fit(sdf)
-    return model
+    return model, sdf.count()
 
 ### Scatterplot
 def scatterplot(sdf, col1, col2, n=30, ax=None):
-    model = sdf._handy._model_scatterplot
-    if model is None:
-        model = model_scatterplot(sdf, col1, col2, n)
+    legend = 'full'
+    try:
+        model = sdf._strat_handy._scatter_model
+        total = sdf._strat_handy._scatter_total
+        ax = sdf._strat_handy._strata_plot[1][sdf._strat_index]
+        legend = False
+    except AttributeError:
+        model, total = strat_scatterplot(sdf, col1, col2, n)
 
     counts = (model
               .transform(sdf.select(col1, col2).dropna())
@@ -51,15 +56,15 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
                                v[1]) for v in counts],
                              columns=[col1, col2, 'Proportion'])
 
-    total = df_counts.Proportion.sum()
     df_counts.loc[:, 'Proportion'] = df_counts.Proportion.apply(lambda p: round(p / total, 4))
 
     sns.scatterplot(data=df_counts,
                     x=col1,
                     y=col2,
                     size='Proportion',
-                    ax=ax)
-    return
+                    ax=ax,
+                    legend=legend)
+    return ax
 
 ### Histogram
 def histogram(sdf, colname, bins=10, categorical=False, ax=None, base=None):

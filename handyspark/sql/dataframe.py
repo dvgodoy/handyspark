@@ -1,9 +1,11 @@
 from copy import deepcopy
-from handyspark.plot import correlations, histogram, boxplot, scatterplot, model_scatterplot
+from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot
 from handyspark.sql.string import HandyString
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
 import inspect
+from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 import numpy as np
 from operator import itemgetter, add
 import pandas as pd
@@ -27,8 +29,10 @@ class Handy(object):
         self._counts = None
         self._group_cols = None
         self._strata = None
-        self._strata_combinations = None
-        self._model_scatterplot = None
+        self._strata_combinations = []
+        self._strata_plot = None
+        self._scatter_model = None
+        self._scatter_total = None
 
         self._update_types()
         self.set_response(response)
@@ -38,7 +42,7 @@ class Handy(object):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k not in ['_df', '_model_scatterplot']:
+            if k not in ['_df', '_scatter_model', '_strata_plot']:
                 setattr(result, k, deepcopy(v, memo))
         return result
 
@@ -120,6 +124,12 @@ class Handy(object):
         if self._strata is not None:
             assert len(combinations[0]) == len(self._strata)
             self._strata_combinations = combinations
+
+            n_plots = len(self._strata_combinations)
+            n_rows = np.ceil(np.sqrt(n_plots)).astype(np.int)
+            n_cols = np.floor(np.sqrt(n_plots)).astype(np.int)
+            fig, axs = plt.subplots(n_rows, n_cols)
+            self._strata_plot = (fig, [ax for row in axs for ax in row])
 
     def _update_types(self):
         self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
@@ -276,8 +286,8 @@ class Handy(object):
             colnames = [colnames]
         return boxplot(self._df, colnames, ax)
 
-    def _strata_scatterplot(self, col1, col2, ax=None):
-        self._model_scatterplot = model_scatterplot(self._df, col1, col2)
+    def _strat_scatterplot(self, col1, col2, ax=None):
+        self._scatter_model, self._scatter_total = strat_scatterplot(self._df, col1, col2)
 
     def scatterplot(self, col1, col2, ax=None):
         return scatterplot(self._df, col1, col2, ax=ax)
@@ -321,6 +331,8 @@ class HandyFrame(DataFrame):
         self._safety = not self._safety_off
         self._safety_limit = 1000
         self.__overriden = ['collect', 'take']
+        self._strat_handy = None
+        self._strat_index = None
 
     def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)
@@ -530,10 +542,11 @@ class HandyStrata(object):
                                       for col, value in zip(self._strata, comb))
                          for comb in self._combinations]
         self._strat_df = [self._df.filter(clause) for clause in self._clauses]
-        # Shares the same HANDY object among all sub dataframes
-        for df in self._strat_df:
-            df._handy = self._handy
         self._handy._set_combinations(self._combinations)
+        # Shares the same HANDY object among all sub dataframes
+        for i, df in enumerate(self._strat_df):
+            df._strat_index = i
+            df._strat_handy = self._handy
         self._imputed_values = {}
 
     def __getattribute__(self, name):
@@ -545,7 +558,7 @@ class HandyStrata(object):
                 def wrapper(*args, **kwargs):
                     try:
                         try:
-                            attr_strata = getattr(self._handy, '_strata_{}'.format(name))
+                            attr_strata = getattr(self._handy, '_strat_{}'.format(name))
                             attr_strata(*args, **kwargs)
                         except AttributeError:
                             pass
@@ -588,6 +601,8 @@ class HandyStrata(object):
                                              .assign(**s)
                                              .set_index(self._strata)[name])
                         res = pd.concat(strat_res).sort_index()
+                    elif isinstance(res[0], Axes):
+                        res = self._handy._strata_plot[0]
                     elif len(res) == len(self._combinations):
                         res = (pd.concat([pd.DataFrame(res, columns=[name]),
                                           pd.DataFrame(strata, columns=self._strata)], axis=1)
