@@ -30,8 +30,11 @@ class Handy(object):
         self._group_cols = None
         self._strata = None
         self._strata_combinations = []
+        self._strata_clauses = []
         self._strata_object = None
         self._strata_plot = None
+        self._n_cols = 1
+        self._n_rows = 1
 
         self._update_types()
         self.set_response(response)
@@ -119,15 +122,24 @@ class Handy(object):
         self._strata = strata
         return HandyStrata(self, strata)
 
-    def _set_combinations(self, combinations):
+    def _set_combinations(self, combinations, clauses):
         if self._strata is not None:
             assert len(combinations[0]) == len(self._strata)
             self._strata_combinations = combinations
+            self._strata_clauses = clauses
+
+        self._n_cols = len(set(map(itemgetter(0), combinations)))
+        try:
+            self._n_rows = len(set(map(itemgetter(1), combinations)))
+        except IndexError:
+            self._n_rows = 1
 
     def _build_strat_plot(self, n_rows, n_cols, **kwargs):
         fig, axs = plt.subplots(n_rows, n_cols, **kwargs)
         if n_rows == 1:
             axs = [axs]
+            if n_cols == 1:
+                axs = [axs]
         self._strata_plot = (fig, [ax for col in np.transpose(axs) for ax in col])
 
     def _update_types(self):
@@ -280,18 +292,45 @@ class Handy(object):
         pdf = correlations(self._df, colnames, ax=None, plot=False)
         return pdf
 
+    def _strat_boxplot(self, colnames, **kwargs):
+        n_rows = n_cols = 1
+        if isinstance(colnames, (tuple, list)) and (len(colnames) > 1):
+            n_rows = self._n_rows
+            n_cols = self._n_cols
+        self._build_strat_plot(n_rows, n_cols, **kwargs)
+        return None
+
     def boxplot(self, colnames, ax=None):
         if not isinstance(colnames, (tuple, list)):
             colnames = [colnames]
         return boxplot(self._df, colnames, ax)
 
+    def _post_boxplot(self, res):
+        if len(self._strata_plot[1]) == len(res):
+            new_res = []
+            for ax, stats in zip(self._strata_plot[1], res):
+                ax.bxp(stats)
+                new_res.append(ax)
+        else:
+            ax = self._strata_plot[1][0]
+            items = []
+            for comb, stats in zip(self._strata_clauses, res):
+                label = comb.replace(' and ', '\n').replace(' == ', '=')
+                stats[0].update({'label': label})
+                items.append(stats[0])
+            ax.bxp(items)
+            new_res = [ax]
+        return new_res
+
     def _strat_scatterplot(self, col1, col2, **kwargs):
+        self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         return strat_scatterplot(self._df, col1, col2)
 
     def scatterplot(self, col1, col2, ax=None):
-        return scatterplot(self._df, col1, col2, ax)
+        return scatterplot(self._df, col1, col2, ax=ax)
 
     def _strat_hist(self, colname, bins=10, **kwargs):
+        self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         categorical = True
         if colname in self._double:
             categorical = False
@@ -301,11 +340,9 @@ class Handy(object):
         # TO DO
         # include split per response/columns
         if colname in self._double:
-            start_values, counts = histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
-            return start_values, counts
+            return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
         else:
-            pdf = histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
-            return pdf
+            return histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
 
 
 class HandyGrouped(GroupedData):
@@ -364,9 +401,22 @@ class HandyFrame(DataFrame):
         return "HandyFrame[%s]" % (", ".join("%s: %s" % c for c in self.dtypes))
 
     def _get_strata(self):
+        plot = None
+        object = None
         if self._strat_handy is not None:
-            return self._strat_handy._strata_plot[1][self._strat_index], \
-                   self._strat_handy._strata_object
+            try:
+                object = self._strat_handy._strata_object
+            except AttributeError:
+                pass
+            if object is None:
+                object = True
+            try:
+                plots = self._strat_handy._strata_plot[1]
+                if len(plots) > 1:
+                    plot = plots[self._strat_index]
+            except (AttributeError, IndexError):
+                pass
+        return plot, object
 
     @property
     def handy(self):
@@ -479,7 +529,7 @@ class HandyFrame(DataFrame):
     def hist(self, colname, bins=10, ax=None, **kwargs):
         return self._handy.hist(colname, bins, ax)
 
-    def boxplot(self, colnames, ax=None):
+    def boxplot(self, colnames, ax=None, **kwargs):
         return self._handy.boxplot(colnames, ax)
 
     def scatterplot(self, col1, col2, ax=None, **kwargs):
@@ -554,7 +604,7 @@ class HandyStrata(object):
                                       for col, value in zip(self._strata, comb))
                          for comb in self._combinations]
         self._strat_df = [self._df.filter(clause) for clause in self._clauses]
-        self._handy._set_combinations(self._combinations)
+        self._handy._set_combinations(self._combinations, self._clauses)
 
         # Shares the same HANDY object among all sub dataframes
         for i, df in enumerate(self._strat_df):
@@ -571,22 +621,18 @@ class HandyStrata(object):
                 def wrapper(*args, **kwargs):
                     try:
                         try:
-                            n_cols = len(set(map(itemgetter(0), self._combinations)))
-                            try:
-                                n_rows = len(set(map(itemgetter(1), self._combinations)))
-                            except IndexError:
-                                n_rows = 1
-
-                            try:
-                                self._handy._build_strat_plot(n_rows, n_cols, **kwargs)
-                            except TypeError:
-                                pass
-
                             attr_strata = getattr(self._handy, '_strat_{}'.format(name))
                             self._handy._strata_object = attr_strata(*args, **kwargs)
                         except AttributeError:
                             pass
+
                         res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
+
+                        try:
+                            attr_post = getattr(self._handy, '_post_{}'.format(name))
+                            res = attr_post(res)
+                        except AttributeError:
+                            pass
                     except HandyException as e:
                         raise HandyException(str(e), summary=False)
                     except Exception as e:
@@ -627,20 +673,28 @@ class HandyStrata(object):
                         res = pd.concat(strat_res).sort_index()
                     elif isinstance(res[0], Axes):
                         res, axs = self._handy._strata_plot
-                        xlim = list(map(lambda ax: ax.get_xlim(), axs))
-                        xlim = [np.min(list(map(itemgetter(0), xlim))), np.max(list(map(itemgetter(1), xlim)))]
-                        ylim = list(map(lambda ax: ax.get_ylim(), axs))
-                        ylim = [np.min(list(map(itemgetter(0), ylim))), np.max(list(map(itemgetter(1), ylim)))]
-                        for i, ax in enumerate(axs):
-                            title = self._clauses[i].replace(' and ', '/').replace(' == ', '=')
-                            ax.set_xlim(xlim)
-                            ax.set_ylim(ylim)
-                            ax.set_title(title, fontdict={'fontsize': 10})
-                            if ax.colNum > 0:
-                                ax.get_yaxis().set_visible(False)
-                            if ax.rowNum < (ax.numRows - 1):
-                                ax.get_xaxis().set_visible(False)
+                        axs[0].set_title(args[0])
                         res.tight_layout()
+                        if len(axs) > 1:
+                            xlim = list(map(lambda ax: ax.get_xlim(), axs))
+                            xlim = [np.min(list(map(itemgetter(0), xlim))), np.max(list(map(itemgetter(1), xlim)))]
+                            ylim = list(map(lambda ax: ax.get_ylim(), axs))
+                            ylim = [np.min(list(map(itemgetter(0), ylim))), np.max(list(map(itemgetter(1), ylim)))]
+                            for i, ax in enumerate(axs):
+                                title = self._clauses[i].replace(' and ', '\n').replace(' == ', '=')
+                                ax.set_title(title, fontdict={'fontsize': 10})
+                                ax.set_xlim(xlim)
+                                ax.set_ylim(ylim)
+                                if ax.colNum > 0:
+                                    ax.get_yaxis().set_visible(False)
+                                if ax.rowNum < (ax.numRows - 1):
+                                    ax.get_xaxis().set_visible(False)
+                            title = args[0]
+                            if isinstance(title, list):
+                                title = ', '.join(title)
+                            res.suptitle(title)
+                            res.tight_layout()
+                            res.subplots_adjust(top=0.9)
                     elif len(res) == len(self._combinations):
                         res = (pd.concat([pd.DataFrame(res, columns=[name]),
                                           pd.DataFrame(strata, columns=self._strata)], axis=1)

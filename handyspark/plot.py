@@ -32,14 +32,15 @@ def strat_scatterplot(sdf, col1, col2, n=30):
 
 ### Scatterplot
 def scatterplot(sdf, col1, col2, n=30, ax=None):
-    legend = 'full'
-    try:
-        ax, data = sdf._get_strata()
-        legend = False
-    except AttributeError:
+    strat_ax, data = sdf._get_strata()
+    if data is None:
         data = strat_scatterplot(sdf, col1, col2, n)
-
+    else:
+        ax = strat_ax
     model, total = data
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
 
     counts = (model
               .transform(sdf.select(col1, col2).dropna())
@@ -63,7 +64,7 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
                     y=col2,
                     size='Proportion',
                     ax=ax,
-                    legend=legend)
+                    legend=False)
     return ax
 
 def strat_histogram(sdf, colname, bins=10, categorical=False):
@@ -82,10 +83,15 @@ def strat_histogram(sdf, colname, bins=10, categorical=False):
 
 ### Histogram
 def histogram(sdf, colname, bins=10, categorical=False, ax=None):
-    try:
-        ax, (start_values, counts) = sdf._get_strata()
-    except AttributeError:
-        start_values, counts = strat_histogram(sdf, colname, bins, categorical)
+    strat_ax, data = sdf._get_strata()
+    if data is None:
+        data = strat_histogram(sdf, colname, bins, categorical)
+    else:
+        ax = strat_ax
+    start_values, counts = data
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
 
     if categorical:
         values = dict(sdf.select(colname)
@@ -103,9 +109,8 @@ def histogram(sdf, colname, bins=10, categorical=False, ax=None):
         pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
         return ax
     else:
+        _, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(start_values)
         mid_point_bins = start_values[:-1]
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
         ax.hist(mid_point_bins, bins=start_values, weights=counts)
         ax.set_title(colname)
         return ax
@@ -139,11 +144,13 @@ def _calc_tukey(col_summ):
     return lfence, ufence
 
 ### Boxplot
-def boxplot(sdf, colnames, ax=None, base=None):
-    if base is None:
-        base = sdf
+def boxplot(sdf, colnames, ax=None):
+    strat_ax, data = sdf._get_strata()
+    if data is None:
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
 
-    pdf = base.select(colnames).notHandy.summary().toPandas().set_index('summary')
+    pdf = sdf.select(colnames).notHandy.summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()
@@ -184,5 +191,8 @@ def boxplot(sdf, colnames, ax=None, base=None):
 
         stats.append(item)
 
-    ax.bxp(stats)
-    return
+    if ax is not None:
+        ax.bxp(stats)
+        return ax
+    else:
+        return stats
