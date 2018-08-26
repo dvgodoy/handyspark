@@ -34,12 +34,12 @@ def strat_scatterplot(sdf, col1, col2, n=30):
 def scatterplot(sdf, col1, col2, n=30, ax=None):
     legend = 'full'
     try:
-        model = sdf._strat_handy._scatter_model
-        total = sdf._strat_handy._scatter_total
-        ax = sdf._strat_handy._strata_plot[1][sdf._strat_index]
+        ax, data = sdf._get_strata()
         legend = False
     except AttributeError:
-        model, total = strat_scatterplot(sdf, col1, col2, n)
+        data = strat_scatterplot(sdf, col1, col2, n)
+
+    model, total = data
 
     counts = (model
               .transform(sdf.select(col1, col2).dropna())
@@ -66,38 +66,49 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
                     legend=legend)
     return ax
 
+def strat_histogram(sdf, colname, bins=10, categorical=False):
+    if categorical:
+        start_values = (sdf.select(colname)
+                        .rdd
+                        .map(lambda row: (itemgetter(0)(row), 1))
+                        .reduceByKey(add)
+                        .sortBy(itemgetter(1), ascending=False)
+                        .collect())
+        counts = list(map(itemgetter(1), start_values))
+        start_values = list(map(itemgetter(0), start_values))
+    else:
+        start_values, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(bins)
+    return start_values, counts
+
 ### Histogram
-def histogram(sdf, colname, bins=10, categorical=False, ax=None, base=None):
-    stratified = True
-    if base is None:
-        base = sdf
-        stratified = False
+def histogram(sdf, colname, bins=10, categorical=False, ax=None):
+    try:
+        ax, (start_values, counts) = sdf._get_strata()
+    except AttributeError:
+        start_values, counts = strat_histogram(sdf, colname, bins, categorical)
 
     if categorical:
-        # TO DO: include all values from base
-        values = (sdf.select(colname)
-                  .rdd
-                  .map(lambda row: (itemgetter(0)(row), 1))
-                  .reduceByKey(add)
-                  .sortBy(itemgetter(1), ascending=False)
-                  .collect())
+        values = dict(sdf.select(colname)
+                      .rdd
+                      .map(lambda row: (itemgetter(0)(row), 1))
+                      .reduceByKey(add)
+                      .sortBy(itemgetter(1), ascending=False)
+                      .collect())
+
+        values = list(map(lambda k: (k, values.get(k, 0)), start_values))
 
         pdf = pd.Series(map(itemgetter(1), values),
                         index=map(itemgetter(0), values),
                         name=colname).sort_index().to_frame().iloc[:bins]
         pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
-        return pdf
+        return ax
     else:
-        if stratified:
-            bins, _ = base.select(colname).rdd.map(itemgetter(0)).histogram(bins)
-
-        start_values, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(bins)
         mid_point_bins = start_values[:-1]
         if ax is None:
             fig, ax = plt.subplots(1, 1)
         ax.hist(mid_point_bins, bins=start_values, weights=counts)
         ax.set_title(colname)
-        return start_values, counts
+        return ax
 
 ### Stratified Histogram
 def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
