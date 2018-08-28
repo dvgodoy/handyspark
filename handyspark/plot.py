@@ -9,6 +9,34 @@ from pyspark.ml.pipeline import Pipeline
 from pyspark.mllib.stat import Statistics
 from pyspark.sql import functions as F
 
+def title_fom_clause(clause):
+    return clause.replace(' and ', '\n').replace(' == ', '=').replace('"', '')
+
+def consolidate_plots(fig, axs, title, clauses):
+    axs[0].set_title(title)
+    fig.tight_layout()
+    if len(axs) > 1:
+        assert len(axs) == len(clauses), 'Mismatched number of plots and clauses!'
+        xlim = list(map(lambda ax: ax.get_xlim(), axs))
+        xlim = [np.min(list(map(itemgetter(0), xlim))), np.max(list(map(itemgetter(1), xlim)))]
+        ylim = list(map(lambda ax: ax.get_ylim(), axs))
+        ylim = [np.min(list(map(itemgetter(0), ylim))), np.max(list(map(itemgetter(1), ylim)))]
+        for i, ax in enumerate(axs):
+            title = title_fom_clause(clauses[i])
+            ax.set_title(title, fontdict={'fontsize': 10})
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+            if ax.colNum > 0:
+                ax.get_yaxis().set_visible(False)
+            if ax.rowNum < (ax.numRows - 1):
+                ax.get_xaxis().set_visible(False)
+        if isinstance(title, list):
+            title = ', '.join(title)
+        fig.suptitle(title)
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.9)
+    return fig
+
 ### Correlations
 def correlations(sdf, colnames, ax=None, plot=True):
     correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]))
@@ -17,6 +45,7 @@ def correlations(sdf, colnames, ax=None, plot=True):
         sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
     return pdf
 
+### Scatterplot
 def strat_scatterplot(sdf, col1, col2, n=30):
     stages = []
     for col in [col1, col2]:
@@ -30,7 +59,6 @@ def strat_scatterplot(sdf, col1, col2, n=30):
     model = pipeline.fit(sdf)
     return model, sdf.count()
 
-### Scatterplot
 def scatterplot(sdf, col1, col2, n=30, ax=None):
     strat_ax, data = sdf._get_strata()
     if data is None:
@@ -67,6 +95,7 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
                     legend=False)
     return ax
 
+### Histogram
 def strat_histogram(sdf, colname, bins=10, categorical=False):
     if categorical:
         start_values = (sdf.select(colname)
@@ -81,7 +110,6 @@ def strat_histogram(sdf, colname, bins=10, categorical=False):
         start_values, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(bins)
     return start_values, counts
 
-### Histogram
 def histogram(sdf, colname, bins=10, categorical=False, ax=None):
     strat_ax, data = sdf._get_strata()
     if data is None:
@@ -136,6 +164,7 @@ def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
     ax.set_legend()
     return
 
+### Boxplot
 def _calc_tukey(col_summ):
     q1, q3 = float(col_summ['25%']), float(col_summ['75%'])
     iqr = q3 - q1
@@ -143,7 +172,6 @@ def _calc_tukey(col_summ):
     ufence = q3 + (1.5 * iqr)
     return lfence, ufence
 
-### Boxplot
 def boxplot(sdf, colnames, ax=None):
     strat_ax, data = sdf._get_strata()
     if data is None:
@@ -196,3 +224,20 @@ def boxplot(sdf, colnames, ax=None):
         return ax
     else:
         return stats
+
+def post_boxplot(axs, stats, clauses):
+    if len(axs) == len(stats):
+        new_res = []
+        for ax, stats in zip(axs, stats):
+            ax.bxp(stats)
+            new_res.append(ax)
+    else:
+        ax = axs[0]
+        items = []
+        for clause, stats in zip(clauses, stats):
+            label = title_fom_clause(clause)
+            stats[0].update({'label': label})
+            items.append(stats[0])
+        ax.bxp(items)
+        new_res = [ax]
+    return new_res

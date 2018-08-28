@@ -2,22 +2,21 @@ import numpy as np
 import datetime
 from pyspark.sql.types import StructType
 
+# TO DO: include list, dict and np.array types
+
 _mapping = {str: 'string',
-             bool: 'boolean',
-             int: 'integer',
-             float: 'float',
-             #list: 'array',
-             #dict: 'map',
-             #np.array: 'array',
-             datetime.date: 'date',
-             datetime.datetime: 'timestamp',
-             np.bool: 'boolean',
-             np.int8: 'byte',
-             np.int16: 'short',
-             np.int32: 'integer',
-             np.int64: 'long',
-             np.float32: 'float',
-             np.float64: 'double'}
+            bool: 'boolean',
+            int: 'integer',
+            float: 'float',
+            datetime.date: 'date',
+            datetime.datetime: 'timestamp',
+            np.bool: 'boolean',
+            np.int8: 'byte',
+            np.int16: 'short',
+            np.int32: 'integer',
+            np.int64: 'long',
+            np.float32: 'float',
+            np.float64: 'double'}
 
 def generate_schema(colnames, coltypes, nullables=None):
     assert len(colnames) == len(coltypes), "You must specify types for all columns."

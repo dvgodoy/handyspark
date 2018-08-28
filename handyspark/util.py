@@ -1,6 +1,5 @@
 from math import isnan, isinf
 import traceback
-from pyspark.sql import Window, functions as F
 
 class bcolors:
     HEADER = '\033[95m'
@@ -93,40 +92,3 @@ def get_buckets(rdd, buckets):
     buckets = [i * inc + minv for i in range(buckets)]
     buckets.append(maxv)  # fix accumulated error
     return buckets
-
-### LOC
-def loc(sdf, rows):
-    return (sdf
-            .withColumn('_miid', F.monotonically_increasing_id())
-            .withColumn('_row_id', F.row_number().over(Window().orderBy(F.col('_miid'))))
-            .filter(F.col('_row_id').between(*rows))
-            .drop('_miid', '_row_id'))
-
-# Forward fill
-#from pyspark.sql import Window
-#window = Window.orderBy('time').rowsBetween(Window.unboundedPreceding, Window.currentRow)
-#sdf = sdf.withColumn(col,  F.last(sdf[col], ignorenulls=True).over(window))
-
-#>>> from pyspark.statcounter import StatCounter
-#>>> rdd = sc.parallelize([9, -1, 0, 99, 0, -10])
-#>>> stats = rdd.aggregate(StatCounter(), StatCounter.merge, StatCounter.mergeStats)
-#>>> stats.minValue, stats.maxValue
-
-#from pyspark.statcounter import StatCounter
-# value[0] is the timestamp and value[1] is the float-value
-# we are using two instances of StatCounter to sum-up two different statistics
-
-#def mergeValues(s1, v1, s2, v2):
-#    s1.merge(v1)
-#    s2.merge(v2)
-#    return
-
-#def combineStats(s1, s2):
-#    s1[0].mergeStats(s2[0])
-#    s1[1].mergeStats(s2[1])
-#    return
-#(df.aggregateByKey((StatCounter(), StatCounter()),
-#        (lambda s, values: mergeValues(s[0], values[0], s[1], values[1]),
-#        (lambda s1, s2: combineStats(s1, s2))
-#    .mapValues(lambda s: (  s[0].min(), s[0].max(), s[1].max(), s[1].min(), s[1].mean(), s[1].variance(), s[1].stddev,() s[1].count()))
-#    .collect())

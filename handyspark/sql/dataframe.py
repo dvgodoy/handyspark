@@ -1,6 +1,8 @@
 from copy import deepcopy
-from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram
+from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram,\
+    consolidate_plots, post_boxplot
 from handyspark.sql.string import HandyString
+from handyspark.sql.datetime import HandyDatetime
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
 import inspect
@@ -10,7 +12,7 @@ import numpy as np
 from operator import itemgetter, add
 import pandas as pd
 from pyspark.ml.feature import Bucketizer
-from pyspark.sql import DataFrame, GroupedData, functions as F
+from pyspark.sql import DataFrame, GroupedData, Window, functions as F
 
 class HandyImputer(object):
     pass
@@ -124,15 +126,14 @@ class Handy(object):
 
     def _set_combinations(self, combinations, clauses):
         if self._strata is not None:
-            assert len(combinations[0]) == len(self._strata)
+            assert len(combinations[0]) == len(self._strata), "Mismatched number of combinations and strata!"
             self._strata_combinations = combinations
             self._strata_clauses = clauses
-
-        self._n_cols = len(set(map(itemgetter(0), combinations)))
-        try:
-            self._n_rows = len(set(map(itemgetter(1), combinations)))
-        except IndexError:
-            self._n_rows = 1
+            self._n_cols = len(set(map(itemgetter(0), combinations)))
+            try:
+                self._n_rows = len(set(map(itemgetter(1), combinations)))
+            except IndexError:
+                self._n_rows = 1
 
     def _build_strat_plot(self, n_rows, n_cols, **kwargs):
         fig, axs = plt.subplots(n_rows, n_cols, **kwargs)
@@ -273,6 +274,7 @@ class Handy(object):
                 self._is_classification = True
                 self._classes = self._df.select(colname).rdd.map(itemgetter(0)).distinct().collect()
                 self._nclasses = len(self._classes)
+
         return HandyFrame(self._df, self)
 
     def value_counts(self, colname):
@@ -292,6 +294,7 @@ class Handy(object):
         pdf = correlations(self._df, colnames, ax=None, plot=False)
         return pdf
 
+    ### Boxplot functions
     def _strat_boxplot(self, colnames, **kwargs):
         n_rows = n_cols = 1
         if isinstance(colnames, (tuple, list)) and (len(colnames) > 1):
@@ -306,22 +309,9 @@ class Handy(object):
         return boxplot(self._df, colnames, ax)
 
     def _post_boxplot(self, res):
-        if len(self._strata_plot[1]) == len(res):
-            new_res = []
-            for ax, stats in zip(self._strata_plot[1], res):
-                ax.bxp(stats)
-                new_res.append(ax)
-        else:
-            ax = self._strata_plot[1][0]
-            items = []
-            for comb, stats in zip(self._strata_clauses, res):
-                label = comb.replace(' and ', '\n').replace(' == ', '=')
-                stats[0].update({'label': label})
-                items.append(stats[0])
-            ax.bxp(items)
-            new_res = [ax]
-        return new_res
+        return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
 
+    ### Scatterplot functions
     def _strat_scatterplot(self, col1, col2, **kwargs):
         self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         return strat_scatterplot(self._df, col1, col2)
@@ -329,6 +319,7 @@ class Handy(object):
     def scatterplot(self, col1, col2, ax=None):
         return scatterplot(self._df, col1, col2, ax=ax)
 
+    ### Histogram functions
     def _strat_hist(self, colname, bins=10, **kwargs):
         self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         categorical = True
@@ -418,6 +409,20 @@ class HandyFrame(DataFrame):
                 pass
         return plot, object
 
+    def _gen_row_ids(self, *args):
+        # DO NOT USE!
+        return (self
+                .sort(*args)
+                .withColumn('_miid', F.monotonically_increasing_id())
+                .withColumn('_row_id', F.row_number().over(Window().orderBy(F.col('_miid'))))
+                .drop('_miid'))
+
+    def _loc(self, lower_bound, upper_bound):
+        # DO NOT USE!
+        assert '_row_id' in self.columns, "Cannot use LOC without generating `row_id`s first!"
+        clause = F.col('_row_id').between(lower_bound, upper_bound)
+        return self.filter(clause)
+
     @property
     def handy(self):
         return self._handy
@@ -429,6 +434,10 @@ class HandyFrame(DataFrame):
     @property
     def str(self):
         return HandyString(self)
+
+    @property
+    def dt(self):
+        return HandyDatetime(self)
 
     @property
     def stages(self):
@@ -523,9 +532,17 @@ class HandyFrame(DataFrame):
     def fill(self, *args, **kwargs):
         return self._handy.fill(*args, **kwargs)
 
+    ### Summary functions
+    def value_counts(self, colname):
+        return self._handy.value_counts(colname)
+
+    def mode(self, colname):
+        return self._handy.mode(colname)
+
     def corr_matrix(self, colnames=None):
         return self._handy.corr(colnames)
 
+    ### Plot functions
     def hist(self, colname, bins=10, ax=None, **kwargs):
         return self._handy.hist(colname, bins, ax)
 
@@ -534,12 +551,6 @@ class HandyFrame(DataFrame):
 
     def scatterplot(self, col1, col2, ax=None, **kwargs):
         return self._handy.scatterplot(col1, col2, ax)
-
-    def value_counts(self, colname):
-        return self._handy.value_counts(colname)
-
-    def mode(self, colname):
-        return self._handy.mode(colname)
 
 
 class Bucket(object):
@@ -565,7 +576,8 @@ class Bucket(object):
         clauses.append('{} < {:.4f}'.format(self._colname, buckets[1]))
         for b, e in zip(buckets[1:-2], buckets[2:-1]):
             clauses.append('{} >= {:.4f} and {} < {:.4f}'.format(self._colname, b, self._colname, e))
-        clauses.append('{} >= {:.4f}'.format(self._colname, buckets[-2]))
+        clauses[-1] = clauses[-1].replace('<', '<=')
+        clauses.append('{} > {:.4f}'.format(self._colname, buckets[-2]))
         return clauses
 
 
@@ -673,28 +685,7 @@ class HandyStrata(object):
                         res = pd.concat(strat_res).sort_index()
                     elif isinstance(res[0], Axes):
                         res, axs = self._handy._strata_plot
-                        axs[0].set_title(args[0])
-                        res.tight_layout()
-                        if len(axs) > 1:
-                            xlim = list(map(lambda ax: ax.get_xlim(), axs))
-                            xlim = [np.min(list(map(itemgetter(0), xlim))), np.max(list(map(itemgetter(1), xlim)))]
-                            ylim = list(map(lambda ax: ax.get_ylim(), axs))
-                            ylim = [np.min(list(map(itemgetter(0), ylim))), np.max(list(map(itemgetter(1), ylim)))]
-                            for i, ax in enumerate(axs):
-                                title = self._clauses[i].replace(' and ', '\n').replace(' == ', '=')
-                                ax.set_title(title, fontdict={'fontsize': 10})
-                                ax.set_xlim(xlim)
-                                ax.set_ylim(ylim)
-                                if ax.colNum > 0:
-                                    ax.get_yaxis().set_visible(False)
-                                if ax.rowNum < (ax.numRows - 1):
-                                    ax.get_xaxis().set_visible(False)
-                            title = args[0]
-                            if isinstance(title, list):
-                                title = ', '.join(title)
-                            res.suptitle(title)
-                            res.tight_layout()
-                            res.subplots_adjust(top=0.9)
+                        res = consolidate_plots(res, axs, args[0], self._clauses)
                     elif len(res) == len(self._combinations):
                         res = (pd.concat([pd.DataFrame(res, columns=[name]),
                                           pd.DataFrame(strata, columns=self._strata)], axis=1)

@@ -49,4 +49,3 @@ class HandyString(object):
                 return wrapper
             else:
                 raise e
-
