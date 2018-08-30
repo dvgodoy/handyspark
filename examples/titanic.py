@@ -2,11 +2,32 @@ import findspark
 findspark.init()
 
 from handyspark.sql import HandyFrame, Bucket
-from pyspark.sql import SparkSession
+from handyspark.util import call_scala_method
+from pyspark.sql import SparkSession, functions as F
 import matplotlib.pyplot as plt
+
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.mllib.evaluation import BinaryClassificationMetrics, MulticlassMetrics
+from pyspark.ml.pipeline import Pipeline
+from pyspark.ml.feature import VectorAssembler
 
 spark = SparkSession.builder.getOrCreate()
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
+
+assem = VectorAssembler(inputCols=['Pclass', 'Age', 'Fare'], outputCol='features')
+rf = RandomForestClassifier(labelCol='Survived')
+pipe = Pipeline(stages=[assem, rf])
+data = sdf.select('Pclass', 'Age', 'Fare', 'Survived').dropna()
+model = pipe.fit(data)
+pred = model.transform(data)
+#pred = spark.createDataFrame(pred.select('probability', 'Survived').rdd.map(lambda row: (float(row.probability[1]), float(row.Survived)))).toDF('scores', 'labels')
+#res = call_scala_method(BinaryClassificationMetrics, 'areaUnderROC', pred)
+pred = pred.select('prediction', 'Survived')
+res = call_scala_method(MulticlassMetrics, 'labels', pred)
+print(res)
+#from operator import attrgetter
+#pred.rdd.map(itemgetter(6)).map(attrgetter('values')).map(list).take(1)
+
 sdf2 = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 hdf = HandyFrame(sdf)
 hdf3 = hdf.stratify(['Pclass', 'Sex']).fill('Age', strategy='median')

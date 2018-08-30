@@ -1,5 +1,10 @@
 from math import isnan, isinf
 import traceback
+from pyspark.rdd import RDD
+from pyspark.sql import functions as F
+from pyspark.mllib.common import _java2py
+from py4j.protocol import Py4JJavaError, Py4JError
+from py4j.java_gateway import JavaObject
 
 class bcolors:
     HEADER = '\033[95m'
@@ -92,3 +97,28 @@ def get_buckets(rdd, buckets):
     buckets = [i * inc + minv for i in range(buckets)]
     buckets.append(maxv)  # fix accumulated error
     return buckets
+
+def get_jvm_class(cl):
+    return 'org.apache.{}.{}'.format(cl.__module__[2:], cl.__name__)
+
+def call_scala_method(py_class, scala_method, df, *args, **kwargs):
+    sc = df.sql_ctx._sc
+    java_class = getattr(sc._jvm , get_jvm_class(py_class))
+    jdf = df.select(*(F.col(col).astype('double') for col in df.columns))._jdf
+    java_obj = java_class(jdf)
+    res = getattr(java_obj, scala_method)(*args, **kwargs)
+    if isinstance(res, JavaObject):
+        classname = res.getClass().toString()
+        if classname[-3:] == 'RDD':
+            serde = sc._jvm.SerDe
+            try:
+                jrdd = serde.javaToPython(serde.fromTuple2RDD(res).toJavaRDD())
+                rdd = RDD(jrdd, sc)
+                res = rdd.collect()
+            except (Py4JError, Py4JJavaError):
+                jrdd = serde.javaToPython(res.toJavaRDD())
+                rdd = RDD(jrdd, sc)
+                res = rdd.collect()
+        else:
+            res = _java2py(sc, res)
+    return res
