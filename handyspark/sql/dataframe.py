@@ -12,6 +12,7 @@ from operator import itemgetter, add
 import pandas as pd
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F
+from pyspark.sql.types import StructField, StructType, DoubleType, ArrayType
 
 class HandyImputer(object):
     pass
@@ -232,11 +233,26 @@ class Handy(object):
         res = HandyFrame(self._df.na.fill(self._imputed_values), self)
         return res
 
+    def _dense_to_array(self, colname, array_colname):
+        sql_ctx = self._df.sql_ctx
+        coltype = self._df.select(colname).schema.fields[0].dataType.typeName()
+        if coltype == 'vectorudt':
+            idx = self._df.columns.index(colname)
+            schema = StructType(self._df.schema.fields + [StructField(array_colname, ArrayType(DoubleType()), True)])
+            res = sql_ctx.createDataFrame(self._df.rdd.map(tuple).map(lambda t: t + (t[idx].values.tolist(),)),
+                                          schema=schema)
+        else:
+            res = self._df.withColumn(array_colname, F.col(colname))
+        return HandyFrame(res, self)
+
     def disassemble(self, colname, new_colnames=None):
-        size = self._df.select(F.min(F.size(colname))).take(1)[0][0]
+        array_col = '_{}'.format(colname)
+        tdf = self._dense_to_array(colname, array_col)
+        size = tdf.select(F.min(F.size(array_col))).take(1)[0][0]
         if new_colnames is None:
             new_colnames = ['{}_{}'.format(colname, i) for i in range(size)]
-        res = self._df.select('*', *(F.col(colname).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
+        res = tdf.select(*self._df.columns,
+                         *(F.col(array_col).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
         return HandyFrame(res, self)
 
     def fill(self, *args, **kwargs):

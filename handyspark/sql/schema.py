@@ -15,9 +15,9 @@ _mapping = {str: 'string',
             np.int64: 'long',
             np.float32: 'float',
             np.float64: 'double',
-            np.ndarray: 'list',
-            list: 'list',
-            tuple: 'list',
+            np.ndarray: 'array',
+            list: 'array',
+            tuple: 'array',
             dict: 'map'}
 
 def generate_schema(colnames, coltypes, nullables=None):

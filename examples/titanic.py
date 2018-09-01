@@ -26,6 +26,7 @@ pipe = Pipeline(stages=[assem, rf])
 data = hdf.select('Pclass', 'Age', 'Fare', 'Survived').dropna()
 model = pipe.fit(data)
 pred = model.transform(data).handy
+print(pred.handy.disassemble('features').take(1))
 
 bcm = BinaryClassificationMetrics(pred.select('probability', 'Survived').rdd.map(lambda row: (float(row.probability[1]), float(row.Survived))))
 print(bcm.areaUnderROC)

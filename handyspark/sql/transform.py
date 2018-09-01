@@ -14,7 +14,7 @@ _MAPPING = {'string': str,
             'long': np.int64,
             'float': np.float32,
             'double': np.float64,
-            'list': np.ndarray,
+            'array': np.ndarray,
             'map': dict}
 
 class HandyTransform(object):
