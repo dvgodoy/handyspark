@@ -4,6 +4,12 @@ from pyspark.rdd import RDD
 from pyspark.sql import functions as F
 from pyspark.mllib.common import _java2py, _py2java
 
+def none2default(value, default):
+    return value if value is not None else default
+
+def none2zero(value):
+    return none2default(value, 0)
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'

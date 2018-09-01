@@ -569,6 +569,7 @@ class Bucket(object):
         buckets = ([-float('inf')] +
                    get_buckets(df.select(self._colname).rdd.map(itemgetter(0)), self._bins) +
                    [float('inf')])
+        buckets[-2] += 1e-14
         return buckets
 
     def _get_clauses(self, buckets):

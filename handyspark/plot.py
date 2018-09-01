@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from handyspark.util import get_buckets
+from handyspark.util import get_buckets, none2zero
 from operator import add, itemgetter
 from pyspark.ml.feature import Bucketizer
 from pyspark.ml.pipeline import Pipeline
@@ -166,7 +166,7 @@ def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
 
 ### Boxplot
 def _calc_tukey(col_summ):
-    q1, q3 = float(col_summ['25%']), float(col_summ['75%'])
+    q1, q3 = float(none2zero(col_summ['25%'])), float(none2zero(col_summ['75%']))
     iqr = q3 - q1
     lfence = q1 - (1.5 * iqr)
     ufence = q3 + (1.5 * iqr)
@@ -193,26 +193,31 @@ def boxplot(sdf, colnames, ax=None):
         outlier = sdf.withColumn('__{}_outlier'.format(colname),
                                  ~F.col(colname).between(lfence, ufence))
 
-        minv, maxv = (outlier
-                      .filter('not __{}_outlier'.format(colname))
+        try:
+            minv, maxv = (outlier
+                          .filter('not __{}_outlier'.format(colname))
+                          .select(colname)
+                          .rdd
+                          .map(lambda x: (x[0], x[0]))
+                          .reduce(minmax))
+
+            fliers = (outlier
+                      .filter('__{}_outlier'.format(colname))
                       .select(colname)
                       .rdd
-                      .map(lambda x: (x[0], x[0]))
-                      .reduce(minmax))
-
-        fliers = (outlier
-                  .filter('__{}_outlier'.format(colname))
-                  .select(colname)
-                  .rdd
-                  .map(itemgetter(0))
-                  .sortBy(lambda v: -abs(v))
-                  .take(100))
+                      .map(itemgetter(0))
+                      .sortBy(lambda v: -abs(v))
+                      .take(100))
+        except ValueError:
+            minv = 0.
+            maxv = 0.
+            fliers = []
 
         item = {'label': colname,
-                'mean': float(col_summ['mean']),
-                'med': float(col_summ['50%']),
-                'q1': float(col_summ['25%']),
-                'q3': float(col_summ['75%']),
+                'mean': float(none2zero(col_summ['mean'])),
+                'med': float(none2zero(col_summ['50%'])),
+                'q1': float(none2zero(col_summ['25%'])),
+                'q3': float(none2zero(col_summ['75%'])),
                 'whislo': minv,
                 'whishi': maxv,
                 'fliers': fliers}
