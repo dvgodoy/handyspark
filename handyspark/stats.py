@@ -3,7 +3,7 @@ from pyspark.ml.stat import Correlation
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.pipeline import Pipeline
 from pyspark.sql.types import DoubleType
-from pyspark.sql.udf import UserDefinedFunction
+from pyspark.sql.functions import udf
 from scipy.linalg import inv
 
 def mahalanobis(sdf, colnames):
@@ -14,10 +14,9 @@ def mahalanobis(sdf, colnames):
 
     mat = Correlation.corr(features, '__scaled').head()[0].toArray()
 
-    def mult(v):
+    @udf('double')
+    def udf_mult(v):
         return float(np.dot(np.dot(np.transpose(v), inv(mat)), v))
-
-    udf_mult = UserDefinedFunction(mult, DoubleType())
 
     distance = features.withColumn('__mahalanobis', udf_mult('__scaled')).drop('__features', '__scaled')
     return distance

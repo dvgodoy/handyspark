@@ -2,8 +2,6 @@ import numpy as np
 import datetime
 from pyspark.sql.types import StructType
 
-# TO DO: include list, dict and np.array types
-
 _mapping = {str: 'string',
             bool: 'boolean',
             int: 'integer',
@@ -16,7 +14,11 @@ _mapping = {str: 'string',
             np.int32: 'integer',
             np.int64: 'long',
             np.float32: 'float',
-            np.float64: 'double'}
+            np.float64: 'double',
+            np.ndarray: 'list',
+            list: 'list',
+            tuple: 'list',
+            dict: 'map'}
 
 def generate_schema(colnames, coltypes, nullables=None):
     assert len(colnames) == len(coltypes), "You must specify types for all columns."

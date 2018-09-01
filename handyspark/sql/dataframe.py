@@ -1,8 +1,7 @@
 from copy import deepcopy
 from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram,\
     consolidate_plots, post_boxplot
-from handyspark.sql.string import HandyString
-from handyspark.sql.datetime import HandyDatetime
+from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
 import inspect
@@ -432,12 +431,8 @@ class HandyFrame(DataFrame):
         return DataFrame(self._jdf, self.sql_ctx)
 
     @property
-    def str(self):
-        return HandyString(self)
-
-    @property
-    def dt(self):
-        return HandyDatetime(self)
+    def pandas(self):
+        return HandyPandas(self)
 
     @property
     def stages(self):
@@ -514,8 +509,8 @@ class HandyFrame(DataFrame):
     def stratify(self, strata):
         return self._handy._stratify(strata)
 
-    def transform(self, f, name=None):
-        return HandyTransform.transform(self, f, name)
+    def transform(self, f, name=None, args=None, returnType=None):
+        return HandyTransform.transform(self, f, name=name, args=args, returnType=returnType)
 
     def apply(self, f, name=None):
         return HandyTransform.apply(self, f, name)

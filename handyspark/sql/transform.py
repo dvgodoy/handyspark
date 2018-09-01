@@ -13,7 +13,9 @@ _MAPPING = {'string': str,
             'integer': np.int32,
             'long': np.int64,
             'float': np.float32,
-            'double': np.float64}
+            'double': np.float64,
+            'list': np.ndarray,
+            'map': dict}
 
 class HandyTransform(object):
     _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
@@ -28,10 +30,11 @@ class HandyTransform(object):
         assert isinstance(args, (list, tuple)), "args must be list or tuple"
         name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
 
-        if returnType is None:
-            returnType = str(sig.return_annotation.__name__)
+        signatureType = str(sig.return_annotation.__name__)
+        if signatureType != '_empty':
+            returnType = signatureType
         assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
-        returnType = HandyTransform._mapping.get(returnType, 'double')
+        returnType = HandyTransform._mapping.get(returnType, 'str')
 
         @F.pandas_udf(returnType=returnType)
         def udf(*args):
@@ -49,10 +52,11 @@ class HandyTransform(object):
         assert isinstance(args, (list, tuple)), "args must be list or tuple"
         name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
 
-        if returnType is None:
-            returnType = str(sig.return_annotation.__name__)
+        signatureType = str(sig.return_annotation.__name__)
+        if signatureType != '_empty':
+            returnType = signatureType
         assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
-        returnType = HandyTransform._mapping.get(returnType, 'double')
+        returnType = HandyTransform._mapping.get(returnType, 'str')
         schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
@@ -77,6 +81,8 @@ class HandyTransform(object):
     @staticmethod
     def assign(sdf, **kwargs):
         for c, f in kwargs.items():
-            sdf = sdf.transform(f, name=c)
+            returnType =  _MAPPING.get(sdf.select(f.__code__.co_varnames[0]).schema.fields[0].dataType.typeName(),
+                                       str).__name__
+            sdf = sdf.transform(f, name=c, returnType=returnType)
         return sdf
 
