@@ -2,9 +2,7 @@ from math import isnan, isinf
 import traceback
 from pyspark.rdd import RDD
 from pyspark.sql import functions as F
-from pyspark.mllib.common import _java2py
-from py4j.protocol import Py4JJavaError, Py4JError
-from py4j.java_gateway import JavaObject
+from pyspark.mllib.common import _java2py, _py2java
 
 class bcolors:
     HEADER = '\033[95m'
@@ -101,24 +99,23 @@ def get_buckets(rdd, buckets):
 def get_jvm_class(cl):
     return 'org.apache.{}.{}'.format(cl.__module__[2:], cl.__name__)
 
-def call_scala_method(py_class, scala_method, df, *args, **kwargs):
+def call_scala_method(py_class, scala_method, df, *args):
     sc = df.sql_ctx._sc
     java_class = getattr(sc._jvm , get_jvm_class(py_class))
     jdf = df.select(*(F.col(col).astype('double') for col in df.columns))._jdf
     java_obj = java_class(jdf)
-    res = getattr(java_obj, scala_method)(*args, **kwargs)
-    if isinstance(res, JavaObject):
-        classname = res.getClass().toString()
-        if classname[-3:] == 'RDD':
-            serde = sc._jvm.SerDe
-            try:
-                jrdd = serde.javaToPython(serde.fromTuple2RDD(res).toJavaRDD())
-                rdd = RDD(jrdd, sc)
-                res = rdd.collect()
-            except (Py4JError, Py4JJavaError):
-                jrdd = serde.javaToPython(res.toJavaRDD())
-                rdd = RDD(jrdd, sc)
-                res = rdd.collect()
-        else:
-            res = _java2py(sc, res)
+    args = [_py2java(sc, a) for a in args]
+    java_res = getattr(java_obj, scala_method)(*args)
+    res = _java2py(sc, java_res)
+    if isinstance(res, RDD):
+        try:
+            first = res.take(1)[0]
+            if isinstance(first, dict):
+                first = list(first.values())[0]
+                if first.startswith('scala.Tuple'):
+                    serde = sc._jvm.org.apache.spark.mllib.api.python.SerDe
+                    java_res = serde.fromTuple2RDD(java_res)
+                    res = _java2py(sc, java_res)
+        except IndexError:
+            pass
     return res

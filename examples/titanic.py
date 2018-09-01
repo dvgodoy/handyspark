@@ -2,12 +2,11 @@ import findspark
 findspark.init()
 
 from handyspark.sql import HandyFrame, Bucket
-from handyspark.util import call_scala_method
-from pyspark.sql import SparkSession, functions as F
+from handyspark.extensions import *
+from pyspark.sql import SparkSession
 import matplotlib.pyplot as plt
 
 from pyspark.ml.classification import RandomForestClassifier
-from pyspark.mllib.evaluation import BinaryClassificationMetrics, MulticlassMetrics
 from pyspark.ml.pipeline import Pipeline
 from pyspark.ml.feature import VectorAssembler
 
@@ -20,11 +19,12 @@ pipe = Pipeline(stages=[assem, rf])
 data = sdf.select('Pclass', 'Age', 'Fare', 'Survived').dropna()
 model = pipe.fit(data)
 pred = model.transform(data)
-#pred = spark.createDataFrame(pred.select('probability', 'Survived').rdd.map(lambda row: (float(row.probability[1]), float(row.Survived)))).toDF('scores', 'labels')
-#res = call_scala_method(BinaryClassificationMetrics, 'areaUnderROC', pred)
-pred = pred.select('prediction', 'Survived')
-res = call_scala_method(MulticlassMetrics, 'labels', pred)
-print(res)
+
+bcm = BinaryClassificationMetrics(pred.select('probability', 'Survived').rdd.map(lambda row: (float(row.probability[1]), float(row.Survived))))
+print(bcm.areaUnderROC)
+df = bcm.getMetricsByThreshold()
+print(df.toPandas())
+
 #from operator import attrgetter
 #pred.rdd.map(itemgetter(6)).map(attrgetter('values')).map(list).take(1)
 
