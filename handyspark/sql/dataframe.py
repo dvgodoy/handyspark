@@ -4,7 +4,9 @@ from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat
 from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
+from handyspark.ml.base import HandyTransformers
 import inspect
+import json
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import numpy as np
@@ -255,6 +257,9 @@ class Handy(object):
                          *(F.col(array_col).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
         return HandyFrame(res, self)
 
+    def to_metrics_RDD(self, prob_col, label):
+        return self.disassemble(prob_col).select('{}_1'.format(prob_col), F.col(label).cast('double')).rdd.map(tuple)
+
     def fill(self, *args, **kwargs):
         if len(args) and isinstance(args[0], DataFrame):
             return self.__fill_target(args[0])
@@ -451,6 +456,10 @@ class HandyFrame(DataFrame):
         return HandyPandas(self)
 
     @property
+    def transformers(self):
+        return HandyTransformers(self)
+
+    @property
     def stages(self):
         return self._handy.stages
 
@@ -542,6 +551,12 @@ class HandyFrame(DataFrame):
 
     def fill(self, *args, **kwargs):
         return self._handy.fill(*args, **kwargs)
+
+    def disassemble(self, colname, new_colnames=None):
+        return self._handy.disassemble(colname, new_colnames)
+
+    def to_metrics_RDD(self, prob_col, label):
+        return self._handy.to_metrics_RDD(prob_col, label)
 
     ### Summary functions
     def value_counts(self, colname):

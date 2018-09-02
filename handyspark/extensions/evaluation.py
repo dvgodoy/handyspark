@@ -1,5 +1,5 @@
 from operator import itemgetter
-from pyspark.mllib.evaluation import BinaryClassificationMetrics
+from pyspark.mllib.evaluation import BinaryClassificationMetrics, MulticlassMetrics
 from pyspark.sql import SQLContext
 
 def thresholds(self):
@@ -30,6 +30,11 @@ def getMetricsByThreshold(self):
     df = sql_ctx.createDataFrame(metrics).toDF('threshold', 'fpr', 'recall', 'precision')
     return df
 
+def confusionMatrix(self, threshold=0.5):
+    scoreAndLabels = self.call2('scoreAndLabels').map(lambda t: (float(t[0] > threshold), t[1]))
+    mcm = MulticlassMetrics(scoreAndLabels)
+    return mcm.confusionMatrix()
+
 BinaryClassificationMetrics.thresholds = thresholds
 BinaryClassificationMetrics.roc = roc
 BinaryClassificationMetrics.pr = pr
@@ -37,3 +42,4 @@ BinaryClassificationMetrics.fMeasureByThreshold = fMeasureByThreshold
 BinaryClassificationMetrics.precisionByThreshold = precisionByThreshold
 BinaryClassificationMetrics.recallByThreshold = recallByThreshold
 BinaryClassificationMetrics.getMetricsByThreshold = getMetricsByThreshold
+BinaryClassificationMetrics.confusionMatrix = confusionMatrix

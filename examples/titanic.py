@@ -3,32 +3,37 @@ findspark.init()
 
 from handyspark.sql import Bucket
 from handyspark.extensions import *
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, functions as F
 import matplotlib.pyplot as plt
-import numpy as np
 
 from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.pipeline import Pipeline
+from pyspark.ml.pipeline import Pipeline, PipelineModel
 from pyspark.ml.feature import VectorAssembler
 
 spark = SparkSession.builder.getOrCreate()
 
 import numpy as np
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
+
 hdf = sdf.handy
+hdf3 = hdf.stratify(['Pclass', 'Sex']).fill('Age', strategy='median')
+ht = hdf3.transformers.imputer()
+new_hdf = ht.transform(hdf)
+
 hdf = hdf.assign(logFare=lambda Fare: np.log(Fare + 1))
 print(hdf.pandas.abs('Fare', alias='absFare').take(1))
 print(hdf.pandas.str.find('Name', sub='Mr.', alias='FindMr').take(1))
 
 assem = VectorAssembler(inputCols=['Pclass', 'Age', 'Fare'], outputCol='features')
 rf = RandomForestClassifier(labelCol='Survived')
-pipe = Pipeline(stages=[assem, rf])
+pipe = Pipeline(stages=[ht, assem, rf])
 data = hdf.select('Pclass', 'Age', 'Fare', 'Survived').dropna()
 model = pipe.fit(data)
-pred = model.transform(data).handy
-print(pred.handy.disassemble('features').take(1))
+# model.save('pipeline.parquet')
 
-bcm = BinaryClassificationMetrics(pred.select('probability', 'Survived').rdd.map(lambda row: (float(row.probability[1]), float(row.Survived))))
+pred = model.transform(data).handy
+bcm = BinaryClassificationMetrics(pred.to_metrics_RDD('probability', 'Survived'))
+print(bcm.confusionMatrix(.3))
 print(bcm.areaUnderROC)
 df = bcm.getMetricsByThreshold()
 print(df.toPandas())
