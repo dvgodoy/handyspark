@@ -1,5 +1,5 @@
-from handyspark.sql.dataframe import HandyFrame, Bucket
+from handyspark.sql.dataframe import HandyFrame, Bucket, Quantile, DataFrame
 
 __all__ = [
-    'HandyFrame', 'Bucket'
+    'HandyFrame', 'Bucket', 'Quantile'
 ]

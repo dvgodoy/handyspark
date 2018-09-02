@@ -1,12 +1,11 @@
 from copy import deepcopy
+from handyspark.ml.base import HandyTransformers
 from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram,\
     consolidate_plots, post_boxplot
 from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
 from handyspark.util import HandyException, get_buckets
-from handyspark.ml.base import HandyTransformers
 import inspect
-import json
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,8 +15,11 @@ from pyspark.ml.feature import Bucketizer
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F
 from pyspark.sql.types import StructField, StructType, DoubleType, ArrayType
 
-class HandyImputer(object):
-    pass
+@property
+def handy(self):
+    return HandyFrame(self)
+
+DataFrame.handy = handy
 
 class Handy(object):
     def __init__(self, df, response=None):
@@ -580,7 +582,7 @@ class HandyFrame(DataFrame):
 
 
 class Bucket(object):
-    def __init__(self, colname, bins=20):
+    def __init__(self, colname, bins=5):
         self._colname = colname
         self._bins = bins
 
@@ -607,6 +609,18 @@ class Bucket(object):
         clauses.append('{} > {:.4f}'.format(self._colname, buckets[-2]))
         return clauses
 
+class Quantile(Bucket):
+    def __repr__(self):
+        return 'Quantile{}_{}'.format(self._colname, self._bins)
+
+    def _get_buckets(self, df):
+        buckets = ([-float('inf')] +
+                   df.approxQuantile(col=self._colname,
+                                     probabilities=np.linspace(0, 1, self._bins + 1).tolist(),
+                                     relativeError=0.01) +
+                   [float('inf')])
+        buckets[-2] += 1e-14
+        return buckets
 
 class HandyStrata(object):
     __handy_methods = (list(filter(lambda n: n[0] != '_',
@@ -650,6 +664,9 @@ class HandyStrata(object):
             df._strat_index = i
             df._strat_handy = self._handy
         self._imputed_values = {}
+
+    def __repr__(self):
+        return "HandyStrata[%s]" % (", ".join("%s" % str(c) for c in self._strata))
 
     def __getattribute__(self, name):
         try:

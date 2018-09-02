@@ -1,8 +1,7 @@
 import findspark
 findspark.init()
 
-from handyspark.sql import Bucket
-from handyspark.extensions import *
+from handyspark import Bucket, Quantile, BinaryClassificationMetrics
 from pyspark.sql import SparkSession, functions as F
 import matplotlib.pyplot as plt
 
@@ -16,6 +15,7 @@ import numpy as np
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 
 hdf = sdf.handy
+hdf3 = hdf.stratify([Quantile('Fare', 5), 'Sex']).fill('Age', strategy='median')
 hdf3 = hdf.stratify(['Pclass', 'Sex']).fill('Age', strategy='median')
 ht = hdf3.transformers.imputer()
 new_hdf = ht.transform(hdf)
@@ -38,9 +38,6 @@ print(bcm.areaUnderROC)
 df = bcm.getMetricsByThreshold()
 print(df.toPandas())
 
-#from operator import attrgetter
-#pred.rdd.map(itemgetter(6)).map(attrgetter('values')).map(list).take(1)
-
 sdf2 = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 hdf3 = hdf.stratify(['Pclass', 'Sex']).fill('Age', strategy='median')
 hdf3.stratify([Bucket('Age', 3), 'Sex']).boxplot('Fare', figsize=(12, 6)).savefig('boxplot1.png', type='png')
@@ -51,13 +48,13 @@ hdf3.stratify(['Pclass', 'Sex']).scatterplot('Fare', 'Age', figsize=(12, 6)).sav
 print(hdf3.stratify([Bucket('Age', 5), 'Sex']).mode('Fare'))
 print(hdf3.stratify(['Pclass', 'Sex']).sample(withReplacement=False, fraction=.1).show())
 print(hdf3.stratify(['Pclass', 'Sex']).corr_matrix(['Fare', 'Age']))
-print(hdf.handy.value_counts('Embarked'))
-print(hdf3.handy._imputed_values)
+print(hdf.value_counts('Embarked'))
+print(hdf3.statistics_)
 hdf2 = hdf3.fill(sdf2)
 print(hdf.corr_matrix())
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 10))
-hdf = hdf.fill('Age', categorical=['Embarked'], strategy='median')#.fillna({'Embarked': 'S'})
+hdf = hdf.fill('Age', categorical=['Embarked'], strategy='median')
 hdf.hist('Embarked', ax=ax1)
 hdf.hist('Fare', ax=ax2)
 hdf.scatterplot('Fare', 'Age', ax=ax3)
