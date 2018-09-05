@@ -1,8 +1,9 @@
 from math import isnan, isinf
-import traceback
+import pandas as pd
 from pyspark.rdd import RDD
 from pyspark.sql import functions as F
 from pyspark.mllib.common import _java2py, _py2java
+import traceback
 
 def none2default(value, default):
     return value if value is not None else default
@@ -25,6 +26,8 @@ class HandyException(Exception):
         try:
             summary = kwargs['summary']
             if summary:
+                # logger = sc._jvm.org.apache.log4j.LogManager.getRootLogger
+                # logger.error(HandyException.exception_summary())
                 print(HandyException.exception_summary())
         except KeyError:
             pass
@@ -125,3 +128,19 @@ def call_scala_method(py_class, scala_method, df, *args):
         except IndexError:
             pass
     return res
+
+def counts_to_df(value_counts, colnames, n_points):
+    pdf = pd.DataFrame(value_counts
+                       .to_frame('count')
+                       .reset_index()
+                       .apply(lambda row: dict({'count': row['count']},
+                                               **dict(zip(colnames, row['index'].toArray()))),
+                              axis=1)
+                       .values
+                       .tolist())
+    pdf['count'] /= pdf['count'].sum()
+    proportions = pdf['count'] / pdf['count'].min()
+    factor = int(n_points / proportions.sum())
+    pdf = pd.concat([pdf[colnames], (proportions * factor).astype(int)], axis=1)
+    combinations = pdf.apply(lambda row: row.to_dict(), axis=1).values.tolist()
+    return pd.DataFrame([dict(v) for c in combinations for v in int(c.pop('count')) * [list(c.items())]])

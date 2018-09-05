@@ -2,6 +2,7 @@ import findspark
 findspark.init()
 
 from handyspark import Bucket, Quantile, BinaryClassificationMetrics
+from handyspark.util import counts_to_df
 from pyspark.sql import SparkSession, functions as F
 import matplotlib.pyplot as plt
 
@@ -15,6 +16,16 @@ import numpy as np
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 
 hdf = sdf.handy
+
+# from pyspark.sql.functions import udf
+# @udf('double')
+# def myfunc(Fare):
+#     return Fare * y
+# print(hdf.select(myfunc('Fare')).take(1))
+assem = VectorAssembler(inputCols=['Pclass', 'Survived'], outputCol='features')
+vc = assem.transform(hdf).handy.value_counts('features')
+print(counts_to_df(vc, ['Pclass', 'Survived'], 100))
+
 hdf3 = hdf.stratify([Quantile('Fare', 5), 'Sex']).fill('Age', strategy='median')
 hdf3 = hdf.stratify(['Pclass', 'Sex']).fill('Age', strategy='median')
 ht = hdf3.transformers.imputer()

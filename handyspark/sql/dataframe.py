@@ -522,12 +522,17 @@ class HandyFrame(DataFrame):
         return self
 
     def collect(self):
-        if self._safety:
-            print('\nINFO: Safety is ON - returning up to {} instances.'.format(self._safety_limit))
-            return super().limit(self._safety_limit).collect()
-        else:
-            self._safety = True
-            return super().collect()
+        try:
+            if self._safety:
+                print('\nINFO: Safety is ON - returning up to {} instances.'.format(self._safety_limit))
+                return super().limit(self._safety_limit).collect()
+            else:
+                self._safety = True
+                return super().collect()
+        except HandyException as e:
+            raise HandyException(str(e), summary=False)
+        except Exception as e:
+            raise HandyException(str(e), summary=True)
 
     def take(self, num):
         self._safety_off = True
@@ -730,6 +735,11 @@ class HandyStrata(object):
                     elif isinstance(res[0], Axes):
                         res, axs = self._handy._strata_plot
                         res = consolidate_plots(res, axs, args[0], self._clauses)
+                    elif isinstance(res[0], list):
+                        joined_list = res[0]
+                        for l in res[1:]:
+                            joined_list += l
+                        return joined_list
                     elif len(res) == len(self._combinations):
                         res = (pd.concat([pd.DataFrame(res, columns=[name]),
                                           pd.DataFrame(strata, columns=self._strata)], axis=1)
