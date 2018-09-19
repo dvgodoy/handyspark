@@ -4,6 +4,7 @@ findspark.init()
 from handyspark import Bucket, Quantile, BinaryClassificationMetrics
 from handyspark.util import counts_to_df
 from pyspark.sql import SparkSession, functions as F
+from pyspark.sql.types import StringType, IntegerType, ArrayType, DoubleType
 import matplotlib.pyplot as plt
 
 from pyspark.ml.classification import RandomForestClassifier
@@ -16,6 +17,16 @@ import numpy as np
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 
 hdf = sdf.handy
+#print(hdf.assign(x=ArrayType(DoubleType()).ret(lambda Fare: Fare.apply(lambda v: [v, v*2]))).take(1))
+from typing import List
+def make_list(Fare) -> List[float]:
+    return Fare.apply(lambda v: [v, v*2])
+#print(hdf.assign(x=ArrayType(DoubleType()).ret(make_list)).take(1))
+print(hdf.assign(x=make_list).take(1))
+print(hdf.handy.fence_outliers('Fare').take(1))
+print(hdf.pandas.str.find('Name', sub='Mr.', alias='FindMr').take(1))
+print(hdf.assign(FindMr=IntegerType.ret(lambda Name: Name.str.find(sub='Mr.'))).take(1))
+print(hdf.assign(x=StringType.ret(lambda Fare: (Fare * 2).map('${:,.2f}'.format))).take(1))
 
 # from pyspark.sql.functions import udf
 # @udf('double')

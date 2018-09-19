@@ -288,6 +288,22 @@ class Handy(object):
         missing.name = name
         return missing
 
+    def fence_outliers(self, colnames):
+        if not isinstance(colnames, (tuple, list)):
+            colnames = [colnames]
+        df = self._df
+        for colname in colnames:
+            q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
+            iqr = q3 - q1
+            lfence = q1 - (1.5 * iqr)
+            ufence = q3 + (1.5 * iqr)
+            df = (df
+                  .withColumn('__fence', F.lit(lfence))
+                  .withColumn(colname, F.greatest(colname, '__fence'))
+                  .withColumn('__fence', F.lit(ufence))
+                  .withColumn(colname, F.least(colname, '__fence')))
+        return HandyFrame(df.select(self._df.columns), self)
+
     def set_response(self, colname):
         if colname is not None:
             assert colname in self._df.columns, "{} not in DataFrame".format(colname)

@@ -1,4 +1,4 @@
-from pyspark.sql.types import AtomicType
+from pyspark.sql.types import AtomicType, ArrayType, MapType
 
 @classmethod
 def ret(cls, expr):
@@ -6,4 +6,8 @@ def ret(cls, expr):
 
 AtomicType.ret = ret
 
-# TO DO - UDTs, arrays, structs and map
+def ret(self, expr):
+    return expr, self.simpleString()
+
+ArrayType.ret = ret
+MapType.ret = ret

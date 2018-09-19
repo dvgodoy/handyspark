@@ -20,3 +20,21 @@ def mahalanobis(sdf, colnames):
 
     distance = features.withColumn('__mahalanobis', udf_mult('__scaled')).drop('__features', '__scaled')
     return distance
+
+g = jvm.com.google.common.primitives.Doubles
+go = g.toArray([0., 1., 2.])
+go2 = g.toArray([5., 6., 7.])
+
+java_class = jvm.org.apache.commons.math3.stat.inference.TTest
+jo = java_class()
+jo.tTest(go, go2)
+
+ssv = jvm.org.apache.commons.math3.stat.descriptive.StatisticalSummaryValues
+ssvo = ssv(0., 1., 100, 1., -1., 0.)
+ssvo2 = ssv(0.5, 1.5, 100, 2., -1., 50.)
+jo.tTest(ssvo, ssvo2)
+
+ks = jvm.org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest
+nd = jvm.org.apache.commons.math3.distribution.NormalDistribution
+jdata = g.toArray(np.random.randn(100))
+ks().kolmogorovSmirnovTest(nd(0., 1.), jdata)

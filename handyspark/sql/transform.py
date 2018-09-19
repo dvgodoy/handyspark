@@ -19,7 +19,7 @@ _MAPPING = {'string': str,
 
 class HandyTransform(object):
     _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
-    _mapping.update({'float': 'float', 'int': 'integer'})
+    _mapping.update({'float': 'double', 'int': 'integer', 'list': 'array'})
 
     @staticmethod
     def gen_pandas_udf(f, args=None, returnType=None):
@@ -30,11 +30,17 @@ class HandyTransform(object):
         assert isinstance(args, (list, tuple)), "args must be list or tuple"
         name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
 
-        signatureType = str(sig.return_annotation.__name__)
+        signatureType = str(sig.return_annotation)[7:]
         if signatureType != '_empty':
             returnType = signatureType
-        assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
-        returnType = HandyTransform._mapping.get(returnType, 'str')
+            # CHANGE
+            types = returnType.replace(']','').split('[')[:2]
+            for returnType in types:
+                assert returnType.lower() in HandyTransform._mapping.keys(), "invalid returnType"
+            returnType = '<'.join(map(lambda t: HandyTransform._mapping[t.lower()], types))
+            if len(types) > 1:
+                returnType += '>'
+            # returnType = HandyTransform._mapping.get(returnType, 'str')
 
         @F.pandas_udf(returnType=returnType)
         def udf(*args):
@@ -52,11 +58,17 @@ class HandyTransform(object):
         assert isinstance(args, (list, tuple)), "args must be list or tuple"
         name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
 
-        signatureType = str(sig.return_annotation.__name__)
+        signatureType = str(sig.return_annotation)[7:]
         if signatureType != '_empty':
             returnType = signatureType
-        assert returnType in HandyTransform._mapping.keys(), "invalid returnType"
-        returnType = HandyTransform._mapping.get(returnType, 'str')
+            # CHANGE
+            types = returnType.replace(']','').split('[')[:2]
+            for returnType in types:
+                assert returnType.lower() in HandyTransform._mapping.keys(), "invalid returnType"
+            returnType = '<'.join(map(lambda t: HandyTransform._mapping[t.lower()], types))
+            if len(types) > 1:
+                returnType += '>'
+            # returnType = HandyTransform._mapping.get(returnType, 'str')
         schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
@@ -81,8 +93,20 @@ class HandyTransform(object):
     @staticmethod
     def assign(sdf, **kwargs):
         for c, f in kwargs.items():
-            returnType =  _MAPPING.get(sdf.select(f.__code__.co_varnames[0]).schema.fields[0].dataType.typeName(),
-                                       str).__name__
-            sdf = sdf.transform(f, name=c, returnType=returnType)
+            typename = None
+            if isinstance(f, tuple):
+                f, typename = f
+            if callable(f):
+                args = f.__code__.co_varnames
+                if len(args):
+                    if typename is None:
+                        typename = sdf.select(args[0]).schema.fields[0].dataType.typeName()
+                    # CHANGE
+                    # returnType =  _MAPPING.get(typename, str).__name__
+                    sdf = sdf.transform(f, name=c, returnType=typename)
+                else:
+                    sdf = sdf.withColumn(c, F.lit(f()))
+            else:
+                sdf = sdf.withColumn(c, F.lit(f))
         return sdf
 
