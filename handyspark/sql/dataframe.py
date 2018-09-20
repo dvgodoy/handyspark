@@ -4,7 +4,7 @@ from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat
     consolidate_plots, post_boxplot
 from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
-from handyspark.util import HandyException, get_buckets
+from handyspark.util import HandyException, get_buckets, dense_to_array, disassemble
 import inspect
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
@@ -13,7 +13,6 @@ from operator import itemgetter, add
 import pandas as pd
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F
-from pyspark.sql.types import StructField, StructType, DoubleType, ArrayType
 
 @property
 def handy(self):
@@ -238,25 +237,11 @@ class Handy(object):
         return res
 
     def _dense_to_array(self, colname, array_colname):
-        sql_ctx = self._df.sql_ctx
-        coltype = self._df.select(colname).schema.fields[0].dataType.typeName()
-        if coltype == 'vectorudt':
-            idx = self._df.columns.index(colname)
-            schema = StructType(self._df.schema.fields + [StructField(array_colname, ArrayType(DoubleType()), True)])
-            res = sql_ctx.createDataFrame(self._df.rdd.map(tuple).map(lambda t: t + (t[idx].values.tolist(),)),
-                                          schema=schema)
-        else:
-            res = self._df.withColumn(array_colname, F.col(colname))
+        res = dense_to_array(self._df, colname, array_colname)
         return HandyFrame(res, self)
 
     def disassemble(self, colname, new_colnames=None):
-        array_col = '_{}'.format(colname)
-        tdf = self._dense_to_array(colname, array_col)
-        size = tdf.select(F.min(F.size(array_col))).take(1)[0][0]
-        if new_colnames is None:
-            new_colnames = ['{}_{}'.format(colname, i) for i in range(size)]
-        res = tdf.select(*self._df.columns,
-                         *(F.col(array_col).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
+        res = disassemble(self._df, colname, new_colnames)
         return HandyFrame(res, self)
 
     def to_metrics_RDD(self, prob_col, label):

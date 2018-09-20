@@ -1,7 +1,9 @@
 from math import isnan, isinf
 import pandas as pd
+from pyspark.ml.linalg import DenseVector
 from pyspark.rdd import RDD
 from pyspark.sql import functions as F
+from pyspark.sql.types import ArrayType, DoubleType, StructType, StructField
 from pyspark.mllib.common import _java2py, _py2java
 import traceback
 
@@ -104,6 +106,29 @@ def get_buckets(rdd, buckets):
     buckets = [i * inc + minv for i in range(buckets)]
     buckets.append(maxv)  # fix accumulated error
     return buckets
+
+def dense_to_array(sdf, colname, array_colname):
+    sql_ctx = sdf.sql_ctx
+    coltype = sdf.select(colname).schema.fields[0].dataType.typeName()
+    if coltype == 'vectorudt':
+        idx = sdf.columns.index(colname)
+        schema = StructType(sdf.schema.fields + [StructField(array_colname, ArrayType(DoubleType()), True)])
+        res = sql_ctx.createDataFrame(sdf.rdd.map(tuple)
+                                      .map(lambda t: t + (DenseVector(t[idx]).values.tolist(),)),
+                                      schema=schema)
+    else:
+        res = sdf.withColumn(array_colname, F.col(colname))
+    return res
+
+def disassemble(sdf, colname, new_colnames=None):
+    array_col = '_{}'.format(colname)
+    tdf = dense_to_array(sdf, colname, array_col)
+    size = tdf.select(F.min(F.size(array_col))).take(1)[0][0]
+    if new_colnames is None:
+        new_colnames = ['{}_{}'.format(colname, i) for i in range(size)]
+    res = tdf.select(*sdf.columns,
+                     *(F.col(array_col).getItem(i).alias(n) for i, n in zip(range(size), new_colnames)))
+    return res
 
 def get_jvm_class(cl):
     return 'org.apache.{}.{}'.format(cl.__module__[2:], cl.__name__)

@@ -19,7 +19,7 @@ _MAPPING = {'string': str,
 
 class HandyTransform(object):
     _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
-    _mapping.update({'float': 'double', 'int': 'integer', 'list': 'array'})
+    _mapping.update({'float': 'double', 'int': 'integer', 'list': 'array', 'bool': 'boolean'})
 
     @staticmethod
     def gen_pandas_udf(f, args=None, returnType=None):
@@ -33,14 +33,14 @@ class HandyTransform(object):
         signatureType = str(sig.return_annotation)[7:]
         if signatureType != '_empty':
             returnType = signatureType
-            # CHANGE
-            types = returnType.replace(']','').split('[')[:2]
+            types = returnType.replace(']', '').replace('[', ',').split(',')[:3]
             for returnType in types:
-                assert returnType.lower() in HandyTransform._mapping.keys(), "invalid returnType"
-            returnType = '<'.join(map(lambda t: HandyTransform._mapping[t.lower()], types))
+                assert returnType.lower().strip() in HandyTransform._mapping.keys(), "invalid returnType"
+            types = list(map(lambda t: HandyTransform._mapping[t.lower().strip()], types))
+            returnType = types[0]
             if len(types) > 1:
+                returnType = '<'.join([returnType, ','.join(types[1:])])
                 returnType += '>'
-            # returnType = HandyTransform._mapping.get(returnType, 'str')
 
         @F.pandas_udf(returnType=returnType)
         def udf(*args):
@@ -61,14 +61,14 @@ class HandyTransform(object):
         signatureType = str(sig.return_annotation)[7:]
         if signatureType != '_empty':
             returnType = signatureType
-            # CHANGE
-            types = returnType.replace(']','').split('[')[:2]
+            types = returnType.replace(']', '').replace('[', ',').split(',')[:3]
             for returnType in types:
-                assert returnType.lower() in HandyTransform._mapping.keys(), "invalid returnType"
-            returnType = '<'.join(map(lambda t: HandyTransform._mapping[t.lower()], types))
+                assert returnType.lower().strip() in HandyTransform._mapping.keys(), "invalid returnType"
+            types = list(map(lambda t: HandyTransform._mapping[t.lower().strip()], types))
+            returnType = types[0]
             if len(types) > 1:
+                returnType = '<'.join([returnType, ','.join(types[1:])])
                 returnType += '>'
-            # returnType = HandyTransform._mapping.get(returnType, 'str')
         schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)

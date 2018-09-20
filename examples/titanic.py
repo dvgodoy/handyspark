@@ -18,11 +18,15 @@ sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
 
 hdf = sdf.handy
 #print(hdf.assign(x=ArrayType(DoubleType()).ret(lambda Fare: Fare.apply(lambda v: [v, v*2]))).take(1))
-from typing import List
+from typing import List, Dict
 def make_list(Fare) -> List[float]:
     return Fare.apply(lambda v: [v, v*2])
+def make_dict(Fare) -> Dict[float, bool]:
+    return Fare.apply(lambda v: {v: v > 100})
 #print(hdf.assign(x=ArrayType(DoubleType()).ret(make_list)).take(1))
 print(hdf.assign(x=make_list).take(1))
+# NOT IMPLEMENTED
+#print(hdf.assign(x=make_dict).take(1))
 print(hdf.handy.fence_outliers('Fare').take(1))
 print(hdf.pandas.str.find('Name', sub='Mr.', alias='FindMr').take(1))
 print(hdf.assign(FindMr=IntegerType.ret(lambda Name: Name.str.find(sub='Mr.'))).take(1))
