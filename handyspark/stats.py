@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from handyspark.util import dense_to_array, disassemble
 from operator import add
 from pyspark.ml.stat import Correlation
@@ -22,30 +23,37 @@ def mahalanobis(sdf, colnames):
     distance = features.withColumn('__mahalanobis', udf_mult('__scaled')).drop('__features', '__scaled')
     return distance
 
-def add_probabilities(sdf, colname, prob):
-    rdd = sdf.select(colname, prob).rdd.map(list)
-    return rdd.reduceByKey(add).map(lambda t: Row(*t)).toDF([colname, prob])
-
 def probabilities(sdf, colname):
     rdd = sdf.select(colname).rdd.map(lambda row: (row[0], 1))
     n = rdd.count()
-    return rdd.reduceByKey(add).map(lambda t: Row(col=t[0], __probability=t[1]/n)).toDF()
+    return rdd.reduceByKey(add).map(lambda t: Row(__col=t[0], __probability=t[1]/n)).toDF()
 
-def entropy(sdf, colname):
-    return probabilities(sdf, colname).select(F.sum(F.expr('-log2(__probability)*__probability'))).take(1)[0][0]
+def entropy(sdf, colnames):
+    if not isinstance(colnames, (list, tuple)):
+        colnames = [colnames]
+    entropy = []
+    for colname in colnames:
+        entropy.append(probabilities(sdf, colname)
+                       .select(F.sum(F.expr('-log2(__probability)*__probability'))).take(1)[0][0])
+    return pd.Series(entropy, index=colnames)
 
-def mutual_info(sdf, col1, col2):
-    tdf = VectorAssembler(inputCols=[col1, col2], outputCol='__vectors').transform(sdf)
-    tdf = probabilities(tdf, '__vectors')
-    tdf = disassemble(dense_to_array(tdf, '__col', '__features'), '__features')
-    p0 = add_probabilities(tdf, '__features_0', '__probability')
-    p1 = add_probabilities(tdf, '__features_1', '__probability')
-    tdf = (tdf
-          .join(p0.withColumnRenamed('__probability', '__p0'), on='__features_0')
-          .join(p1.withColumnRenamed('__probability', '__p1'), on='__features_1'))
-    return (tdf.withColumn('__mi',
-                           F.expr('log2(__probability / (__p0 * __p1)) * __probability')).select(F.sum('__mi'))
-            .take(1)[0][0])
+def mutual_info(sdf, colnames):
+    n = len(colnames)
+    probs = []
+    for i in range(n):
+        probs.append(probabilities(sdf, colnames[i]))
+    res = np.identity(n)
+    for i in range(n):
+        for j in range(i + 1, n):
+            tdf = VectorAssembler(inputCols=[colnames[i], colnames[j]], outputCol='__vectors').transform(sdf)
+            tdf = probabilities(tdf, '__vectors')
+            tdf = disassemble(dense_to_array(tdf, '__col', '__features'), '__features')
+            tdf = tdf.join(probs[i].toDF('__features_0', '__p0'), on='__features_0')
+            tdf = tdf.join(probs[j].toDF('__features_1', '__p1'), on='__features_1')
+            mi = tdf.select(F.sum(F.expr('log2(__probability / (__p0 * __p1)) * __probability'))).take(1)[0][0]
+            res[i, j] = mi
+            res[j, i] = mi
+    return pd.DataFrame(res, index=colnames, columns=colnames)
 
 # g = jvm.com.google.common.primitives.Doubles
 # go = g.toArray([0., 1., 2.])

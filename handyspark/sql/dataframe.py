@@ -15,10 +15,10 @@ from pyspark.ml.feature import Bucketizer
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F
 
 @property
-def handy(self):
+def toHandy(self):
     return HandyFrame(self)
 
-DataFrame.handy = handy
+DataFrame.toHandy = toHandy
 
 class Handy(object):
     def __init__(self, df, response=None):
@@ -28,6 +28,7 @@ class Handy(object):
         self._classes = None
 
         self._imputed_values = {}
+        self._fenced_values = {}
         self._summary = None
         self._means = None
         self._medians = None
@@ -89,6 +90,10 @@ class Handy(object):
     @property
     def statistics_(self):
         return self._imputed_values
+
+    @property
+    def fences_(self):
+        return self._fenced_values
 
     @property
     def is_classification(self):
@@ -273,7 +278,7 @@ class Handy(object):
         missing.name = name
         return missing
 
-    def fence_outliers(self, colnames):
+    def fence(self, colnames):
         if not isinstance(colnames, (tuple, list)):
             colnames = [colnames]
         df = self._df
@@ -282,6 +287,7 @@ class Handy(object):
             iqr = q3 - q1
             lfence = q1 - (1.5 * iqr)
             ufence = q3 + (1.5 * iqr)
+            self._fenced_values.update({colname: [lfence, ufence]})
             df = (df
                   .withColumn('__fence', F.lit(lfence))
                   .withColumn(colname, F.greatest(colname, '__fence'))
@@ -499,6 +505,10 @@ class HandyFrame(DataFrame):
         return self._handy.statistics_
 
     @property
+    def fences_(self):
+        return self._handy.fences_
+
+    @property
     def is_stratified(self):
         return self._handy._strata is not None
 
@@ -559,6 +569,9 @@ class HandyFrame(DataFrame):
 
     def fill(self, *args, **kwargs):
         return self._handy.fill(*args, **kwargs)
+
+    def fence(self, colnames):
+        return self._handy.fence(colnames)
 
     def disassemble(self, colname, new_colnames=None):
         return self._handy.disassemble(colname, new_colnames)
@@ -706,11 +719,14 @@ class HandyStrata(object):
                         self._imputed_values = joined_df.statistics_
                         if len(res) > 1:
                             self._imputed_values = {self._clauses[0]: joined_df.statistics_}
+                            self._fence_values = {self._clauses[0]: joined_df.fences_}
                             for strat_df, clause in zip(res[1:], self._clauses[1:]):
                                 self._imputed_values.update({clause: strat_df.statistics_})
+                                self._fence_values.update({clause: strat_df.fences_})
                                 joined_df = joined_df.unionAll(strat_df)
                             res = HandyFrame(joined_df, self._handy)
                             res._handy._imputed_values = self._imputed_values
+                            res._handy._fence_values = self._fence_values
                     elif isinstance(res[0], pd.DataFrame):
                         strat_res = []
                         for r, s in zip(res, strata):

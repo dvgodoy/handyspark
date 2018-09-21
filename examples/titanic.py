@@ -3,6 +3,7 @@ findspark.init()
 
 from handyspark import Bucket, Quantile, BinaryClassificationMetrics
 from handyspark.util import counts_to_df
+from handyspark.stats import mutual_info
 from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.types import StringType, IntegerType, ArrayType, DoubleType
 import matplotlib.pyplot as plt
@@ -15,8 +16,8 @@ spark = SparkSession.builder.getOrCreate()
 
 import numpy as np
 sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
-
-hdf = sdf.handy
+print(mutual_info(sdf.withColumn('Sex', F.when(F.col('Sex') == 'male', 1).otherwise(0)), ['Pclass', 'Sex', 'Survived']))
+hdf = sdf.toHandy
 #print(hdf.assign(x=ArrayType(DoubleType()).ret(lambda Fare: Fare.apply(lambda v: [v, v*2]))).take(1))
 from typing import List, Dict
 def make_list(Fare) -> List[float]:
@@ -27,7 +28,13 @@ def make_dict(Fare) -> Dict[float, bool]:
 print(hdf.assign(x=make_list).take(1))
 # NOT IMPLEMENTED
 #print(hdf.assign(x=make_dict).take(1))
-print(hdf.handy.fence_outliers('Fare').take(1))
+
+hdf4 = hdf.fence(['Fare', 'Age'])
+print(hdf4.fences_)
+ft = hdf4.transformers.fencer()
+new_hdf = ft.transform(hdf)
+print(new_hdf.select(F.max('Fare'), F.max('Age')).take(1))
+
 print(hdf.pandas.str.find('Name', sub='Mr.', alias='FindMr').take(1))
 print(hdf.assign(FindMr=IntegerType.ret(lambda Name: Name.str.find(sub='Mr.'))).take(1))
 print(hdf.assign(x=StringType.ret(lambda Fare: (Fare * 2).map('${:,.2f}'.format))).take(1))
