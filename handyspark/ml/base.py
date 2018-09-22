@@ -15,6 +15,7 @@ class HandyTransformers(object):
     def fencer(self):
         return HandyFencer().setDictValues(self._df.fences_)
 
+
 class HasDict(Params):
     dictValues = Param(Params._dummy(), "dictValues", "Dictionary values", typeConverter=TypeConverters.toString)
 
@@ -36,6 +37,7 @@ class HasDict(Params):
         """
         values = self.getOrDefault(self.dictValues)
         return json.loads(values)
+
 
 class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWritable):
     def _transform(self, dataset):
@@ -63,6 +65,7 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
             joined_df = dataset
 
         return joined_df.na.fill(fill_dict).notHandy
+
 
 class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWritable):
     @staticmethod

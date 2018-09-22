@@ -17,6 +17,7 @@ _MAPPING = {'string': str,
             'array': np.ndarray,
             'map': dict}
 
+
 class HandyTransform(object):
     _mapping = dict([(v.__name__, k) for k, v in  _MAPPING.items()])
     _mapping.update({'float': 'double', 'int': 'integer', 'list': 'array', 'bool': 'boolean'})
@@ -109,4 +110,3 @@ class HandyTransform(object):
             else:
                 sdf = sdf.withColumn(c, F.lit(f))
         return sdf
-

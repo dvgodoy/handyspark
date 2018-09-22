@@ -628,6 +628,7 @@ class Bucket(object):
         clauses.append('{} > {:.4f}'.format(self._colname, buckets[-2]))
         return clauses
 
+
 class Quantile(Bucket):
     def __repr__(self):
         return 'Quantile{}_{}'.format(self._colname, self._bins)
@@ -640,6 +641,7 @@ class Quantile(Bucket):
                    [float('inf')])
         buckets[-2] += 1e-14
         return buckets
+
 
 class HandyStrata(object):
     __handy_methods = (list(filter(lambda n: n[0] != '_',
