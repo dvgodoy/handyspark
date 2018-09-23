@@ -6,14 +6,14 @@ def readme():
 
 setup(name='handyspark',
       version='0.0.1dev1',
-      install_requires=['matplotlib', 'numpy', 'seaborn', 'pandas', 'scikit-learn'],
-      description='"Handy Spark',
+      install_requires=['pyspark', 'matplotlib', 'numpy', 'scipy', 'seaborn', 'pandas', 'scikit-learn', 'findspark'],
+      description='"HandySpark',
       long_description=readme(),
       long_description_content_type='text/markdown',
       url='https://github.com/dvgodoy/handyspark',
       author='Daniel Voigt Godoy',
       author_email='datagnosis@gmail.com',
-      keywords=['spark', 'big data', 'data cleaning', 'plot', 'chart'],
+      keywords=['spark', 'big data', 'data cleaning', 'plot', 'exploratory data analysis'],
       license='MIT',
       classifiers=[
           'Development Status :: 2 - Pre-Alpha',

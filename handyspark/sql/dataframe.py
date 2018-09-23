@@ -79,7 +79,8 @@ class Handy(object):
                 pdf = self._df.select(list(self._group_cols) + [item])
                 if n != -1:
                     pdf = pdf.limit(n)
-                return pdf.notHandy.toPandas().set_index(list(self._group_cols))
+                res = pdf.notHandy.toPandas().set_index(list(self._group_cols)).sort_index()[item]
+                return res
 
     @property
     def stages(self):
@@ -180,8 +181,11 @@ class Handy(object):
         self._medians = self._summary.loc['50%', self._double]
         self._counts = self._summary.loc['count'].astype('double')
 
-    def _value_counts(self, colnames):
-        values = (self._df.select(colnames)
+    def _value_counts(self, colnames, keepna=True):
+        data = self._df.select(colnames)
+        if not keepna:
+            data = data.dropna()
+        values = (data
                   .rdd
                   .map(tuple)
                   .map(lambda t: (t, 1))
@@ -271,10 +275,11 @@ class Handy(object):
         base = 1.0
         name = 'missing'
         nrows = self.nrows
+        missing = (nrows - self._counts)
         if ratio:
             base = nrows
             name += '(ratio)'
-        missing = (nrows - self._counts) / base
+            missing /= base
         missing.name = name
         return missing
 
@@ -306,8 +311,8 @@ class Handy(object):
 
         return HandyFrame(self._df, self)
 
-    def value_counts(self, colname):
-        values = self._value_counts(colname).collect()
+    def value_counts(self, colname, keepna=True):
+        values = self._value_counts(colname, keepna).collect()
         return pd.Series(map(itemgetter(1), values),
                          index=map(lambda t: t[0][0], values),
                          name=colname)
@@ -520,10 +525,10 @@ class HandyFrame(DataFrame):
     @property
     def values(self):
         # safety limit will kick in, unless explicitly off before
-        tdf = self._df.select(self._numerical)
+        tdf = self.select(self._handy._numerical)
         if self._safety:
             tdf = tdf.limit(self._safety_limit)
-        return np.array(tdf.rdd.map(tuple).collect())
+        return np.array(tdf.rdd.map(tuple).collect(), dtype=np.float64)
 
     def set_safety_limit(self, limit):
         self._safety_limit = limit
@@ -580,8 +585,8 @@ class HandyFrame(DataFrame):
         return self._handy.to_metrics_RDD(prob_col, label)
 
     ### Summary functions
-    def value_counts(self, colname):
-        return self._handy.value_counts(colname)
+    def value_counts(self, colname, keepna=True):
+        return self._handy.value_counts(colname, keepna)
 
     def mode(self, colname):
         return self._handy.mode(colname)

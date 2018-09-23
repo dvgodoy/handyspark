@@ -15,7 +15,7 @@ from pyspark.ml.feature import VectorAssembler
 spark = SparkSession.builder.getOrCreate()
 
 import numpy as np
-sdf = spark.read.csv('../rawdata/train.csv', header=True, inferSchema=True)
+sdf = spark.read.csv('../tests/rawdata/train.csv', header=True, inferSchema=True)
 print(mutual_info(sdf.withColumn('Sex', F.when(F.col('Sex') == 'male', 1).otherwise(0)), ['Pclass', 'Sex', 'Survived']))
 hdf = sdf.toHandy
 #print(hdf.assign(x=ArrayType(DoubleType()).ret(lambda Fare: Fare.apply(lambda v: [v, v*2]))).take(1))
