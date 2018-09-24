@@ -153,10 +153,11 @@ class Handy(object):
         self._strata_plot = (fig, [ax for col in np.transpose(axs) for ax in col])
 
     def _update_types(self):
-        self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
+        # self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
+        self._types = self._df.dtypes
         self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string', 'array', 'map'],
                                                          self._types)))
-        self._double = list(map(itemgetter(0), filter(lambda t: t[1] in ['double', 'float'], self._types)))
+        self._continuous = list(map(itemgetter(0), filter(lambda t: t[1] in ['double', 'float'], self._types)))
         self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['double', 'float', 'array', 'map'],
                                                            self._types)))
         self._array = list(map(itemgetter(0), filter(lambda t: t[1] in ['array', 'map'], self._types)))
@@ -177,8 +178,8 @@ class Handy(object):
         for col in self._numerical:
             self._summary[col] = self._summary[col].astype('double')
 
-        self._means = self._summary.loc['mean', self._double]
-        self._medians = self._summary.loc['50%', self._double]
+        self._means = self._summary.loc['mean', self._continuous]
+        self._medians = self._summary.loc['50%', self._continuous]
         self._counts = self._summary.loc['count'].astype('double')
 
     def _value_counts(self, colnames, keepna=True):
@@ -231,7 +232,7 @@ class Handy(object):
 
     def __fill_self(self, *colnames, categorical, strategy):
         if not len(colnames):
-            colnames = self._double
+            colnames = self._continuous
         if strategy is None:
             strategy = 'mean'
         if isinstance(colnames[0], (list, tuple)):
@@ -270,9 +271,8 @@ class Handy(object):
                 categorical = []
             return self.__fill_self(*args, categorical=categorical, strategy=strategy)
 
-    def missing_data(self, ratio=False):
+    def isnull(self, ratio=False):
         self._summaries()
-        base = 1.0
         name = 'missing'
         nrows = self.nrows
         missing = (nrows - self._counts)
@@ -282,6 +282,15 @@ class Handy(object):
             missing /= base
         missing.name = name
         return missing
+
+    def nunique(self, colnames=None):
+        if colnames is None:
+            colnames = self._df.columns
+        if not isinstance(colnames, (list, tuple)):
+            colnames = [colnames]
+
+        return pd.Series([self._df.select(col).dropna().distinct().count() for col in colnames],
+                         index=colnames)
 
     def fence(self, colnames):
         if not isinstance(colnames, (tuple, list)):
@@ -304,7 +313,7 @@ class Handy(object):
         if colname is not None:
             assert colname in self._df.columns, "{} not in DataFrame".format(colname)
             self._response = colname
-            if colname not in self._double:
+            if colname not in self._continuous:
                 self._is_classification = True
                 self._classes = self._df.select(colname).rdd.map(itemgetter(0)).distinct().collect()
                 self._nclasses = len(self._classes)
@@ -357,14 +366,14 @@ class Handy(object):
     def _strat_hist(self, colname, bins=10, **kwargs):
         self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         categorical = True
-        if colname in self._double:
+        if colname in self._continuous:
             categorical = False
         return strat_histogram(self._df, colname, bins, categorical)
 
     def hist(self, colname, bins=10, ax=None):
         # TO DO
         # include split per response/columns
-        if colname in self._double:
+        if colname in self._continuous:
             return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
         else:
             return histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
@@ -525,10 +534,10 @@ class HandyFrame(DataFrame):
     @property
     def values(self):
         # safety limit will kick in, unless explicitly off before
-        tdf = self.select(self._handy._numerical)
+        tdf = self
         if self._safety:
             tdf = tdf.limit(self._safety_limit)
-        return np.array(tdf.rdd.map(tuple).collect(), dtype=np.float64)
+        return np.array(tdf.rdd.map(tuple).collect())
 
     def set_safety_limit(self, limit):
         self._safety_limit = limit
@@ -566,8 +575,11 @@ class HandyFrame(DataFrame):
     def assign(self, **kwargs):
         return HandyTransform.assign(self, **kwargs)
 
-    def missing_data(self, ratio=False):
-        return self._handy.missing_data(ratio)
+    def isnull(self, ratio=False):
+        return self._handy.isnull(ratio)
+
+    def nunique(self, colnames=None):
+        return self._handy.nunique(colnames)
 
     def set_response(self, colname):
         return self._handy.set_response(colname)

@@ -1,3 +1,4 @@
+import numpy as np
 import numpy.testing as npt
 from handyspark import *
 from pyspark.sql import DataFrame, functions as F
@@ -32,9 +33,8 @@ def test_safety_limit(sdf):
 
 def test_values(sdf, pdf):
     hdf = sdf.toHandy
-    hdf.set_safety_limit(10)
-    hvalues = hdf.values
-    values = pdf.iloc[:10][hdf._handy._numerical].values
+    hvalues = hdf.limit(10).values
+    values = pdf[:10].values
     npt.assert_array_equal(hvalues, values)
 
 def test_stages(sdf):
@@ -51,13 +51,13 @@ def test_value_counts(sdf, pdf):
 
 def test_column_values(sdf, pdf):
     hdf = sdf.toHandy
-    npt.assert_array_equal(hdf.handy['Fare'], pdf.iloc[:20]['Fare'])
-    npt.assert_array_equal(hdf.handy['Fare', 10], pdf.iloc[:10]['Fare'])
+    npt.assert_array_equal(hdf.handy['Fare'], pdf['Fare'][:20])
+    npt.assert_array_equal(hdf.handy['Fare', 10], pdf['Fare'][:10])
 
 def test_missing_data(sdf, pdf):
     hdf = sdf.toHandy
-    hmissing = hdf.missing_data()
-    hratio = hdf.missing_data(ratio=True)
+    hmissing = hdf.isnull()
+    hratio = hdf.isnull(ratio=True)
     missing = pdf.isnull().sum()
     ratio = missing / 891.
     npt.assert_array_equal(hmissing, missing)
