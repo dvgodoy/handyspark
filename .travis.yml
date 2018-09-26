@@ -1,6 +1,6 @@
 language: python
 sudo: required
-dist: precise
+dist: trusty
 cache:
   directories:
     - $HOME/.ivy2
@@ -27,8 +27,8 @@ install:
   - "[ -f spark ] || mkdir spark && cd spark && axel http://www-us.apache.org/dist/spark/spark-2.3.1/spark-2.3.1-bin-hadoop2.7.tgz && cd .."
   - "tar -xf ./spark/spark-2.3.1-bin-hadoop2.7.tgz"
   - "export SPARK_HOME=`pwd`/spark-2.3.1-bin-hadoop2.7"
+  - "export PYTHONPATH=$PYTHONPATH:$SPARK_HOME/python"
   - echo "spark.yarn.jars=$SPARK_HOME/jars/*.jar" > $SPARK_HOME/conf/spark-defaults.conf
-  - export PATH=$HOME/py/bin:$PATH
   - pip install -r requirements.txt
 script:
   - pytest
