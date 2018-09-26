@@ -34,7 +34,7 @@ def test_safety_limit(sdf):
 def test_values(sdf, pdf):
     hdf = sdf.toHandy
     hvalues = hdf.limit(10).values
-    values = pdf[:10].values
+    values = pdf[:10].replace(to_replace=[np.nan], value=[None]).values
     npt.assert_array_equal(hvalues, values)
 
 def test_stages(sdf):
@@ -54,7 +54,7 @@ def test_column_values(sdf, pdf):
     npt.assert_array_equal(hdf.handy['Fare'], pdf['Fare'][:20])
     npt.assert_array_equal(hdf.handy['Fare', 10], pdf['Fare'][:10])
 
-def test_missing_data(sdf, pdf):
+def test_isnull(sdf, pdf):
     hdf = sdf.toHandy
     hmissing = hdf.isnull()
     hratio = hdf.isnull(ratio=True)
@@ -62,6 +62,12 @@ def test_missing_data(sdf, pdf):
     ratio = missing / 891.
     npt.assert_array_equal(hmissing, missing)
     npt.assert_array_almost_equal(hratio, ratio)
+
+def test_nunique(sdf, pdf):
+    hdf = sdf.toHandy
+    hnunique = hdf.nunique()
+    nunique = pdf.nunique()
+    npt.assert_array_equal(hnunique, nunique)
 
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy
@@ -109,5 +115,5 @@ def test_fence(sdf, pdf):
 def test_grouped_column_values(sdf, pdf):
     hdf = sdf.toHandy
     hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).handy['Age']
-    mean = pdf.groupby('Pclass')['Age'].mean()
+    mean = pdf.groupby('Pclass').agg({'Age': np.mean})['Age']
     npt.assert_array_equal(hmean, mean)
