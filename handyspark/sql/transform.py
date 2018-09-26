@@ -23,16 +23,19 @@ class HandyTransform(object):
     _mapping.update({'float': 'double', 'int': 'integer', 'list': 'array', 'bool': 'boolean'})
 
     @staticmethod
-    def gen_pandas_udf(f, args=None, returnType=None):
-        sig = inspect.signature(f)
-
+    def _get_return(sdf, f, args):
+        returnType = None
         if args is None:
-            args = tuple(sig.parameters.keys())
-        assert isinstance(args, (list, tuple)), "args must be list or tuple"
-        name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
+            args = f.__code__.co_varnames
+        if len(args):
+            returnType = sdf.select(args[0]).dtypes[0][1]
+        return returnType
 
+    @staticmethod
+    def _signatureType(sig):
+        returnType = None
         signatureType = str(sig.return_annotation)[7:]
-        if signatureType != '_empty':
+        if '_empty' not in signatureType:
             returnType = signatureType
             types = returnType.replace(']', '').replace('[', ',').split(',')[:3]
             for returnType in types:
@@ -42,6 +45,19 @@ class HandyTransform(object):
             if len(types) > 1:
                 returnType = '<'.join([returnType, ','.join(types[1:])])
                 returnType += '>'
+        return returnType
+
+    @staticmethod
+    def gen_pandas_udf(f, args=None, returnType=None):
+        sig = inspect.signature(f)
+
+        if args is None:
+            args = tuple(sig.parameters.keys())
+        assert isinstance(args, (list, tuple)), "args must be list or tuple"
+        name = '{}{}'.format(f.__name__, str(args).replace("'", ""))
+
+        if returnType is None:
+            returnType = HandyTransform._signatureType(sig)
 
         @F.pandas_udf(returnType=returnType)
         def udf(*args):
@@ -51,7 +67,7 @@ class HandyTransform(object):
 
     @staticmethod
     def gen_grouped_pandas_udf(sdf, f, args=None, returnType=None):
-        # TO TEST
+        # TODO: test it properly!
         sig = inspect.signature(f)
 
         if args is None:
@@ -59,17 +75,9 @@ class HandyTransform(object):
         assert isinstance(args, (list, tuple)), "args must be list or tuple"
         name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
 
-        signatureType = str(sig.return_annotation)[7:]
-        if signatureType != '_empty':
-            returnType = signatureType
-            types = returnType.replace(']', '').replace('[', ',').split(',')[:3]
-            for returnType in types:
-                assert returnType.lower().strip() in HandyTransform._mapping.keys(), "invalid returnType"
-            types = list(map(lambda t: HandyTransform._mapping[t.lower().strip()], types))
-            returnType = types[0]
-            if len(types) > 1:
-                returnType = '<'.join([returnType, ','.join(types[1:])])
-                returnType += '>'
+        if returnType is None:
+            returnType = HandyTransform._signatureType(sig)
+
         schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
@@ -83,12 +91,20 @@ class HandyTransform(object):
     def transform(sdf, f, name=None, args=None, returnType=None):
         if name is None:
             name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
+        if isinstance(f, tuple):
+            f, returnType = f
+        if returnType is None:
+            returnType = HandyTransform._get_return(sdf, f, args)
         return sdf.withColumn(name, HandyTransform.gen_pandas_udf(f, args, returnType))
 
     @staticmethod
     def apply(sdf, f, name=None, args=None, returnType=None):
         if name is None:
             name = '{}{}'.format(f.__name__, str(f.__code__.co_varnames).replace("'", ""))
+        if isinstance(f, tuple):
+            f, returnType = f
+        if returnType is None:
+            returnType = HandyTransform._get_return(sdf, f, args)
         return sdf.select(HandyTransform.gen_pandas_udf(f, args, returnType).alias(name))
 
     @staticmethod
@@ -98,12 +114,9 @@ class HandyTransform(object):
             if isinstance(f, tuple):
                 f, typename = f
             if callable(f):
-                args = f.__code__.co_varnames
-                if len(args):
-                    if typename is None:
-                        typename = sdf.select(args[0]).schema.fields[0].dataType.typeName()
-                    # CHANGE
-                    # returnType =  _MAPPING.get(typename, str).__name__
+                if typename is None:
+                    typename = HandyTransform._get_return(sdf, f, None)
+                if typename is not None:
                     sdf = sdf.transform(f, name=c, returnType=typename)
                 else:
                     sdf = sdf.withColumn(c, F.lit(f()))

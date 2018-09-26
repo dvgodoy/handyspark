@@ -36,7 +36,7 @@ class HandyString(object):
             if name in self.__available:
                 def wrapper(*args, **kwargs):
                     colname = args[0]
-                    if self._df.select(colname).schema.fields[0].dataType.typeName() != 'string':
+                    if self._df.select(colname).dtypes[0][1] != 'string':
                         raise AttributeError('Can only use .str accessor with string values')
                     try:
                         alias = kwargs.pop('alias')

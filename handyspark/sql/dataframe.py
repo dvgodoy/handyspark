@@ -569,8 +569,8 @@ class HandyFrame(DataFrame):
     def transform(self, f, name=None, args=None, returnType=None):
         return HandyTransform.transform(self, f, name=name, args=args, returnType=returnType)
 
-    def apply(self, f, name=None):
-        return HandyTransform.apply(self, f, name)
+    def apply(self, f, name=None, args=None, returnType=None):
+        return HandyTransform.apply(self, f, name=name, args=args, returnType=returnType)
 
     def assign(self, **kwargs):
         return HandyTransform.assign(self, **kwargs)

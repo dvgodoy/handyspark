@@ -31,7 +31,7 @@ class HandyDatetime(object):
             if name in self.__available:
                 def wrapper(*args, **kwargs):
                     colname = args[0]
-                    if self._df.select(colname).schema.fields[0].dataType.typeName() != 'timestamp':
+                    if self._df.select(colname).dtypes[0][1] != 'timestamp':
                         raise AttributeError('Can only use .dt accessor with datetimelike values')
                     try:
                         alias = kwargs.pop('alias')

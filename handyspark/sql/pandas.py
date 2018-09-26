@@ -26,7 +26,7 @@ class HandyPandas(object):
         if name is None:
             name=colname
         if returnType == 'same':
-            inputType = self._df.select(colname).schema.fields[0].dataType.typeName()
+            inputType = self._df.select(colname).dtypes[0][1]
             returnType = _MAPPING.get(inputType, 'str').__name__
         return HandyTransform.transform(self._df, f, name=name, args=(colname,), returnType=returnType)
 
