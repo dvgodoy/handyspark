@@ -11,15 +11,24 @@ FIXTURE_DIR = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file
 findspark.init()
 spark = SparkSession.builder.getOrCreate()
 df = spark.read.csv(os.path.join(FIXTURE_DIR, 'train.csv'), header=True, inferSchema=True)
+dates = pd.DataFrame({'dates': pd.date_range('2012-01-01', '2015-12-31').values})
 
 @pytest.fixture(scope='module')
 def sdf():
     return df
 
 @pytest.fixture(scope='module')
+def sdates():
+    return spark.createDataFrame(dates)
+
+@pytest.fixture(scope='module')
 def pdf():
     pdf = pd.read_csv(os.path.join(FIXTURE_DIR, 'train.csv'))
     return pdf
+
+@pytest.fixture(scope='module')
+def pdates():
+    return dates
 
 @pytest.fixture(scope='module')
 def predicted():

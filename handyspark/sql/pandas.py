@@ -3,12 +3,12 @@ from handyspark.sql.string import HandyString
 from handyspark.sql.transform import HandyTransform, _MAPPING
 
 class HandyPandas(object):
-    __supported = {'bool': ['between', 'between_time', 'isin', 'isna', 'isnull', 'notna', 'notnull'],
-                   'same': ['abs', 'bfill', 'clip', 'clip_lower', 'clip_upper', 'replace', 'round', 'truncate',
+    __supported = {'boolean': ['between', 'between_time', 'isin', 'isna', 'isnull', 'notna', 'notnull'],
+                   'same': ['abs', 'clip', 'clip_lower', 'clip_upper', 'replace', 'round', 'truncate',
                             'tz_convert', 'tz_localize']}
     __as_series = ['rank', 'interpolate', 'pct_change', 'bfill', 'cummax', 'cummin', 'cumprod', 'cumsum', 'diff',
                    'ffill', 'fillna', 'shift']
-    __available = sorted(__supported['bool'] + __supported['same'])
+    __available = sorted(__supported['boolean'] + __supported['same'])
     __types = {n: t for t, v in __supported.items() for n in v}
 
     def __init__(self, df):
@@ -26,8 +26,7 @@ class HandyPandas(object):
         if name is None:
             name=colname
         if returnType == 'same':
-            inputType = self._df.select(colname).dtypes[0][1]
-            returnType = _MAPPING.get(inputType, 'str').__name__
+            returnType = self._df.select(colname).dtypes[0][1]
         return HandyTransform.transform(self._df, f, name=name, args=(colname,), returnType=returnType)
 
     def __getattribute__(self, name):

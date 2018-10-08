@@ -1,17 +1,17 @@
 from handyspark.sql.transform import HandyTransform
 
 class HandyDatetime(object):
-    __supported = {'bool': ['is_leap_year', 'is_month_end', 'is_month_start', 'is_quarter_end', 'is_quarter_start',
+    __supported = {'boolean': ['is_leap_year', 'is_month_end', 'is_month_start', 'is_quarter_end', 'is_quarter_start',
                             'is_year_end', 'is_year_start'],
-                   'str': ['strftime', 'tz', 'weekday_name'],
-                   'int': ['day', 'dayofweek', 'dayofyear', 'days_in_month', 'daysinmonth', 'hour', 'microsecond',
+                   'string': ['strftime', 'tz', 'weekday_name'],
+                   'integer': ['day', 'dayofweek', 'dayofyear', 'days_in_month', 'daysinmonth', 'hour', 'microsecond',
                            'minute', 'month', 'nanosecond', 'quarter', 'second', 'week', 'weekday', 'weekofyear',
                            'year'],
                    'date': ['date'],
-                   'timestamp': ['ceil', 'floor', 'round', 'normalize', 'time', 'to_pydatetime', 'tz_convert',
-                                 'tz_localize']}
-    __unsupported = ['freq', 'to_period']
-    __available = sorted(__supported['bool'] + __supported['str'] + __supported['int'] + __supported['date'] +
+                   'timestamp': ['ceil', 'floor', 'round', 'normalize', 'time', 'tz_convert', 'tz_localize']}
+    __unsupported = ['freq', 'to_period', 'to_pydatetime']
+    __functions = ['strftime', 'ceil', 'floor', 'round', 'normalize', 'tz_convert', 'tz_localize']
+    __available = sorted(__supported['boolean'] + __supported['string'] + __supported['integer'] + __supported['date'] +
                          __supported['timestamp'])
     __types = {n: t for t, v in __supported.items() for n in v}
 
@@ -37,10 +37,17 @@ class HandyDatetime(object):
                         alias = kwargs.pop('alias')
                     except KeyError:
                         alias = '{}.{}'.format(colname, name)
-                    return self.__generic_str_function(f=lambda col: col.dt.__getattribute__(name)(**kwargs),
-                                                       colname=colname,
-                                                       name=alias,
-                                                       returnType=self.__types.get(name, 'str'))
+
+                    if name in self.__functions:
+                        return self.__generic_dt_function(f=lambda col: col.dt.__getattribute__(name)(**kwargs),
+                                                          colname=colname,
+                                                          name=alias,
+                                                          returnType=self.__types.get(name, 'str'))
+                    else:
+                        return self.__generic_dt_function(f=lambda col: col.dt.__getattribute__(name),
+                                                          colname=colname,
+                                                          name=alias,
+                                                          returnType=self.__types.get(name, 'str'))
                 return wrapper
             else:
                 raise e

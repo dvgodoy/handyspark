@@ -2,15 +2,15 @@ from handyspark.sql.transform import HandyTransform
 import unicodedata
 
 class HandyString(object):
-    __supported = {'bool': ['contains', 'startswith', 'endswith', 'match', 'isalpha', 'isnumeric', 'isalnum', 'isdigit',
+    __supported = {'boolean': ['contains', 'startswith', 'endswith', 'match', 'isalpha', 'isnumeric', 'isalnum', 'isdigit',
                             'isdecimal', 'isspace', 'islower', 'isupper', 'istitle'],
-                   'str': ['replace', 'repeat', 'join', 'pad', 'slice', 'slice_replace', 'strip', 'wrap', 'translate',
-                           'get', 'decode', 'encode', 'center', 'ljust', 'rjust', 'zfill', 'lstrip', 'rstrip',
+                   'string': ['replace', 'repeat', 'join', 'pad', 'slice', 'slice_replace', 'strip', 'wrap', 'translate',
+                           'get', 'center', 'ljust', 'rjust', 'zfill', 'lstrip', 'rstrip',
                            'normalize', 'lower', 'upper', 'title', 'capitalize', 'swapcase'],
-                   'int': ['count', 'find', 'index', 'len', 'rfind', 'rindex']}
-    __unsupported = ['cat', 'extract', 'extractall', 'get_dummies', 'findall', 'split', 'rsplit', 'partition',
-                     'rpartition']
-    __available = sorted(__supported['bool'] + __supported['str'] + __supported['int'])
+                   'integer': ['count', 'find', 'len', 'rfind']}
+    __unsupported = ['cat', 'extract', 'extractall', 'get_dummies', 'findall', 'index', 'split', 'rsplit', 'partition',
+                     'rpartition', 'rindex', 'decode', 'encode']
+    __available = sorted(__supported['boolean'] + __supported['string'] + __supported['integer'])
     __types = {n: t for t, v in __supported.items() for n in v}
 
     def __init__(self, df):
