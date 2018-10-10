@@ -23,7 +23,7 @@ def mahalanobis(sdf, colnames):
 
     @F.pandas_udf('double')
     def pudf_mult(v):
-        return v.apply(lambda v: np.dot(np.dot(np.transpose(v), inv_mat), v))
+        return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
 
     features = dense_to_array(features, '__scaled', '__array_scaled')
     distance = (features

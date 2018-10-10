@@ -6,3 +6,4 @@ seaborn>=0.9
 pyspark>=2.3
 scipy>=1.0
 findspark
+pyarrow

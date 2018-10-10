@@ -6,7 +6,7 @@ def readme():
 
 setup(name='handyspark',
       version='0.0.1dev1',
-      install_requires=['pyspark', 'matplotlib', 'numpy', 'scipy', 'seaborn', 'pandas', 'scikit-learn', 'findspark'],
+      install_requires=['pyspark', 'matplotlib', 'numpy', 'scipy', 'seaborn', 'pandas', 'scikit-learn', 'findspark', 'pyarrow'],
       description='"HandySpark',
       long_description=readme(),
       long_description_content_type='text/markdown',
