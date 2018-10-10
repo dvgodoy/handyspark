@@ -59,9 +59,15 @@ class HandyTransform(object):
         if returnType is None:
             returnType = HandyTransform._signatureType(sig)
 
-        @F.pandas_udf(returnType=returnType)
-        def udf(*args):
-            return f(*args)
+        try:
+            import pyarrow
+            @F.pandas_udf(returnType=returnType)
+            def udf(*args):
+                return f(*args)
+        except:
+            @F.udf(returnType=returnType)
+            def udf(*args):
+                return f(*args)
 
         return udf(*args).alias(name)
 
