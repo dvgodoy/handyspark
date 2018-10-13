@@ -64,7 +64,16 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
         if joined_df is None:
             joined_df = dataset
 
-        return joined_df.na.fill(fill_dict).notHandy
+        res = joined_df.na.fill(fill_dict)
+        try:
+            res = res.notHandy
+        except AttributeError:
+            pass
+        return res
+
+    @property
+    def statistics(self):
+        return self.getDictValues()
 
 
 class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWritable):
@@ -74,7 +83,8 @@ class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWrit
         return (df.withColumn('__fence', F.lit(lfence))
                 .withColumn(colname, F.greatest(colname, '__fence'))
                 .withColumn('__fence', F.lit(ufence))
-                .withColumn(colname, F.least(colname, '__fence')))
+                .withColumn(colname, F.least(colname, '__fence'))
+                .drop('__fence'))
 
     def _transform(self, dataset):
         columns = dataset.columns
@@ -100,4 +110,14 @@ class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWrit
             if not isinstance(v, dict):
                 joined_df = HandyFencer.__fence(joined_df, {k: v})
 
-        return joined_df.select(columns).notHandy
+        res = joined_df.select(columns)
+
+        try:
+            res = res.notHandy
+        except AttributeError:
+            pass
+        return res
+
+    @property
+    def fences(self):
+        return self.getDictValues()

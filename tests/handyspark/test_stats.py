@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 import pandas as pd
-from handyspark import *
+import handyspark
 from handyspark.stats import mahalanobis, entropy, mutual_info, KolmogorovSmirnovTest
 from pyspark.sql import functions as F
 from scipy.spatial import distance

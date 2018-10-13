@@ -69,7 +69,10 @@ class Handy(object):
 
         if isinstance(item, str):
             if self._group_cols is None or len(self._group_cols) == 0:
-                res = pd.Series(self._take_array(item, n), name=item)
+                res = self._take_array(item, n)
+                if res.ndim > 1:
+                    res = res.tolist()
+                res = pd.Series(res, name=item)
                 if self._strata is not None:
                     strata = list(map(lambda v: v[1].to_dict(), self.strata.iterrows()))
                     if len(strata) == len(res):
@@ -153,7 +156,6 @@ class Handy(object):
         self._strata_plot = (fig, [ax for col in np.transpose(axs) for ax in col])
 
     def _update_types(self):
-        # self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
         self._types = self._df.dtypes
         self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string', 'array', 'map'],
                                                          self._types)))
@@ -219,30 +221,37 @@ class Handy(object):
         res = HandyFrame(joined_df.na.fill(fill_dict), self)
         return res
 
-    def _fill_values(self, colnames, categorical, strategy):
+    def _fill_values(self, continuous, categorical, strategy):
         self._summaries()
         values = {}
         values.update(dict(self._means[map(itemgetter(0),
-                                     filter(lambda t: t[1] == 'mean', zip(colnames, strategy)))]))
+                                     filter(lambda t: t[1] == 'mean', zip(continuous, strategy)))]))
         values.update(dict(self._medians[map(itemgetter(0),
-                                       filter(lambda t: t[1] == 'median', zip(colnames, strategy)))]))
+                                       filter(lambda t: t[1] == 'median', zip(continuous, strategy)))]))
         values.update(dict([(col, self.mode(col))
                             for col in categorical if col in self._categorical]))
         self._imputed_values = values
 
-    def __fill_self(self, *colnames, categorical, strategy):
-        if not len(colnames):
-            colnames = self._continuous
+    def __fill_self(self, continuous, categorical, strategy):
+        if continuous is None:
+            continuous = []
+        if continuous == 'all':
+            continuous = self._continuous
+
+        if categorical is None:
+            categorical = []
+        if categorical == 'all':
+            categorical = self._categorical
+
         if strategy is None:
             strategy = 'mean'
-        if isinstance(colnames[0], (list, tuple)):
-            colnames = colnames[0]
-        if isinstance(strategy, (list, tuple)):
-            assert len(colnames) == len(strategy), "There must be a strategy to each column."
-        else:
-            strategy = [strategy] * len(colnames)
 
-        self._fill_values(colnames, categorical, strategy)
+        if isinstance(strategy, (list, tuple)):
+            assert len(continuous) == len(strategy), "There must be a strategy to each column."
+        else:
+            strategy = [strategy] * len(continuous)
+
+        self._fill_values(continuous, categorical, strategy)
         res = HandyFrame(self._df.na.fill(self._imputed_values), self)
         return res
 
@@ -257,19 +266,11 @@ class Handy(object):
     def to_metrics_RDD(self, prob_col, label):
         return self.disassemble(prob_col).select('{}_1'.format(prob_col), F.col(label).cast('double')).rdd.map(tuple)
 
-    def fill(self, *args, **kwargs):
+    def fill(self, *args, continuous=None, categorical=None, strategy=None):
         if len(args) and isinstance(args[0], DataFrame):
             return self.__fill_target(args[0])
         else:
-            try:
-                strategy = kwargs['strategy']
-            except KeyError:
-                strategy = None
-            try:
-                categorical = kwargs['categorical']
-            except KeyError:
-                categorical = []
-            return self.__fill_self(*args, categorical=categorical, strategy=strategy)
+            return self.__fill_self(continuous=continuous, categorical=categorical, strategy=strategy)
 
     def isnull(self, ratio=False):
         self._summaries()
@@ -584,8 +585,8 @@ class HandyFrame(DataFrame):
     def set_response(self, colname):
         return self._handy.set_response(colname)
 
-    def fill(self, *args, **kwargs):
-        return self._handy.fill(*args, **kwargs)
+    def fill(self, *args, continuous=None, categorical=None, strategy=None):
+        return self._handy.fill(*args, continuous=continuous, categorical=categorical, strategy=strategy)
 
     def fence(self, colnames):
         return self._handy.fence(colnames)
@@ -664,7 +665,7 @@ class HandyStrata(object):
     __handy_methods = (list(filter(lambda n: n[0] != '_',
                                (map(itemgetter(0),
                                     inspect.getmembers(HandyFrame,
-                                                       predicate=inspect.isfunction))))))
+                                                       predicate=inspect.isfunction)))))) + ['handy']
 
     def __init__(self, handy, strata):
         self._handy = handy
@@ -738,20 +739,23 @@ class HandyStrata(object):
                         self._imputed_values = joined_df.statistics_
                         if len(res) > 1:
                             self._imputed_values = {self._clauses[0]: joined_df.statistics_}
-                            self._fence_values = {self._clauses[0]: joined_df.fences_}
+                            self._fenced_values = {self._clauses[0]: joined_df.fences_}
                             for strat_df, clause in zip(res[1:], self._clauses[1:]):
                                 self._imputed_values.update({clause: strat_df.statistics_})
-                                self._fence_values.update({clause: strat_df.fences_})
+                                self._fenced_values.update({clause: strat_df.fences_})
                                 joined_df = joined_df.unionAll(strat_df)
                             res = HandyFrame(joined_df, self._handy)
                             res._handy._imputed_values = self._imputed_values
-                            res._handy._fence_values = self._fence_values
+                            res._handy._fenced_values = self._fenced_values
                     elif isinstance(res[0], pd.DataFrame):
                         strat_res = []
+                        indexes = res[0].index.names
+                        if indexes[0] is None:
+                            indexes = ['index']
                         for r, s in zip(res, strata):
                             strat_res.append(r.assign(**s)
                                              .reset_index())
-                        res = pd.concat(strat_res).sort_values(by=self._strata).set_index(self._strata)
+                        res = pd.concat(strat_res).sort_values(by=self._strata).set_index(self._strata + indexes)
                     elif isinstance(res[0], pd.Series):
                         strat_res = []
                         for r, s in zip(res, strata):

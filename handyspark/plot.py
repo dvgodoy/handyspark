@@ -9,6 +9,8 @@ from pyspark.ml.pipeline import Pipeline
 from pyspark.mllib.stat import Statistics
 from pyspark.sql import functions as F
 
+# https://matplotlib.org/devel/testing.html
+
 def title_fom_clause(clause):
     return clause.replace(' and ', '\n').replace(' == ', '=').replace('"', '')
 
@@ -42,8 +44,11 @@ def correlations(sdf, colnames, ax=None, plot=True):
     correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]))
     pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
     if plot:
-        sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
-    return pdf
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+        return sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
+    else:
+        return pdf
 
 ### Scatterplot
 def strat_scatterplot(sdf, col1, col2, n=30):
@@ -87,13 +92,12 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
 
     df_counts.loc[:, 'Proportion'] = df_counts.Proportion.apply(lambda p: round(p / total, 4))
 
-    sns.scatterplot(data=df_counts,
-                    x=col1,
-                    y=col2,
-                    size='Proportion',
-                    ax=ax,
-                    legend=False)
-    return ax
+    return sns.scatterplot(data=df_counts,
+                           x=col1,
+                           y=col2,
+                           size='Proportion',
+                           ax=ax,
+                           legend=False)
 
 ### Histogram
 def strat_histogram(sdf, colname, bins=10, categorical=False):
@@ -134,8 +138,7 @@ def histogram(sdf, colname, bins=10, categorical=False, ax=None):
         pdf = pd.Series(map(itemgetter(1), values),
                         index=map(itemgetter(0), values),
                         name=colname).sort_index().to_frame().iloc[:bins]
-        pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
-        return ax
+        return pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
     else:
         _, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(start_values)
         mid_point_bins = start_values[:-1]
@@ -162,7 +165,7 @@ def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
                      label='{}'.format(value),
                      ax=ax)
     ax.set_legend()
-    return
+    return ax
 
 ### Boxplot
 def _calc_tukey(col_summ):

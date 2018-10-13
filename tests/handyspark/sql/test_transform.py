@@ -2,7 +2,6 @@ import numpy.testing as npt
 from pyspark.sql.types import DoubleType, StringType, ArrayType
 import handyspark
 
-
 def test_apply_axis0(sdf, pdf):
     hdf = sdf.toHandy
     # setting the type manually

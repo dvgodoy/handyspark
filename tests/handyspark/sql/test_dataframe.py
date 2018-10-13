@@ -1,8 +1,10 @@
 import numpy as np
 import numpy.testing as npt
 from handyspark import *
+from handyspark.sql.dataframe import Bucket, Quantile
 from pyspark.sql import DataFrame, functions as F
-from sklearn.preprocessing import Imputer
+from scipy.stats import mode
+from sklearn.preprocessing import Imputer, KBinsDiscretizer
 
 def test_to_from_handy(sdf):
     hdf = sdf.toHandy
@@ -81,9 +83,9 @@ def test_fill_categorical(sdf):
     hcounts = hdf_filled.value_counts('Embarked').loc['S']
     npt.assert_equal(hcounts, 646)
 
-def test_fill_numerical(sdf, pdf):
+def test_fill_continuous(sdf, pdf):
     hdf = sdf.toHandy
-    hdf_filled = hdf.fill('Age', strategy='mean')
+    hdf_filled = hdf.fill(continuous='Age', strategy='mean')
     hage = hdf_filled.handy['Age', None].values
 
     imputer = Imputer(strategy='mean').fit(pdf[['Age']])
@@ -117,3 +119,78 @@ def test_grouped_column_values(sdf, pdf):
     hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).handy['Age']
     mean = pdf.groupby('Pclass').agg({'Age': np.mean})['Age']
     npt.assert_array_equal(hmean, mean)
+
+def test_bucket(sdf, pdf):
+    bucket = Bucket('Age', bins=3)
+    sbuckets = bucket._get_buckets(sdf.fillna(0.0))[1:-1]
+
+    kbins = KBinsDiscretizer(n_bins=3, strategy='uniform')
+    kbins.fit(pdf[['Age']].fillna(0.0))
+    pbuckets = kbins.bin_edges_[0]
+
+    npt.assert_almost_equal(sbuckets, pbuckets)
+
+def test_quantile(sdf, pdf):
+    bucket = Quantile('Age', bins=3)
+    sbuckets = bucket._get_buckets(sdf.fillna(0.0))[1:-1]
+
+    kbins = KBinsDiscretizer(n_bins=3, strategy='quantile')
+    kbins.fit(pdf[['Age']].fillna(0.0))
+    pbuckets = kbins.bin_edges_[0]
+
+    npt.assert_almost_equal(sbuckets, pbuckets)
+
+def test_stratify_length(sdf, pdf):
+    # matches lengths only
+    hdf = sdf.toHandy
+    sfare = hdf.stratify(['Pclass']).mode('Fare')
+    pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: mode(v)[0]})
+    npt.assert_array_almost_equal(sfare, pfare)
+
+def test_stratify_list(sdf, pdf):
+    # list
+    hdf = sdf.toHandy
+    sname = hdf.stratify(['Pclass']).take(1)
+    sname = np.array(list(map(lambda row: row.Name, sname)), dtype=np.object)
+    pname = pdf.groupby('Pclass')['Name'].first()
+    npt.assert_equal(sname, pname)
+
+def test_stratify_pandas_df(sdf, pdf):
+    # pd.DataFrame
+    hdf = sdf.toHandy
+    scorr = hdf.stratify(['Pclass']).corr_matrix(['Fare', 'Age'])
+    pcorr = pdf.groupby('Pclass')[['Fare', 'Age']].corr()
+    npt.assert_array_almost_equal(scorr.values, pcorr.values)
+
+def test_stratify_pandas_series(sdf, pdf):
+    # pd.Series
+    hdf = sdf.toHandy
+    scounts = hdf.stratify(['Pclass']).value_counts('Embarked', keepna=False)
+    pcounts = pdf.groupby('Pclass')['Embarked'].value_counts().sort_index()
+    npt.assert_array_almost_equal(scounts, pcounts)
+
+def test_stratify_spark_df(sdf, pdf):
+    # pd.Series
+    hdf = sdf.toHandy
+    sfirst = hdf.dropna().stratify(['Pclass']).limit(1).drop('Pclass').toPandas()
+    pfirst = pdf.dropna().groupby('Pclass').first().reset_index(drop=True)
+    npt.assert_array_equal(sfirst, pfirst)
+
+def test_stratify_fill(sdf, pdf):
+    hdf = sdf.toHandy
+    hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
+    hage = hdf_filled.handy['Age', None].values
+
+    pdf_filled = []
+    statistics = {}
+    for pclass in [1, 2, 3]:
+        filtered = pdf.query('Pclass == {}'.format(pclass))[['Age']]
+        imputer = Imputer(strategy='mean').fit(filtered)
+        pdf_filled.append(imputer.transform(filtered))
+        statistics.update({'Pclass == "{}"'.format(pclass): {'Age': imputer.statistics_[0]}})
+    pdf_filled = np.concatenate(pdf_filled, axis=0)
+    age = pdf_filled.ravel()
+
+    npt.assert_array_equal(hage, age)
+    npt.assert_array_equal(sorted(list(hdf_filled.statistics_.items())),
+                           sorted(list(statistics.items())))
