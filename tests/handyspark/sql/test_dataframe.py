@@ -85,7 +85,7 @@ def test_fill_categorical(sdf):
 
 def test_fill_continuous(sdf, pdf):
     hdf = sdf.toHandy
-    hdf_filled = hdf.fill(continuous='Age', strategy='mean')
+    hdf_filled = hdf.fill(continuous=['Age'], strategy='mean')
     hage = hdf_filled.handy['Age', None].values
 
     imputer = Imputer(strategy='mean').fit(pdf[['Age']])

@@ -128,8 +128,8 @@ def dense_to_array(sdf, colname, new_colname):
 
 def disassemble(sdf, colname, new_colnames=None):
     array_col = '_{}'.format(colname)
-    coltype = sdf.select(colname).dtypes[0][1]
-    if coltype in ['vector', 'array']:
+    coltype = sdf.select(colname).schema.fields[0].dataType.typeName()
+    if coltype in ['vectorudt', 'array']:
         tdf = dense_to_array(sdf, colname, array_col)
         size = tdf.select(F.min(F.size(array_col))).take(1)[0][0]
         if new_colnames is None:

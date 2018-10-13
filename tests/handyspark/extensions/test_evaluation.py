@@ -27,7 +27,7 @@ def test_confusion_matrix(sdf):
 
 def test_get_metrics_by_threshold(sdf):
     assem = VectorAssembler(inputCols=['Fare', 'Pclass', 'Age'], outputCol='features')
-    rf = RandomForestClassifier(featuresCol='features', labelCol='Survived', numTrees=20)
+    rf = RandomForestClassifier(featuresCol='features', labelCol='Survived', numTrees=20, seed=13)
     pipeline = Pipeline(stages=[assem, rf])
     model = pipeline.fit(sdf.fillna(0.0))
     predictions = model.transform(sdf.fillna(0.0)).toHandy.to_metrics_RDD('probability', 'Survived')
@@ -44,7 +44,7 @@ def test_get_metrics_by_threshold(sdf):
     npt.assert_array_almost_equal(precision, pr[:, 1][::-1])
     npt.assert_array_almost_equal(recall, pr[:, 0][::-1])
 
-    roc = np.array(bcm.roc().collect())[1:]
+    roc = np.array(bcm.roc().collect())
     idx = roc[:, 1].argmax()
     roc = roc[:idx + 1, :]
     sroc = pd.DataFrame(np.round(roc, 6), columns=['fpr', 'tpr'])
