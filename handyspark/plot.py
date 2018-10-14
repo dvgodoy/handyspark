@@ -8,8 +8,7 @@ from pyspark.ml.feature import Bucketizer
 from pyspark.ml.pipeline import Pipeline
 from pyspark.mllib.stat import Statistics
 from pyspark.sql import functions as F
-
-# https://matplotlib.org/devel/testing.html
+from matplotlib.artist import setp
 
 def title_fom_clause(clause):
     return clause.replace(' and ', '\n').replace(' == ', '=').replace('"', '')
@@ -168,6 +167,43 @@ def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
     return ax
 
 ### Boxplot
+def _gen_dict(rc_name, properties):
+    """ Loads properties in the dictionary from rc file if not already
+    in the dictionary"""
+    rc_str = 'boxplot.{0}.{1}'
+    dictionary = dict()
+    for prop_dict in properties:
+        dictionary.setdefault(prop_dict,
+                        plt.rcParams[rc_str.format(rc_name, prop_dict)])
+    return dictionary
+
+def draw_boxplot(ax, stats):
+    flier_props = ['color', 'marker', 'markerfacecolor', 'markeredgecolor',
+                   'markersize', 'linestyle', 'linewidth']
+    default_props = ['color', 'linewidth', 'linestyle']
+    boxprops = _gen_dict('boxprops', default_props)
+    whiskerprops = _gen_dict('whiskerprops', default_props)
+    capprops = _gen_dict('capprops', default_props)
+    medianprops = _gen_dict('medianprops', default_props)
+    meanprops = _gen_dict('meanprops', default_props)
+    flierprops = _gen_dict('flierprops', flier_props)
+
+    props = dict(boxprops=boxprops,
+                 flierprops=flierprops,
+                 medianprops=medianprops,
+                 meanprops=meanprops,
+                 capprops=capprops,
+                 whiskerprops=whiskerprops)
+
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#1f77b4']
+    bp = ax.bxp(stats, **props)
+    ax.grid(True)
+    setp(bp['boxes'], color=colors[0], alpha=1)
+    setp(bp['whiskers'], color=colors[0], alpha=1)
+    setp(bp['medians'], color=colors[2], alpha=1)
+    return ax
+
 def _calc_tukey(col_summ):
     q1, q3 = float(none2zero(col_summ['25%'])), float(none2zero(col_summ['75%']))
     iqr = q3 - q1
@@ -175,7 +211,7 @@ def _calc_tukey(col_summ):
     ufence = q3 + (1.5 * iqr)
     return lfence, ufence
 
-def boxplot(sdf, colnames, ax=None):
+def boxplot(sdf, colnames, ax=None, showfliers=True):
     strat_ax, data = sdf._get_strata()
     if data is None:
         if ax is None:
@@ -196,6 +232,7 @@ def boxplot(sdf, colnames, ax=None):
         outlier = sdf.withColumn('__{}_outlier'.format(colname),
                                  ~F.col(colname).between(lfence, ufence))
 
+        fliers = []
         try:
             minv, maxv = (outlier
                           .filter('not __{}_outlier'.format(colname))
@@ -204,17 +241,17 @@ def boxplot(sdf, colnames, ax=None):
                           .map(lambda x: (x[0], x[0]))
                           .reduce(minmax))
 
-            fliers = (outlier
-                      .filter('__{}_outlier'.format(colname))
-                      .select(colname)
-                      .rdd
-                      .map(itemgetter(0))
-                      .sortBy(lambda v: -abs(v))
-                      .take(100))
+            if showfliers:
+                fliers = (outlier
+                          .filter('__{}_outlier'.format(colname))
+                          .select(colname)
+                          .rdd
+                          .map(itemgetter(0))
+                          .sortBy(lambda v: -abs(v))
+                          .take(1000))
         except ValueError:
             minv = 0.
             maxv = 0.
-            fliers = []
 
         item = {'label': colname,
                 'mean': float(none2zero(col_summ['mean'])),
@@ -228,16 +265,15 @@ def boxplot(sdf, colnames, ax=None):
         stats.append(item)
 
     if ax is not None:
-        ax.bxp(stats)
-        return ax
+        return draw_boxplot(ax, stats)
     else:
         return stats
 
 def post_boxplot(axs, stats, clauses):
     if len(axs) == len(stats):
         new_res = []
-        for ax, stats in zip(axs, stats):
-            ax.bxp(stats)
+        for ax, stat in zip(axs, stats):
+            ax = draw_boxplot(ax, stat)
             new_res.append(ax)
     else:
         ax = axs[0]
@@ -246,6 +282,6 @@ def post_boxplot(axs, stats, clauses):
             label = title_fom_clause(clause)
             stats[0].update({'label': label})
             items.append(stats[0])
-        ax.bxp(items)
+        ax = draw_boxplot(ax, items)
         new_res = [ax]
     return new_res

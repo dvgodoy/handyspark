@@ -341,16 +341,21 @@ class Handy(object):
     ### Boxplot functions
     def _strat_boxplot(self, colnames, **kwargs):
         n_rows = n_cols = 1
+        kwds = deepcopy(kwargs)
+        try:
+            del kwds['showfliers']
+        except KeyError:
+            pass
         if isinstance(colnames, (tuple, list)) and (len(colnames) > 1):
             n_rows = self._n_rows
             n_cols = self._n_cols
-        self._build_strat_plot(n_rows, n_cols, **kwargs)
+        self._build_strat_plot(n_rows, n_cols, **kwds)
         return None
 
-    def boxplot(self, colnames, ax=None):
+    def boxplot(self, colnames, ax=None, showfliers=True):
         if not isinstance(colnames, (tuple, list)):
             colnames = [colnames]
-        return boxplot(self._df, colnames, ax)
+        return boxplot(self._df, colnames, ax, showfliers)
 
     def _post_boxplot(self, res):
         return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
@@ -611,8 +616,8 @@ class HandyFrame(DataFrame):
     def hist(self, colname, bins=10, ax=None, **kwargs):
         return self._handy.hist(colname, bins, ax)
 
-    def boxplot(self, colnames, ax=None, **kwargs):
-        return self._handy.boxplot(colnames, ax)
+    def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
+        return self._handy.boxplot(colnames, ax, showfliers)
 
     def scatterplot(self, col1, col2, ax=None, **kwargs):
         return self._handy.scatterplot(col1, col2, ax)
