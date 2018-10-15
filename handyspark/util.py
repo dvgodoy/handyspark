@@ -13,6 +13,19 @@ def none2default(value, default):
 def none2zero(value):
     return none2default(value, 0)
 
+def ensure_list(value):
+    if isinstance(value, (list, tuple)):
+        return value
+    else:
+        return [value]
+
+def check_columns(df, colnames):
+    if colnames is not None:
+        available = df.columns
+        colnames = ensure_list(colnames)
+        diff = set(colnames).difference(set(available))
+        assert not len(diff), "DataFrame does not have {} column(s)".format(str(list(diff))[1:-1])
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -28,8 +41,6 @@ class HandyException(Exception):
         try:
             summary = kwargs['summary']
             if summary:
-                # logger = sc._jvm.org.apache.log4j.LogManager.getRootLogger
-                # logger.error(HandyException.exception_summary())
                 print(HandyException.exception_summary())
         except KeyError:
             pass

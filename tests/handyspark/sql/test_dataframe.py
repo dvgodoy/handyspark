@@ -53,8 +53,8 @@ def test_value_counts(sdf, pdf):
 
 def test_column_values(sdf, pdf):
     hdf = sdf.toHandy
-    npt.assert_array_equal(hdf.handy['Fare'], pdf['Fare'][:20])
-    npt.assert_array_equal(hdf.handy['Fare', 10], pdf['Fare'][:10])
+    npt.assert_array_equal(hdf.col['Fare'], pdf['Fare'][:20])
+    npt.assert_array_equal(hdf.col['Fare', 10], pdf['Fare'][:10])
 
 def test_isnull(sdf, pdf):
     hdf = sdf.toHandy
@@ -77,6 +77,15 @@ def test_mode(sdf, pdf):
     mode = pdf['Embarked'].mode()[0]
     npt.assert_equal(hmode, mode)
 
+def test_types(sdf):
+    hdf = sdf.toHandy
+    hdf2 = hdf.withColumn('newcol', F.lit(1.0))
+    npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare'], hdf.col.numerical)
+    npt.assert_array_equal(['Age', 'Fare'], hdf.col.continuous)
+    npt.assert_array_equal(['Age', 'Fare', 'newcol'], hdf2.col.continuous)
+    npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 'SibSp', 'Parch', 'Ticket', 'Cabin',
+                            'Embarked'], hdf.col.categorical)
+
 def test_fill_categorical(sdf):
     hdf = sdf.toHandy
     hdf_filled = hdf.fill(categorical=['Embarked'])
@@ -86,7 +95,7 @@ def test_fill_categorical(sdf):
 def test_fill_continuous(sdf, pdf):
     hdf = sdf.toHandy
     hdf_filled = hdf.fill(continuous=['Age'], strategy='mean')
-    hage = hdf_filled.handy['Age', None].values
+    hage = hdf_filled.col['Age', None].values
 
     imputer = Imputer(strategy='mean').fit(pdf[['Age']])
     pdf_filled = imputer.transform(pdf[['Age']])
@@ -111,12 +120,12 @@ def test_fence(sdf, pdf):
     lfence, ufence = q1 - (1.5 * iqr), q3 + (1.5 * iqr)
     fare = fare.mask(fare > ufence, ufence).mask(fare < lfence, lfence)
 
-    npt.assert_array_almost_equal(hdf_fenced.handy['Fare', None], fare)
+    npt.assert_array_almost_equal(hdf_fenced.col['Fare', None], fare)
     npt.assert_equal(hdf_fenced.fences_['Fare'], [lfence, ufence])
 
 def test_grouped_column_values(sdf, pdf):
     hdf = sdf.toHandy
-    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).handy['Age']
+    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).col['Age']
     mean = pdf.groupby('Pclass').agg({'Age': np.mean})['Age']
     npt.assert_array_equal(hmean, mean)
 
@@ -179,7 +188,7 @@ def test_stratify_spark_df(sdf, pdf):
 def test_stratify_fill(sdf, pdf):
     hdf = sdf.toHandy
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
-    hage = hdf_filled.handy['Age', None].values
+    hage = hdf_filled.col['Age', None].values
 
     pdf_filled = []
     statistics = {}

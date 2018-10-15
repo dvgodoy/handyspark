@@ -4,7 +4,8 @@ from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat
     consolidate_plots, post_boxplot
 from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
-from handyspark.util import HandyException, get_buckets, dense_to_array, disassemble
+from handyspark.util import HandyException, get_buckets, dense_to_array, disassemble, ensure_list, check_columns, \
+    none2default
 import inspect
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
@@ -65,7 +66,9 @@ class Handy(object):
                 n = -1
 
         if isinstance(item, int):
-            item = list(self._df.columns)[item + (len(self._group_cols) if self._group_cols is not None else 0)]
+            idx = item + (len(self._group_cols) if self._group_cols is not None else 0)
+            assert idx < len(self._df.columns), "Invalid column index {}".format(idx)
+            item = list(self._df.columns)[idx]
 
         if isinstance(item, str):
             if self._group_cols is None or len(self._group_cols) == 0:
@@ -79,6 +82,7 @@ class Handy(object):
                         res = pd.concat([pd.DataFrame(strata), res], axis=1).set_index(self._strata).sort_index()
                 return res
             else:
+                check_columns(self._df, list(self._group_cols) + [item])
                 pdf = self._df.select(list(self._group_cols) + [item])
                 if n != -1:
                     pdf = pdf.limit(n)
@@ -156,15 +160,17 @@ class Handy(object):
         self._strata_plot = (fig, [ax for col in np.transpose(axs) for ax in col])
 
     def _update_types(self):
-        self._types = self._df.dtypes
+        self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
         self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string', 'array', 'map'],
                                                          self._types)))
         self._continuous = list(map(itemgetter(0), filter(lambda t: t[1] in ['double', 'float'], self._types)))
         self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['double', 'float', 'array', 'map'],
                                                            self._types)))
         self._array = list(map(itemgetter(0), filter(lambda t: t[1] in ['array', 'map'], self._types)))
+        self._string = list(map(itemgetter(0), filter(lambda t: t[1] in ['string'], self._types)))
 
     def _take_array(self, colname, n):
+        check_columns(self._df, colname)
         datatype = self._df.select(colname).schema.fields[0].dataType.typeName()
         rdd = self._df.select(colname).rdd.map(itemgetter(0))
 
@@ -185,6 +191,7 @@ class Handy(object):
         self._counts = self._summary.loc['count'].astype('double')
 
     def _value_counts(self, colnames, keepna=True):
+        check_columns(self._df, colnames)
         data = self._df.select(colnames)
         if not keepna:
             data = data.dropna()
@@ -197,6 +204,7 @@ class Handy(object):
         return values
 
     def __fill_target(self, target):
+        assert isinstance(target, DataFrame), "Target must be a DataFrame"
         joined_df = None
         fill_dict = {}
         clauses = []
@@ -233,18 +241,16 @@ class Handy(object):
         self._imputed_values = values
 
     def __fill_self(self, continuous, categorical, strategy):
-        if continuous is None:
-            continuous = []
+        continuous = none2default(continuous, [])
+        categorical = none2default(categorical, [])
+        check_columns(self._df, continuous + categorical)
+
+        strategy = none2default(strategy, 'mean')
+
         if continuous == 'all':
             continuous = self._continuous
-
-        if categorical is None:
-            categorical = []
         if categorical == 'all':
             categorical = self._categorical
-
-        if strategy is None:
-            strategy = 'mean'
 
         if isinstance(strategy, (list, tuple)):
             assert len(continuous) == len(strategy), "There must be a strategy to each column."
@@ -256,10 +262,12 @@ class Handy(object):
         return res
 
     def _dense_to_array(self, colname, array_colname):
+        check_columns(self._df, colname)
         res = dense_to_array(self._df, colname, array_colname)
         return HandyFrame(res, self)
 
     def disassemble(self, colname, new_colnames=None):
+        check_columns(self._df, colname)
         res = disassemble(self._df, colname, new_colnames)
         return HandyFrame(res, self)
 
@@ -285,17 +293,15 @@ class Handy(object):
         return missing
 
     def nunique(self, colnames=None):
-        if colnames is None:
-            colnames = self._df.columns
-        if not isinstance(colnames, (list, tuple)):
-            colnames = [colnames]
-
+        colnames = none2default(colnames, self._df.columns)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
         return pd.Series([self._df.select(col).dropna().distinct().count() for col in colnames],
                          index=colnames)
 
     def fence(self, colnames):
-        if not isinstance(colnames, (tuple, list)):
-            colnames = [colnames]
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
         df = self._df
         for colname in colnames:
             q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
@@ -311,9 +317,9 @@ class Handy(object):
         return HandyFrame(df.select(self._df.columns), self)
 
     def set_response(self, colname):
+        check_columns(self._df, colname)
+        self._response = colname
         if colname is not None:
-            assert colname in self._df.columns, "{} not in DataFrame".format(colname)
-            self._response = colname
             if colname not in self._continuous:
                 self._is_classification = True
                 self._classes = self._df.select(colname).rdd.map(itemgetter(0)).distinct().collect()
@@ -331,10 +337,9 @@ class Handy(object):
         return self._value_counts(colname).filter(lambda t: t[0] is not None).take(1)[0][0][0]
 
     def corr(self, colnames=None):
-        if colnames is None:
-            colnames = self._numerical
-        if not isinstance(colnames, (tuple, list)):
-            colnames = [colnames]
+        colnames = none2default(colnames, self._numerical)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
         pdf = correlations(self._df, colnames, ax=None, plot=False)
         return pdf
 
@@ -353,8 +358,8 @@ class Handy(object):
         return None
 
     def boxplot(self, colnames, ax=None, showfliers=True):
-        if not isinstance(colnames, (tuple, list)):
-            colnames = [colnames]
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
         return boxplot(self._df, colnames, ax, showfliers)
 
     def _post_boxplot(self, res):
@@ -366,6 +371,7 @@ class Handy(object):
         return strat_scatterplot(self._df, col1, col2)
 
     def scatterplot(self, col1, col2, ax=None):
+        check_columns(self._df, [col1, col2])
         return scatterplot(self._df, col1, col2, ax=ax)
 
     ### Histogram functions
@@ -379,6 +385,7 @@ class Handy(object):
     def hist(self, colname, bins=10, ax=None):
         # TO DO
         # include split per response/columns
+        check_columns(self._df, colname)
         if colname in self._continuous:
             return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
         else:
@@ -479,6 +486,10 @@ class HandyFrame(DataFrame):
     @property
     def notHandy(self):
         return DataFrame(self._jdf, self.sql_ctx)
+
+    @property
+    def col(self):
+        return HandyColumn(self._handy)
 
     @property
     def pandas(self):
@@ -636,6 +647,7 @@ class Bucket(object):
         return self._colname
 
     def _get_buckets(self, df):
+        check_columns(df, self._colname)
         buckets = ([-float('inf')] +
                    get_buckets(df.select(self._colname).rdd.map(itemgetter(0)), self._bins) +
                    [float('inf')])
@@ -664,6 +676,34 @@ class Quantile(Bucket):
                    [float('inf')])
         buckets[-2] += 1e-14
         return buckets
+
+
+class HandyColumn(object):
+    def __init__(self, handy):
+        self._handy = handy
+
+    def __getitem__(self, *args):
+        return self._handy.__getitem__(*args)
+
+    @property
+    def numerical(self):
+        return self._handy._numerical
+
+    @property
+    def categorical(self):
+        return self._handy._categorical
+
+    @property
+    def continuous(self):
+        return self._handy._continuous
+
+    @property
+    def string(self):
+        return self._handy._string
+
+    @property
+    def array(self):
+        return self._handy._array
 
 
 class HandyStrata(object):

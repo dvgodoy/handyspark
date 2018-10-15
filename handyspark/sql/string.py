@@ -1,4 +1,5 @@
 from handyspark.sql.transform import HandyTransform
+from handyspark.util import check_columns
 import unicodedata
 
 class HandyString(object):
@@ -36,6 +37,7 @@ class HandyString(object):
             if name in self.__available:
                 def wrapper(*args, **kwargs):
                     colname = args[0]
+                    check_columns(self._df, colname)
                     if self._df.select(colname).dtypes[0][1] != 'string':
                         raise AttributeError('Can only use .str accessor with string values')
                     try:

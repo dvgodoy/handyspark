@@ -1,6 +1,7 @@
 from handyspark.sql.datetime import HandyDatetime
 from handyspark.sql.string import HandyString
-from handyspark.sql.transform import HandyTransform, _MAPPING
+from handyspark.sql.transform import HandyTransform
+from handyspark.util import check_columns
 
 class HandyPandas(object):
     __supported = {'boolean': ['between', 'between_time', 'isin', 'isna', 'isnull', 'notna', 'notnull'],
@@ -37,6 +38,7 @@ class HandyPandas(object):
             if name in self.__available:
                 def wrapper(*args, **kwargs):
                     colname = args[0]
+                    check_columns(self._df, colname)
                     try:
                         alias = kwargs.pop('alias')
                     except KeyError:

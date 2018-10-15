@@ -1,17 +1,18 @@
 import numpy as np
 import pandas as pd
-from handyspark.util import dense_to_array, disassemble
+from handyspark.util import dense_to_array, disassemble, check_columns, ensure_list
 from operator import add
 from pyspark.ml.stat import Correlation
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.pipeline import Pipeline
-from pyspark.mllib.common import _java2py, _py2java
+from pyspark.mllib.common import _py2java
 from pyspark.mllib.stat.test import KolmogorovSmirnovTestResult
 from pyspark.sql import Row, functions as F
 from scipy.linalg import inv
 from scipy.stats import chi2
 
 def mahalanobis(sdf, colnames):
+    check_columns(sdf, colnames)
     assembler = VectorAssembler(inputCols=colnames, outputCol='__features')
     scaler = StandardScaler(inputCol='__features', outputCol='__scaled', withMean=True)
     pipeline = Pipeline(stages=[assembler, scaler])
@@ -33,13 +34,14 @@ def mahalanobis(sdf, colnames):
     return distance
 
 def probabilities(sdf, colname):
+    check_columns(sdf, colname)
     rdd = sdf.select(colname).rdd.map(lambda row: (row[0], 1))
     n = rdd.count()
     return rdd.reduceByKey(add).map(lambda t: Row(__col=t[0], __probability=t[1]/n)).toDF()
 
 def entropy(sdf, colnames):
-    if not isinstance(colnames, (list, tuple)):
-        colnames = [colnames]
+    colnames = ensure_list(colnames)
+    check_columns(sdf, colnames)
     entropy = []
     for colname in colnames:
         entropy.append(probabilities(sdf, colname)
@@ -47,6 +49,7 @@ def entropy(sdf, colnames):
     return pd.Series(entropy, index=colnames)
 
 def mutual_info(sdf, colnames):
+    check_columns(sdf, colnames)
     n = len(colnames)
     probs = []
     for i in range(n):
@@ -65,8 +68,9 @@ def mutual_info(sdf, colnames):
     return pd.DataFrame(res, index=colnames, columns=colnames)
 
 def StatisticalSummaryValues(sdf, colnames):
-    if not isinstance(colnames, (list, tuple)):
-        colnames = [colnames]
+    colnames = ensure_list(colnames)
+    check_columns(sdf, colnames)
+
     jvm = sdf._sc._jvm
     summ = sdf.select(colnames).describe().toPandas().set_index('summary')
     ssvs = {}
@@ -90,6 +94,7 @@ def tTest(jvm, *ssvs):
     return res
 
 def KolmogorovSmirnovTest(sdf, colname, dist='normal', *params):
+    check_columns(sdf, colname)
     _distributions = ['Beta', 'Cauchy', 'ChiSquared', 'Exponential', ' F', 'Gamma', 'Gumbel', 'Laplace', 'Levy',
                       'Logistic', 'LogNormal', 'Nakagami', 'Normal', 'Pareto', 'T', 'Triangular', 'Uniform', 'Weibull']
     _distlower = list(map(lambda v: v.lower(), _distributions))

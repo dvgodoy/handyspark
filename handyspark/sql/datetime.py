@@ -1,4 +1,5 @@
 from handyspark.sql.transform import HandyTransform
+from handyspark.util import check_columns
 
 class HandyDatetime(object):
     __supported = {'boolean': ['is_leap_year', 'is_month_end', 'is_month_start', 'is_quarter_end', 'is_quarter_start',
@@ -31,6 +32,7 @@ class HandyDatetime(object):
             if name in self.__available:
                 def wrapper(*args, **kwargs):
                     colname = args[0]
+                    check_columns(self._df, colname)
                     if self._df.select(colname).dtypes[0][1] != 'timestamp':
                         raise AttributeError('Can only use .dt accessor with datetimelike values')
                     try:
