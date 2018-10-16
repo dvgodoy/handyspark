@@ -3,21 +3,50 @@ from pyspark.mllib.evaluation import BinaryClassificationMetrics, MulticlassMetr
 from pyspark.sql import SQLContext
 
 def thresholds(self):
+    """
+    * Returns thresholds in descending order.
+    """
     return self.call('thresholds')
 
 def roc(self):
+    """
+    * Returns the receiver operating characteristic (ROC) curve,
+    * which is an RDD of (false positive rate, true positive rate)
+    * with (0.0, 0.0) prepended and (1.0, 1.0) appended to it.
+    * @see <a href="http://en.wikipedia.org/wiki/Receiver_operating_characteristic">
+    * Receiver operating characteristic (Wikipedia)</a>
+    """
     return self.call2('roc')
 
 def pr(self):
+    """
+    * Returns the precision-recall curve, which is an RDD of (recall, precision),
+    * NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision
+    * associated with the lowest recall on the curve.
+    * @see <a href="http://en.wikipedia.org/wiki/Precision_and_recall">
+    * Precision and recall (Wikipedia)</a>
+    """
     return self.call2('pr')
 
 def fMeasureByThreshold(self, beta=1.0):
+    """
+    * Returns the (threshold, F-Measure) curve.
+    * @param beta the beta factor in F-Measure computation.
+    * @return an RDD of (threshold, F-Measure) pairs.
+    * @see <a href="http://en.wikipedia.org/wiki/F1_score">F1 score (Wikipedia)</a>
+    """
     return self.call2('fMeasureByThreshold', beta)
 
 def precisionByThreshold(self):
+    """
+    * Returns the (threshold, precision) curve.
+    """
     return self.call2('precisionByThreshold')
 
 def recallByThreshold(self):
+    """
+    * Returns the (threshold, recall) curve.
+    """
     return self.call2('recallByThreshold')
 
 def getMetricsByThreshold(self):
@@ -31,6 +60,12 @@ def getMetricsByThreshold(self):
     return df
 
 def confusionMatrix(self, threshold=0.5):
+    """
+    Returns confusion matrix: predicted classes are in columns,
+    they are ordered by class label ascending, as in "labels".
+
+    Predicted classes are computed according to informed threshold.
+    """
     scoreAndLabels = self.call2('scoreAndLabels').map(lambda t: (float(t[0] > threshold), t[1]))
     mcm = MulticlassMetrics(scoreAndLabels)
     return mcm.confusionMatrix()

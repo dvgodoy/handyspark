@@ -35,7 +35,7 @@ ft = hdf4.transformers.fencer()
 new_hdf = ft.transform(hdf)
 print(new_hdf.select(F.max('Fare'), F.max('Age')).take(1))
 
-print(hdf.pandas.str.find('Name', sub='Mr.', alias='FindMr').take(1))
+print(hdf.assign(FindMr=hdf.pandas['Name'].str.find(sub='Mr.')).take(1))
 print(hdf.assign(FindMr=IntegerType.ret(lambda Name: Name.str.find(sub='Mr.'))).take(1))
 print(hdf.assign(x=StringType.ret(lambda Fare: (Fare * 2).map('${:,.2f}'.format))).take(1))
 

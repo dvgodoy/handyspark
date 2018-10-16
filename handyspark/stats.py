@@ -12,28 +12,48 @@ from scipy.linalg import inv
 from scipy.stats import chi2
 
 def mahalanobis(sdf, colnames):
+    """
+    Computes Mahalanobis distance from origin and compares to critical values
+    using Chi-Squared distribution to identify possible outliers.
+    """
     check_columns(sdf, colnames)
+    # Builds pipeline to assemble feature columns and scale them
     assembler = VectorAssembler(inputCols=colnames, outputCol='__features')
     scaler = StandardScaler(inputCol='__features', outputCol='__scaled', withMean=True)
     pipeline = Pipeline(stages=[assembler, scaler])
     features = pipeline.fit(sdf).transform(sdf)
 
+    # Computes correlation between features and inverts it
+    # Since we scaled the features, we can assume they have unit variance
+    # and therefore, correlation and covariance matrices are the same!
     mat = Correlation.corr(features, '__scaled').head()[0].toArray()
     inv_mat = inv(mat)
+
+    # Computes critical value
     critical_value = chi2.ppf(0.999, len(colnames))
 
-    @F.pandas_udf('double')
-    def pudf_mult(v):
-        return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
+    # Builds Pandas UDF to compute Mahalanobis distance from origin
+    # sqrt((V - 0) * inv_M * (V - 0))
+    try:
+        import pyarrow
+        @F.pandas_udf('double')
+        def pudf_mult(v):
+            return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
+    except:
+        @F.udf('double')
+        def pudf_mult(v):
+            return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
 
+    # Convert feature vector into array
     features = dense_to_array(features, '__scaled', '__array_scaled')
+    # Computes Mahalanobis distance and flags as outliers all elements above critical value
     distance = (features
                 .withColumn('__mahalanobis', pudf_mult('__array_scaled'))
                 .withColumn('__outlier', F.col('__mahalanobis') > critical_value)
                 .drop('__features', '__scaled', '__array_scaled'))
     return distance
 
-def probabilities(sdf, colname):
+def distribution(sdf, colname):
     check_columns(sdf, colname)
     rdd = sdf.select(colname).rdd.map(lambda row: (row[0], 1))
     n = rdd.count()
@@ -44,7 +64,7 @@ def entropy(sdf, colnames):
     check_columns(sdf, colnames)
     entropy = []
     for colname in colnames:
-        entropy.append(probabilities(sdf, colname)
+        entropy.append(distribution(sdf, colname)
                        .select(F.sum(F.expr('-log2(__probability)*__probability'))).take(1)[0][0])
     return pd.Series(entropy, index=colnames)
 
@@ -53,12 +73,12 @@ def mutual_info(sdf, colnames):
     n = len(colnames)
     probs = []
     for i in range(n):
-        probs.append(probabilities(sdf, colnames[i]))
+        probs.append(distribution(sdf, colnames[i]))
     res = np.zeros(shape=(n, n))
     for i in range(n):
         for j in range(i, n):
             tdf = VectorAssembler(inputCols=[colnames[i], colnames[j]], outputCol='__vectors').transform(sdf)
-            tdf = probabilities(tdf, '__vectors')
+            tdf = distribution(tdf, '__vectors')
             tdf = disassemble(dense_to_array(tdf, '__col', '__features'), '__features')
             tdf = tdf.join(probs[i].toDF('__features_0', '__p0'), on='__features_0')
             tdf = tdf.join(probs[j].toDF('__features_1', '__p1'), on='__features_1')
@@ -68,6 +88,9 @@ def mutual_info(sdf, colnames):
     return pd.DataFrame(res, index=colnames, columns=colnames)
 
 def StatisticalSummaryValues(sdf, colnames):
+    """
+    Builds a Java StatisticalSummaryValues object for each column
+    """
     colnames = ensure_list(colnames)
     check_columns(sdf, colnames)
 
@@ -82,6 +105,9 @@ def StatisticalSummaryValues(sdf, colnames):
     return ssvs
 
 def tTest(jvm, *ssvs):
+    """
+    Performs a t-Test for difference of means using StatisticalSummaryValues objects
+    """
     n = len(ssvs)
     res = np.identity(n)
     java_class = jvm.org.apache.commons.math3.stat.inference.TTest
@@ -94,15 +120,22 @@ def tTest(jvm, *ssvs):
     return res
 
 def KolmogorovSmirnovTest(sdf, colname, dist='normal', *params):
+    """
+    Performs a KolmogorovSmirnov test for comparing the distribution of values in a column
+    to a named canonical distribution.
+    """
     check_columns(sdf, colname)
+    # Supported distributions
     _distributions = ['Beta', 'Cauchy', 'ChiSquared', 'Exponential', ' F', 'Gamma', 'Gumbel', 'Laplace', 'Levy',
                       'Logistic', 'LogNormal', 'Nakagami', 'Normal', 'Pareto', 'T', 'Triangular', 'Uniform', 'Weibull']
     _distlower = list(map(lambda v: v.lower(), _distributions))
     try:
         dist = _distributions[_distlower.index(dist)]
+        # the actual name for the Uniform distribution is UniformReal
         if dist == 'Uniform':
             dist += 'Real'
     except ValueError:
+        # If we cannot find a distribution, fall back to Normal
         dist = 'Normal'
         params = (0., 1.)
     jvm = sdf._sc._jvm
