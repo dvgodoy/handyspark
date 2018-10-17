@@ -15,7 +15,6 @@ import pandas as pd
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F
 
-@property
 def toHandy(self):
     return HandyFrame(self)
 
@@ -86,7 +85,7 @@ class Handy(object):
                 pdf = self._df.select(list(self._group_cols) + [item])
                 if n != -1:
                     pdf = pdf.limit(n)
-                res = pdf.notHandy.toPandas().set_index(list(self._group_cols)).sort_index()[item]
+                res = pdf.notHandy().toPandas().set_index(list(self._group_cols)).sort_index()[item]
                 return res
 
     @property
@@ -182,7 +181,7 @@ class Handy(object):
         return np.array(data, dtype=_MAPPING.get(datatype, 'object'))
 
     def _summaries(self):
-        self._summary = self._df.notHandy.summary().toPandas().set_index('summary')
+        self._summary = self._df.notHandy().summary().toPandas().set_index('summary')
         for col in self._numerical:
             self._summary[col] = self._summary[col].astype('double')
 
@@ -401,7 +400,7 @@ class HandyGrouped(GroupedData):
 
     def agg(self, *exprs):
         df = super().agg(*exprs)
-        handy = deepcopy(self._df.handy)
+        handy = deepcopy(self._df._handy)
         handy._group_cols = self._cols
         return HandyFrame(df, handy)
 
@@ -479,17 +478,16 @@ class HandyFrame(DataFrame):
         clause = F.col('_row_id').between(lower_bound, upper_bound)
         return self.filter(clause)
 
-    @property
-    def handy(self):
-        return self._handy
-
-    @property
     def notHandy(self):
         return DataFrame(self._jdf, self.sql_ctx)
 
     @property
     def col(self):
         return HandyColumn(self._handy)
+
+    @property
+    def series(self):
+        return HandySeries(self._handy)
 
     @property
     def pandas(self):
@@ -614,11 +612,11 @@ class HandyFrame(DataFrame):
         return self._handy.to_metrics_RDD(prob_col, label)
 
     ### Summary functions
-    def value_counts(self, colname, keepna=True):
-        return self._handy.value_counts(colname, keepna)
+    #def value_counts(self, colname, keepna=True):
+    #    return self._handy.value_counts(colname, keepna)
 
-    def mode(self, colname):
-        return self._handy.mode(colname)
+    #def mode(self, colname):
+    #    return self._handy.mode(colname)
 
     def corr_matrix(self, colnames=None):
         return self._handy.corr(colnames)
@@ -678,12 +676,52 @@ class Quantile(Bucket):
         return buckets
 
 
-class HandyColumn(object):
+class HandySeries(object):
     def __init__(self, handy):
         self._handy = handy
+        self._colname = None
 
     def __getitem__(self, *args):
-        return self._handy.__getitem__(*args)
+        #return self._handy.__getitem__(*args)
+        if isinstance(args[0], tuple):
+            args = args[0]
+
+        if self._colname is None:
+            self._colname = args[0]
+
+            if isinstance(self._colname, int):
+                idx = self._colname + (len(self._handy._group_cols) if self._handy._group_cols is not None else 0)
+                assert idx < len(self._handy._df.columns), "Invalid column index {}".format(idx)
+                self._colname = list(self._handy._df.columns)[idx]
+
+            return self
+        else:
+            try:
+                n = args[0].stop
+                if n is None:
+                    n = -1
+            except:
+                n = 20
+            return self._handy.__getitem__(self._colname, n)
+
+
+class HandyColumn(object):
+    def __init__(self, handy, strata=None):
+        self._handy = handy
+        self._strata = strata
+        self._colname = None
+
+    def __getitem__(self, *args):
+        if isinstance(args[0], tuple):
+            args = args[0]
+        item = args[0]
+        check_columns(self._handy._df, item)
+        if self._strata is None:
+            self._colname = item
+            return self
+        else:
+            self._strata._colname = item
+            return self._strata
 
     @property
     def numerical(self):
@@ -705,11 +743,19 @@ class HandyColumn(object):
     def array(self):
         return self._handy._array
 
+    def value_counts(self, keepna=True):
+        return self._handy.value_counts(self._colname, keepna)
+
+    def mode(self):
+        return self._handy.mode(self._colname)
+
 
 class HandyStrata(object):
     __handy_methods = (list(filter(lambda n: n[0] != '_',
                                (map(itemgetter(0),
                                     inspect.getmembers(HandyFrame,
+                                                       predicate=inspect.isfunction) +
+                                    inspect.getmembers(HandyColumn,
                                                        predicate=inspect.isfunction)))))) + ['handy']
 
     def __init__(self, handy, strata):
@@ -748,25 +794,35 @@ class HandyStrata(object):
             df._strat_index = i
             df._strat_handy = self._handy
         self._imputed_values = {}
+        self._colname = None
 
     def __repr__(self):
         return "HandyStrata[%s]" % (", ".join("%s" % str(c) for c in self._strata))
 
     def __getattribute__(self, name):
         try:
-            attr = object.__getattribute__(self, name)
-            return attr
+            if name == 'col':
+                return HandyColumn(self._handy, self)
+            else:
+                attr = object.__getattribute__(self, name)
+                return attr
         except AttributeError as e:
             if name in self.__handy_methods:
                 def wrapper(*args, **kwargs):
                     try:
+                        if self._colname is not None:
+                            args = (self._colname,) + args
+
                         try:
                             attr_strata = getattr(self._handy, '_strat_{}'.format(name))
                             self._handy._strata_object = attr_strata(*args, **kwargs)
                         except AttributeError:
                             pass
 
-                        res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
+                        try:
+                            res = [getattr(df._handy, name)(*args, **kwargs) for df in self._strat_df]
+                        except AttributeError:
+                            res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
 
                         try:
                             attr_post = getattr(self._handy, '_post_{}'.format(name))

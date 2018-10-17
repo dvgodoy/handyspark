@@ -11,21 +11,21 @@ from sklearn.metrics import mutual_info_score
 
 def test_mahalanobis(sdf, pdf):
     colnames = ['Fare', 'Pclass', 'SibSp', 'Parch']
-    hdf = sdf.toHandy
-    hres = mahalanobis(hdf, colnames).toHandy.col['__mahalanobis', None].values
+    hdf = sdf.toHandy()
+    hres = mahalanobis(hdf, colnames).toHandy().series['__mahalanobis'][:].values
     pdf = pd.DataFrame(StandardScaler().fit_transform(pdf[colnames]), columns=colnames)
     invmat = np.linalg.inv(pdf.corr())
     res = pdf.apply(lambda row: distance.mahalanobis(row.values, np.zeros_like(row.values), invmat), axis=1)
     npt.assert_array_almost_equal(hres, res, decimal=2)
 
 def test_entropy(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hres = entropy(hdf, 'Pclass')
     res = stats.entropy(pdf.groupby('Pclass').count().iloc[:, 0], base=2)
     npt.assert_array_almost_equal(hres, res)
 
 def test_mutual_info(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hres = mutual_info(hdf, ['Survived', 'Pclass']).iloc[0, 1]
     res = mutual_info_score(pdf['Survived'], pdf['Pclass'])
     # converts to log2

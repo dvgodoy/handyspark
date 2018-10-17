@@ -10,6 +10,8 @@ def thresholds(self):
 
 def roc(self):
     """
+    Calls the `roc` method from the Java class
+
     * Returns the receiver operating characteristic (ROC) curve,
     * which is an RDD of (false positive rate, true positive rate)
     * with (0.0, 0.0) prepended and (1.0, 1.0) appended to it.
@@ -20,6 +22,8 @@ def roc(self):
 
 def pr(self):
     """
+    Calls the `pr` method from the Java class
+
     * Returns the precision-recall curve, which is an RDD of (recall, precision),
     * NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision
     * associated with the lowest recall on the curve.
@@ -30,6 +34,8 @@ def pr(self):
 
 def fMeasureByThreshold(self, beta=1.0):
     """
+    Calls the `fMeasureByThreshold` method from the Java class
+
     * Returns the (threshold, F-Measure) curve.
     * @param beta the beta factor in F-Measure computation.
     * @return an RDD of (threshold, F-Measure) pairs.
@@ -39,12 +45,16 @@ def fMeasureByThreshold(self, beta=1.0):
 
 def precisionByThreshold(self):
     """
+    Calls the `precisionByThreshold` method from the Java class
+
     * Returns the (threshold, precision) curve.
     """
     return self.call2('precisionByThreshold')
 
 def recallByThreshold(self):
     """
+    Calls the `recallByThreshold` method from the Java class
+
     * Returns the (threshold, recall) curve.
     """
     return self.call2('recallByThreshold')

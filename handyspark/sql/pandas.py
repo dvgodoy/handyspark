@@ -12,10 +12,10 @@ class HandyPandas(object):
                    'ffill', 'fillna', 'shift']
     __available = sorted(__supported['boolean'] + __supported['same'])
     __types = {n: t for t, v in __supported.items() for n in v}
-    _colname = None
 
     def __init__(self, df):
         self._df = df
+        self._colname = None
 
     def __getitem__(self, *args):
         if isinstance(args[0], tuple):

@@ -7,16 +7,16 @@ from scipy.stats import mode
 from sklearn.preprocessing import Imputer, KBinsDiscretizer
 
 def test_to_from_handy(sdf):
-    hdf = sdf.toHandy
-    sdf = hdf.notHandy
+    hdf = sdf.toHandy()
+    sdf = hdf.notHandy()
     npt.assert_equal(type(hdf), HandyFrame)
     npt.assert_equal(type(sdf), DataFrame)
 
 def test_shape(sdf):
-    npt.assert_equal(sdf.toHandy.shape, (891, 12))
+    npt.assert_equal(sdf.toHandy().shape, (891, 12))
 
 def test_response(sdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf = hdf.set_response('Survived')
     npt.assert_equal(hdf.is_classification, True)
     npt.assert_equal(hdf.nclasses, 2)
@@ -24,7 +24,7 @@ def test_response(sdf):
     npt.assert_equal(hdf.response, 'Survived')
 
 def test_safety_limit(sdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     # maximum 10 elements returned
     hdf.set_safety_limit(10)
     npt.assert_equal(len(hdf.collect()), 10)
@@ -34,30 +34,30 @@ def test_safety_limit(sdf):
     npt.assert_equal(len(hdf.take(20)), 20)
 
 def test_values(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hvalues = hdf.limit(10).values
     values = pdf[:10].replace(to_replace=[np.nan], value=[None]).values
     npt.assert_array_equal(hvalues, values)
 
 def test_stages(sdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     npt.assert_equal(hdf.stages, 1)
     npt.assert_equal(hdf.groupby('Pclass').agg(F.sum('Fare')).stages, 2)
     npt.assert_equal(hdf.repartition(2).groupby('Pclass').agg(F.sum('Fare')).stages, 3)
 
 def test_value_counts(sdf, pdf):
-    hdf = sdf.toHandy
-    hcounts = hdf.value_counts('Embarked', keepna=False)
+    hdf = sdf.toHandy()
+    hcounts = hdf.col['Embarked'].value_counts(keepna=False)
     counts = pdf['Embarked'].value_counts()
     npt.assert_array_equal(hcounts, counts)
 
 def test_column_values(sdf, pdf):
-    hdf = sdf.toHandy
-    npt.assert_array_equal(hdf.col['Fare'], pdf['Fare'][:20])
-    npt.assert_array_equal(hdf.col['Fare', 10], pdf['Fare'][:10])
+    hdf = sdf.toHandy()
+    npt.assert_array_equal(hdf.series['Fare'][:20], pdf['Fare'][:20])
+    npt.assert_array_equal(hdf.series['Fare'][:10], pdf['Fare'][:10])
 
 def test_isnull(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hmissing = hdf.isnull()
     hratio = hdf.isnull(ratio=True)
     missing = pdf.isnull().sum()
@@ -66,19 +66,19 @@ def test_isnull(sdf, pdf):
     npt.assert_array_almost_equal(hratio, ratio)
 
 def test_nunique(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hnunique = hdf.nunique()
     nunique = pdf.nunique()
     npt.assert_array_equal(hnunique, nunique)
 
 def test_mode(sdf, pdf):
-    hdf = sdf.toHandy
-    hmode = hdf.mode('Embarked')
+    hdf = sdf.toHandy()
+    hmode = hdf.col['Embarked'].mode()
     mode = pdf['Embarked'].mode()[0]
     npt.assert_equal(hmode, mode)
 
 def test_types(sdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf2 = hdf.withColumn('newcol', F.lit(1.0))
     npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare'], hdf.col.numerical)
     npt.assert_array_equal(['Age', 'Fare'], hdf.col.continuous)
@@ -87,15 +87,15 @@ def test_types(sdf):
                             'Embarked'], hdf.col.categorical)
 
 def test_fill_categorical(sdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf_filled = hdf.fill(categorical=['Embarked'])
-    hcounts = hdf_filled.value_counts('Embarked').loc['S']
+    hcounts = hdf_filled.col['Embarked'].value_counts().loc['S']
     npt.assert_equal(hcounts, 646)
 
 def test_fill_continuous(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf_filled = hdf.fill(continuous=['Age'], strategy='mean')
-    hage = hdf_filled.col['Age', None].values
+    hage = hdf_filled.series['Age'][:].values
 
     imputer = Imputer(strategy='mean').fit(pdf[['Age']])
     pdf_filled = imputer.transform(pdf[['Age']])
@@ -105,13 +105,13 @@ def test_fill_continuous(sdf, pdf):
     npt.assert_array_equal(hdf_filled.statistics_['Age'], imputer.statistics_[0])
 
 def test_corr(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hcorr = hdf.corr_matrix(['Fare', 'Age'])
     corr = pdf[['Fare', 'Age']].corr()
     npt.assert_array_almost_equal(hcorr, corr)
 
 def test_fence(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     q1, q3 = hdf.approxQuantile(col='Fare', probabilities=[.25, .75], relativeError=0.01)
     hdf_fenced = hdf.fence('Fare')
 
@@ -120,12 +120,12 @@ def test_fence(sdf, pdf):
     lfence, ufence = q1 - (1.5 * iqr), q3 + (1.5 * iqr)
     fare = fare.mask(fare > ufence, ufence).mask(fare < lfence, lfence)
 
-    npt.assert_array_almost_equal(hdf_fenced.col['Fare', None], fare)
+    npt.assert_array_almost_equal(hdf_fenced.series['Fare'][:], fare)
     npt.assert_equal(hdf_fenced.fences_['Fare'], [lfence, ufence])
 
 def test_grouped_column_values(sdf, pdf):
-    hdf = sdf.toHandy
-    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).col['Age']
+    hdf = sdf.toHandy()
+    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).series['Age'][:]
     mean = pdf.groupby('Pclass').agg({'Age': np.mean})['Age']
     npt.assert_array_equal(hmean, mean)
 
@@ -151,14 +151,14 @@ def test_quantile(sdf, pdf):
 
 def test_stratify_length(sdf, pdf):
     # matches lengths only
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sfare = hdf.stratify(['Pclass']).mode('Fare')
     pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: mode(v)[0]})
     npt.assert_array_almost_equal(sfare, pfare)
 
 def test_stratify_list(sdf, pdf):
     # list
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sname = hdf.stratify(['Pclass']).take(1)
     sname = np.array(list(map(lambda row: row.Name, sname)), dtype=np.object)
     pname = pdf.groupby('Pclass')['Name'].first()
@@ -166,29 +166,29 @@ def test_stratify_list(sdf, pdf):
 
 def test_stratify_pandas_df(sdf, pdf):
     # pd.DataFrame
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     scorr = hdf.stratify(['Pclass']).corr_matrix(['Fare', 'Age'])
     pcorr = pdf.groupby('Pclass')[['Fare', 'Age']].corr()
     npt.assert_array_almost_equal(scorr.values, pcorr.values)
 
 def test_stratify_pandas_series(sdf, pdf):
     # pd.Series
-    hdf = sdf.toHandy
-    scounts = hdf.stratify(['Pclass']).value_counts('Embarked', keepna=False)
+    hdf = sdf.toHandy()
+    scounts = hdf.stratify(['Pclass']).col['Embarked'].value_counts(keepna=False)
     pcounts = pdf.groupby('Pclass')['Embarked'].value_counts().sort_index()
     npt.assert_array_almost_equal(scounts, pcounts)
 
 def test_stratify_spark_df(sdf, pdf):
     # pd.Series
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sfirst = hdf.dropna().stratify(['Pclass']).limit(1).drop('Pclass').toPandas()
     pfirst = pdf.dropna().groupby('Pclass').first().reset_index(drop=True)
     npt.assert_array_equal(sfirst, pfirst)
 
 def test_stratify_fill(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
-    hage = hdf_filled.col['Age', None].values
+    hage = hdf_filled.series['Age'][:].values
 
     pdf_filled = []
     statistics = {}

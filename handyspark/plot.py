@@ -217,7 +217,7 @@ def boxplot(sdf, colnames, ax=None, showfliers=True):
         if ax is None:
             fig, ax = plt.subplots(1, 1)
 
-    pdf = sdf.select(colnames).notHandy.summary().toPandas().set_index('summary')
+    pdf = sdf.select(colnames).notHandy().summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()

@@ -155,7 +155,7 @@ def dense_to_array(sdf, colname, new_colname):
 
     # Makes it a HandyFrame
     if isinstance(res, DataFrame):
-        res = res.toHandy
+        res = res.toHandy()
     return res
 
 def disassemble(sdf, colname, new_colnames=None):
@@ -190,7 +190,7 @@ def disassemble(sdf, colname, new_colnames=None):
 
     # Makes it a HandyFrame
     if isinstance(res, DataFrame):
-        res = res.toHandy
+        res = res.toHandy()
     return res
 
 def get_jvm_class(cl):

@@ -96,7 +96,7 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
 
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy
+            res = res.notHandy()
         except AttributeError:
             pass
         return res
@@ -157,7 +157,7 @@ class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWrit
         res = joined_df.select(columns)
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy
+            res = res.notHandy()
         except AttributeError:
             pass
         return res

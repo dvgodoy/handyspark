@@ -139,10 +139,13 @@ def KolmogorovSmirnovTest(sdf, colname, dist='normal', *params):
         dist = 'Normal'
         params = (0., 1.)
     jvm = sdf._sc._jvm
+    # Maps the DF column into a numeric RDD and turns it into Java RDD
     rdd = sdf.select(colname).rdd.map(lambda t: t[0])
-    ks = jvm.org.apache.spark.mllib.stat.test.KolmogorovSmirnovTest
+    jrdd = _py2java(sdf._sc, rdd)
+    # Gets the Java class of the corresponding distribution and creates an obj
     java_class = getattr(jvm, 'org.apache.commons.math3.distribution.{}Distribution'.format(dist))
     java_obj = java_class(*params)
-    jrdd = _py2java(sdf._sc, rdd)
+    # Loads the KS test class and performs the test
+    ks = jvm.org.apache.spark.mllib.stat.test.KolmogorovSmirnovTest
     res = ks.testOneSample(jrdd.rdd(), java_obj)
     return KolmogorovSmirnovTestResult(res)

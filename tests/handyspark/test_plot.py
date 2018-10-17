@@ -32,7 +32,7 @@ def test_boxplot_single(sdf, pdf):
     pax.set_ylabel('')
     p64 = plot_to_base64(pax.figure)
 
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sax = hdf.boxplot('Fare', showfliers=False)
     s64 = plot_to_base64(sax.figure)
     npt.assert_equal(p64, s64)
@@ -45,7 +45,7 @@ def test_boxplot_multiple(sdf, pdf):
 
     # Spark computes Q1 to be 20.0, instead of 20.125 for Age
     # so it results in a small difference between the plots
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sax = hdf.boxplot(['Fare', 'Age'], showfliers=False)
     s64 = plot_to_pixels(sax.figure, (480, 640, 3))
 
@@ -54,7 +54,7 @@ def test_boxplot_multiple(sdf, pdf):
     npt.assert_equal(871, (diff != 0).sum())
 
 def test_hist_categorical(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sax = hdf.dropna(subset=['Embarked']).hist('Embarked')
     s64 = plot_to_base64(sax.figure)
 
@@ -66,7 +66,7 @@ def test_hist_categorical(sdf, pdf):
     npt.assert_equal(p64, s64)
 
 def test_hist_continuous(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sax = hdf.hist('Fare', bins=5)
     s64 = plot_to_base64(sax.figure)
 
@@ -79,7 +79,7 @@ def test_hist_continuous(sdf, pdf):
     npt.assert_equal(p64, s64)
 
 def test_scatterplot(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sax = hdf.fillna({'Age': 29.0}).scatterplot('Fare', 'Age')
     sax.set_xlim([0, 515])
     sax.set_ylim([0, 85])
@@ -104,7 +104,7 @@ def test_scatterplot(sdf, pdf):
     npt.assert_equal(45616, (diff != 0).sum())
 
 def test_stratified_boxplot(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     sfig = hdf.stratify(['Pclass']).boxplot('Fare', showfliers=False)
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 
