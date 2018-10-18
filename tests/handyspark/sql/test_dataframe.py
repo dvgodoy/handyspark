@@ -47,14 +47,19 @@ def test_stages(sdf):
 
 def test_value_counts(sdf, pdf):
     hdf = sdf.toHandy()
-    hcounts = hdf.col['Embarked'].value_counts(keepna=False)
+    hcounts = hdf.cols['Embarked'].value_counts(keepna=False)
     counts = pdf['Embarked'].value_counts()
     npt.assert_array_equal(hcounts, counts)
 
 def test_column_values(sdf, pdf):
     hdf = sdf.toHandy()
-    npt.assert_array_equal(hdf.series['Fare'][:20], pdf['Fare'][:20])
-    npt.assert_array_equal(hdf.series['Fare'][:10], pdf['Fare'][:10])
+    npt.assert_array_equal(hdf.cols['Fare'][:20], pdf['Fare'][:20])
+    npt.assert_array_equal(hdf.cols['Fare'][:10], pdf['Fare'][:10])
+
+def test_dataframe_values(sdf, pdf):
+    hdf = sdf.toHandy()
+    npt.assert_array_equal(hdf.cols[['Fare', 'Age']][:20], pdf[['Fare', 'Age']][:20])
+    npt.assert_array_equal(hdf.cols[['Fare', 'Age']][:10], pdf[['Fare', 'Age']][:10])
 
 def test_isnull(sdf, pdf):
     hdf = sdf.toHandy()
@@ -71,31 +76,37 @@ def test_nunique(sdf, pdf):
     nunique = pdf.nunique()
     npt.assert_array_equal(hnunique, nunique)
 
+def test_columns_nunique(sdf, pdf):
+    hdf = sdf.toHandy()
+    hnunique = hdf.cols[['Pclass', 'Embarked']].nunique()
+    nunique = pdf[['Pclass', 'Embarked']].nunique()
+    npt.assert_array_equal(hnunique, nunique)
+
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy()
-    hmode = hdf.col['Embarked'].mode()
+    hmode = hdf.cols['Embarked'].mode()
     mode = pdf['Embarked'].mode()[0]
     npt.assert_equal(hmode, mode)
 
 def test_types(sdf):
     hdf = sdf.toHandy()
     hdf2 = hdf.withColumn('newcol', F.lit(1.0))
-    npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare'], hdf.col.numerical)
-    npt.assert_array_equal(['Age', 'Fare'], hdf.col.continuous)
-    npt.assert_array_equal(['Age', 'Fare', 'newcol'], hdf2.col.continuous)
+    npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare'], hdf.cols.numerical)
+    npt.assert_array_equal(['Age', 'Fare'], hdf.cols.continuous)
+    npt.assert_array_equal(['Age', 'Fare', 'newcol'], hdf2.cols.continuous)
     npt.assert_array_equal(['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 'SibSp', 'Parch', 'Ticket', 'Cabin',
-                            'Embarked'], hdf.col.categorical)
+                            'Embarked'], hdf.cols.categorical)
 
 def test_fill_categorical(sdf):
     hdf = sdf.toHandy()
     hdf_filled = hdf.fill(categorical=['Embarked'])
-    hcounts = hdf_filled.col['Embarked'].value_counts().loc['S']
+    hcounts = hdf_filled.cols['Embarked'].value_counts().loc['S']
     npt.assert_equal(hcounts, 646)
 
 def test_fill_continuous(sdf, pdf):
     hdf = sdf.toHandy()
     hdf_filled = hdf.fill(continuous=['Age'], strategy='mean')
-    hage = hdf_filled.series['Age'][:].values
+    hage = hdf_filled.cols['Age'][:].values
 
     imputer = Imputer(strategy='mean').fit(pdf[['Age']])
     pdf_filled = imputer.transform(pdf[['Age']])
@@ -106,7 +117,7 @@ def test_fill_continuous(sdf, pdf):
 
 def test_corr(sdf, pdf):
     hdf = sdf.toHandy()
-    hcorr = hdf.corr_matrix(['Fare', 'Age'])
+    hcorr = hdf.cols[['Fare', 'Age']].corr()
     corr = pdf[['Fare', 'Age']].corr()
     npt.assert_array_almost_equal(hcorr, corr)
 
@@ -120,12 +131,12 @@ def test_fence(sdf, pdf):
     lfence, ufence = q1 - (1.5 * iqr), q3 + (1.5 * iqr)
     fare = fare.mask(fare > ufence, ufence).mask(fare < lfence, lfence)
 
-    npt.assert_array_almost_equal(hdf_fenced.series['Fare'][:], fare)
+    npt.assert_array_almost_equal(hdf_fenced.cols['Fare'][:], fare)
     npt.assert_equal(hdf_fenced.fences_['Fare'], [lfence, ufence])
 
 def test_grouped_column_values(sdf, pdf):
     hdf = sdf.toHandy()
-    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).series['Age'][:]
+    hmean = hdf.groupby('Pclass').agg(F.mean('Age').alias('Age')).cols['Age'][:]
     mean = pdf.groupby('Pclass').agg({'Age': np.mean})['Age']
     npt.assert_array_equal(hmean, mean)
 
@@ -152,7 +163,7 @@ def test_quantile(sdf, pdf):
 def test_stratify_length(sdf, pdf):
     # matches lengths only
     hdf = sdf.toHandy()
-    sfare = hdf.stratify(['Pclass']).mode('Fare')
+    sfare = hdf.stratify(['Pclass']).cols['Fare'].mode()
     pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: mode(v)[0]})
     npt.assert_array_almost_equal(sfare, pfare)
 
@@ -167,19 +178,19 @@ def test_stratify_list(sdf, pdf):
 def test_stratify_pandas_df(sdf, pdf):
     # pd.DataFrame
     hdf = sdf.toHandy()
-    scorr = hdf.stratify(['Pclass']).corr_matrix(['Fare', 'Age'])
+    scorr = hdf.stratify(['Pclass']).cols[['Fare', 'Age']].corr()
     pcorr = pdf.groupby('Pclass')[['Fare', 'Age']].corr()
     npt.assert_array_almost_equal(scorr.values, pcorr.values)
 
 def test_stratify_pandas_series(sdf, pdf):
-    # pd.Series
+    # pd.col
     hdf = sdf.toHandy()
-    scounts = hdf.stratify(['Pclass']).col['Embarked'].value_counts(keepna=False)
+    scounts = hdf.stratify(['Pclass']).cols['Embarked'].value_counts(keepna=False)
     pcounts = pdf.groupby('Pclass')['Embarked'].value_counts().sort_index()
     npt.assert_array_almost_equal(scounts, pcounts)
 
 def test_stratify_spark_df(sdf, pdf):
-    # pd.Series
+    # pd.col
     hdf = sdf.toHandy()
     sfirst = hdf.dropna().stratify(['Pclass']).limit(1).drop('Pclass').toPandas()
     pfirst = pdf.dropna().groupby('Pclass').first().reset_index(drop=True)
@@ -188,7 +199,7 @@ def test_stratify_spark_df(sdf, pdf):
 def test_stratify_fill(sdf, pdf):
     hdf = sdf.toHandy()
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
-    hage = hdf_filled.series['Age'][:].values
+    hage = hdf_filled.cols['Age'][:].values
 
     pdf_filled = []
     statistics = {}

@@ -10,7 +10,7 @@ def test_imputer(sdf, pdf):
     himputer = hdf_filled.transformers.imputer()
 
     sdf_filled = himputer.transform(sdf)
-    sage = sdf_filled.sort('PassengerId').toHandy().series['Age'][:].values
+    sage = sdf_filled.sort('PassengerId').toHandy().cols['Age'][:].values
 
     pdf_filled = []
     for pclass in [1, 2, 3]:
@@ -28,7 +28,7 @@ def test_fencer(sdf, pdf):
     hfencer = hdf_fenced.transformers.fencer()
 
     sdf_fenced = hfencer.transform(sdf)
-    sfare = sdf_fenced.sort('PassengerId').toHandy().series['Fare'][:].values
+    sfare = sdf_fenced.sort('PassengerId').toHandy().cols['Fare'][:].values
     fences = hfencer.fences
 
     pdf_fenced = []

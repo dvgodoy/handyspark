@@ -7,13 +7,13 @@ def test_dense_to_array(sdf):
     tdf = assem.transform(sdf.dropna())
     tdf = dense_to_array(tdf, 'features', 'array_features')
 
-    npt.assert_array_equal(tdf.series['features'][:], tdf.series['array_features'][:])
+    npt.assert_array_equal(tdf.cols['features'][:], tdf.cols['array_features'][:])
 
 def test_disassemble(sdf):
     assem = VectorAssembler(inputCols=['Pclass', 'Fare', 'Age'], outputCol='features')
     tdf = assem.transform(sdf.dropna())
     tdf = disassemble(tdf, 'features')
 
-    npt.assert_array_equal(tdf.series['Pclass'][:], tdf.series['features_0'][:])
-    npt.assert_array_equal(tdf.series['Fare'][:], tdf.series['features_1'][:])
-    npt.assert_array_equal(tdf.series['Age'][:], tdf.series['features_2'][:])
+    npt.assert_array_equal(tdf.cols['Pclass'][:], tdf.cols['features_0'][:])
+    npt.assert_array_equal(tdf.cols['Fare'][:], tdf.cols['features_1'][:])
+    npt.assert_array_equal(tdf.cols['Age'][:], tdf.cols['features_2'][:])

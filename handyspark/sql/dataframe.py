@@ -482,12 +482,8 @@ class HandyFrame(DataFrame):
         return DataFrame(self._jdf, self.sql_ctx)
 
     @property
-    def col(self):
-        return HandyColumn(self._handy)
-
-    @property
-    def series(self):
-        return HandySeries(self._handy)
+    def cols(self):
+        return HandyColumns(self, self._handy)
 
     @property
     def pandas(self):
@@ -611,26 +607,6 @@ class HandyFrame(DataFrame):
     def to_metrics_RDD(self, prob_col, label):
         return self._handy.to_metrics_RDD(prob_col, label)
 
-    ### Summary functions
-    #def value_counts(self, colname, keepna=True):
-    #    return self._handy.value_counts(colname, keepna)
-
-    #def mode(self, colname):
-    #    return self._handy.mode(colname)
-
-    def corr_matrix(self, colnames=None):
-        return self._handy.corr(colnames)
-
-    ### Plot functions
-    def hist(self, colname, bins=10, ax=None, **kwargs):
-        return self._handy.hist(colname, bins, ax)
-
-    def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
-        return self._handy.boxplot(colnames, ax, showfliers)
-
-    def scatterplot(self, col1, col2, ax=None, **kwargs):
-        return self._handy.scatterplot(col1, col2, ax)
-
 
 class Bucket(object):
     def __init__(self, colname, bins=5):
@@ -676,52 +652,50 @@ class Quantile(Bucket):
         return buckets
 
 
-class HandySeries(object):
-    def __init__(self, handy):
-        self._handy = handy
-        self._colname = None
-
-    def __getitem__(self, *args):
-        #return self._handy.__getitem__(*args)
-        if isinstance(args[0], tuple):
-            args = args[0]
-
-        if self._colname is None:
-            self._colname = args[0]
-
-            if isinstance(self._colname, int):
-                idx = self._colname + (len(self._handy._group_cols) if self._handy._group_cols is not None else 0)
-                assert idx < len(self._handy._df.columns), "Invalid column index {}".format(idx)
-                self._colname = list(self._handy._df.columns)[idx]
-
-            return self
-        else:
-            try:
-                n = args[0].stop
-                if n is None:
-                    n = -1
-            except:
-                n = 20
-            return self._handy.__getitem__(self._colname, n)
-
-
-class HandyColumn(object):
-    def __init__(self, handy, strata=None):
+class HandyColumns(object):
+    def __init__(self, df, handy, strata=None):
+        self._df = df
         self._handy = handy
         self._strata = strata
-        self._colname = None
+        self._colnames = None
 
     def __getitem__(self, *args):
         if isinstance(args[0], tuple):
             args = args[0]
         item = args[0]
-        check_columns(self._handy._df, item)
         if self._strata is None:
-            self._colname = item
-            return self
+            if self._colnames is None:
+                if item == slice(None, None, None):
+                    item = self._df.columns
+
+                check_columns(self._df, item)
+                self._colnames = item
+
+                if isinstance(self._colnames, int):
+                    idx = self._colnames + (len(self._handy._group_cols) if self._handy._group_cols is not None else 0)
+                    assert idx < len(self._df.columns), "Invalid column index {}".format(idx)
+                    self._colnames = list(self._df.columns)[idx]
+
+                return self
+            else:
+                try:
+                    n = item.stop
+                    if n is None:
+                        n = -1
+                except:
+                    n = 20
+
+                if isinstance(self._colnames, (tuple, list)):
+                    return self._df.select(self._colnames).limit(n).toPandas()
+                else:
+                    return self._handy.__getitem__(self._colnames, n)
         else:
-            self._strata._colname = item
+            self._strata._handycolumns = item
             return self._strata
+
+    def __repr__(self):
+        colnames = ensure_list(self._colnames)
+        return "HandyColumns[%s]" % (", ".join("%s" % str(c) for c in colnames))
 
     @property
     def numerical(self):
@@ -744,10 +718,25 @@ class HandyColumn(object):
         return self._handy._array
 
     def value_counts(self, keepna=True):
-        return self._handy.value_counts(self._colname, keepna)
+        return self._handy.value_counts(self._colnames, keepna)
 
     def mode(self):
-        return self._handy.mode(self._colname)
+        return self._handy.mode(self._colnames)
+
+    def corr(self):
+        return self._handy.corr(self._colnames)
+
+    def nunique(self):
+        return self._handy.nunique(self._colnames)
+
+    def hist(self, bins=10, ax=None, **kwargs):
+        return self._handy.hist(self._colnames, bins, ax)
+
+    def boxplot(self, ax=None, showfliers=True, **kwargs):
+        return self._handy.boxplot(self._colnames, ax, showfliers)
+
+    def scatterplot(self, ax=None, **kwargs):
+        return self._handy.scatterplot(self._colnames[0], self._colnames[1], ax)
 
 
 class HandyStrata(object):
@@ -755,7 +744,7 @@ class HandyStrata(object):
                                (map(itemgetter(0),
                                     inspect.getmembers(HandyFrame,
                                                        predicate=inspect.isfunction) +
-                                    inspect.getmembers(HandyColumn,
+                                    inspect.getmembers(HandyColumns,
                                                        predicate=inspect.isfunction)))))) + ['handy']
 
     def __init__(self, handy, strata):
@@ -794,15 +783,15 @@ class HandyStrata(object):
             df._strat_index = i
             df._strat_handy = self._handy
         self._imputed_values = {}
-        self._colname = None
+        self._handycolumns = None
 
     def __repr__(self):
         return "HandyStrata[%s]" % (", ".join("%s" % str(c) for c in self._strata))
 
     def __getattribute__(self, name):
         try:
-            if name == 'col':
-                return HandyColumn(self._handy, self)
+            if name == 'cols':
+                return HandyColumns(self._df, self._handy, self)
             else:
                 attr = object.__getattribute__(self, name)
                 return attr
@@ -810,8 +799,8 @@ class HandyStrata(object):
             if name in self.__handy_methods:
                 def wrapper(*args, **kwargs):
                     try:
-                        if self._colname is not None:
-                            args = (self._colname,) + args
+                        if self._handycolumns is not None:
+                            args = (self._handycolumns,) + args
 
                         try:
                             attr_strata = getattr(self._handy, '_strat_{}'.format(name))
@@ -819,9 +808,9 @@ class HandyStrata(object):
                         except AttributeError:
                             pass
 
-                        try:
+                        if self._handycolumns is not None:
                             res = [getattr(df._handy, name)(*args, **kwargs) for df in self._strat_df]
-                        except AttributeError:
+                        else:
                             res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
 
                         try:

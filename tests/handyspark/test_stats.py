@@ -12,7 +12,7 @@ from sklearn.metrics import mutual_info_score
 def test_mahalanobis(sdf, pdf):
     colnames = ['Fare', 'Pclass', 'SibSp', 'Parch']
     hdf = sdf.toHandy()
-    hres = mahalanobis(hdf, colnames).toHandy().series['__mahalanobis'][:].values
+    hres = mahalanobis(hdf, colnames).toHandy().cols['__mahalanobis'][:].values
     pdf = pd.DataFrame(StandardScaler().fit_transform(pdf[colnames]), columns=colnames)
     invmat = np.linalg.inv(pdf.corr())
     res = pdf.apply(lambda row: distance.mahalanobis(row.values, np.zeros_like(row.values), invmat), axis=1)

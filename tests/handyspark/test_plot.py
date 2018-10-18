@@ -33,7 +33,7 @@ def test_boxplot_single(sdf, pdf):
     p64 = plot_to_base64(pax.figure)
 
     hdf = sdf.toHandy()
-    sax = hdf.boxplot('Fare', showfliers=False)
+    sax = hdf.cols['Fare'].boxplot(showfliers=False)
     s64 = plot_to_base64(sax.figure)
     npt.assert_equal(p64, s64)
 
@@ -46,7 +46,7 @@ def test_boxplot_multiple(sdf, pdf):
     # Spark computes Q1 to be 20.0, instead of 20.125 for Age
     # so it results in a small difference between the plots
     hdf = sdf.toHandy()
-    sax = hdf.boxplot(['Fare', 'Age'], showfliers=False)
+    sax = hdf.cols[['Fare', 'Age']].boxplot(showfliers=False)
     s64 = plot_to_pixels(sax.figure, (480, 640, 3))
 
     diff = s64 - p64
@@ -55,7 +55,7 @@ def test_boxplot_multiple(sdf, pdf):
 
 def test_hist_categorical(sdf, pdf):
     hdf = sdf.toHandy()
-    sax = hdf.dropna(subset=['Embarked']).hist('Embarked')
+    sax = hdf.dropna(subset=['Embarked']).cols['Embarked'].hist()
     s64 = plot_to_base64(sax.figure)
 
     pdf = pdf.groupby(['Embarked'])['PassengerId'].count().sort_index()
@@ -67,7 +67,7 @@ def test_hist_categorical(sdf, pdf):
 
 def test_hist_continuous(sdf, pdf):
     hdf = sdf.toHandy()
-    sax = hdf.hist('Fare', bins=5)
+    sax = hdf.cols['Fare'].hist(bins=5)
     s64 = plot_to_base64(sax.figure)
 
     pax = pdf[['Fare']].plot.hist(bins=5)
@@ -80,7 +80,7 @@ def test_hist_continuous(sdf, pdf):
 
 def test_scatterplot(sdf, pdf):
     hdf = sdf.toHandy()
-    sax = hdf.fillna({'Age': 29.0}).scatterplot('Fare', 'Age')
+    sax = hdf.fillna({'Age': 29.0}).cols[['Fare', 'Age']].scatterplot()
     sax.set_xlim([0, 515])
     sax.set_ylim([0, 85])
     s64 = plot_to_pixels(sax.figure, (480, 640, 3))
@@ -105,7 +105,7 @@ def test_scatterplot(sdf, pdf):
 
 def test_stratified_boxplot(sdf, pdf):
     hdf = sdf.toHandy()
-    sfig = hdf.stratify(['Pclass']).boxplot('Fare', showfliers=False)
+    sfig = hdf.stratify(['Pclass']).cols['Fare'].boxplot(showfliers=False)
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 
     pax = pdf.boxplot('Fare', by='Pclass', showfliers=False)
