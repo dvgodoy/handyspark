@@ -1,16 +1,16 @@
 import numpy as np
 import numpy.testing as npt
-import handyspark
+from handyspark.ml import HandyImputer, HandyFencer
 from operator import itemgetter
 from sklearn.preprocessing import Imputer
 
 def test_imputer(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
     himputer = hdf_filled.transformers.imputer()
 
     sdf_filled = himputer.transform(sdf)
-    sage = sdf_filled.sort('PassengerId').toHandy.col['Age', None].values
+    sage = sdf_filled.sort('PassengerId').toHandy().cols['Age'][:].values
 
     pdf_filled = []
     for pclass in [1, 2, 3]:
@@ -23,12 +23,12 @@ def test_imputer(sdf, pdf):
     npt.assert_array_equal(sage, age)
 
 def test_fencer(sdf, pdf):
-    hdf = sdf.toHandy
+    hdf = sdf.toHandy()
     hdf_fenced = hdf.stratify(['Pclass']).fence('Fare')
     hfencer = hdf_fenced.transformers.fencer()
 
     sdf_fenced = hfencer.transform(sdf)
-    sfare = sdf_fenced.sort('PassengerId').toHandy.col['Fare', None].values
+    sfare = sdf_fenced.sort('PassengerId').toHandy().cols['Fare'][:].values
     fences = hfencer.fences
 
     pdf_fenced = []

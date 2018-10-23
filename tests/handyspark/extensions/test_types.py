@@ -1,4 +1,4 @@
-import handyspark
+from handyspark import *
 import numpy.testing as npt
 from pyspark.sql.types import IntegerType, StringType, ArrayType, MapType
 

@@ -5,8 +5,13 @@ from pyspark.ml.param import *
 from pyspark.sql import functions as F
 
 class HandyTransformers(object):
-    """
-    Transformer generator
+    """Generates transformers to be used in pipelines.
+
+    Available transformers:
+    imputer: Transformer
+        Imputation transformer for completing missing values.
+    fencer: Transformer
+        Fencer transformer for capping outliers according to lower and upper fences.
     """
     def __init__(self, df):
         self._df = df
@@ -28,8 +33,7 @@ class HandyTransformers(object):
 
 
 class HasDict(Params):
-    """
-    Mixin for a Dictionary parameter.
+    """Mixin for a Dictionary parameter.
     It dumps the dictionary into a JSON string for storage and
     reloads it whenever needed.
     """
@@ -56,6 +60,14 @@ class HasDict(Params):
 
 
 class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWritable):
+    """Imputation transformer for completing missing values.
+
+    Attributes
+    ----------
+    statistics : dict
+        The imputation fill value for each feature. If stratified, first level keys are
+        filter clauses for stratification.
+    """
     def _transform(self, dataset):
         # Loads dictionary with values for imputation
         fillingValues = self.getDictValues()
@@ -96,7 +108,7 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
 
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy
+            res = res.notHandy()
         except AttributeError:
             pass
         return res
@@ -107,6 +119,14 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
 
 
 class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWritable):
+    """Fencer transformer for capping outliers according to lower and upper fences.
+
+    Attributes
+    ----------
+    fences : dict
+        The fence values for each feature. If stratified, first level keys are
+        filter clauses for stratification.
+    """
     @staticmethod
     def __fence(df, values):
         colname, (lfence, ufence) = list(values.items())[0]
@@ -157,7 +177,7 @@ class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWrit
         res = joined_df.select(columns)
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy
+            res = res.notHandy()
         except AttributeError:
             pass
         return res

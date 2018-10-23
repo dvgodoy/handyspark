@@ -23,8 +23,8 @@ def consolidate_plots(fig, axs, title, clauses):
         ylim = list(map(lambda ax: ax.get_ylim(), axs))
         ylim = [np.min(list(map(itemgetter(0), ylim))), np.max(list(map(itemgetter(1), ylim)))]
         for i, ax in enumerate(axs):
-            title = title_fom_clause(clauses[i])
-            ax.set_title(title, fontdict={'fontsize': 10})
+            subtitle = title_fom_clause(clauses[i])
+            ax.set_title(subtitle, fontdict={'fontsize': 10})
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
             if ax.colNum > 0:
@@ -35,12 +35,12 @@ def consolidate_plots(fig, axs, title, clauses):
             title = ', '.join(title)
         fig.suptitle(title)
         fig.tight_layout()
-        fig.subplots_adjust(top=0.9)
+        fig.subplots_adjust(top=0.85)
     return fig
 
 ### Correlations
-def correlations(sdf, colnames, ax=None, plot=True):
-    correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]))
+def correlations(sdf, colnames, method='pearson', ax=None, plot=True):
+    correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]), method=method)
     pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
     if plot:
         if ax is None:
@@ -137,13 +137,14 @@ def histogram(sdf, colname, bins=10, categorical=False, ax=None):
         pdf = pd.Series(map(itemgetter(1), values),
                         index=map(itemgetter(0), values),
                         name=colname).sort_index().to_frame().iloc[:bins]
-        return pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
+        pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
     else:
         _, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(start_values)
         mid_point_bins = start_values[:-1]
         ax.hist(mid_point_bins, bins=start_values, weights=counts)
         ax.set_title(colname)
-        return ax
+
+    return ax
 
 ### Stratified Histogram
 def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
@@ -217,7 +218,7 @@ def boxplot(sdf, colnames, ax=None, showfliers=True):
         if ax is None:
             fig, ax = plt.subplots(1, 1)
 
-    pdf = sdf.select(colnames).notHandy.summary().toPandas().set_index('summary')
+    pdf = sdf.select(colnames).notHandy().summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()

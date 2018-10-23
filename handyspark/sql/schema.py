@@ -23,6 +23,18 @@ _mapping = {str: 'string',
             dict: 'map'}
 
 def generate_schema(colnames, coltypes, nullables=None):
+    """
+    Parameters
+    ----------
+    colnames: list of string
+    coltypes: list of type
+    nullables: list of boolean, optional
+
+    Returns
+    -------
+    schema: StructType
+        Spark DataFrame schema corresponding to Python/numpy types.
+    """
     assert len(colnames) == len(coltypes), "You must specify types for all columns."
     invalid_types = []
     new_types = []
