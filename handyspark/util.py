@@ -14,6 +14,8 @@ def none2zero(value):
     return none2default(value, 0)
 
 def ensure_list(value):
+    if value is None:
+        return []
     if isinstance(value, (list, tuple)):
         return value
     else:
@@ -23,6 +25,7 @@ def check_columns(df, colnames):
     if colnames is not None:
         available = df.columns
         colnames = ensure_list(colnames)
+        colnames = [col if isinstance(col, str) else col.colname for col in colnames]
         diff = set(colnames).difference(set(available))
         assert not len(diff), "DataFrame does not have {} column(s)".format(str(list(diff))[1:-1])
 
@@ -89,8 +92,7 @@ class HandyException(Exception):
             return 'This is awkward... \n{}'.format(str(e))
 
 def get_buckets(rdd, buckets):
-    """
-    Extracted from pyspark.rdd.RDD.histogram function
+    """Extracted from pyspark.rdd.RDD.histogram function
     """
     if buckets < 1:
         raise ValueError("number of buckets must be >= 1")
@@ -136,8 +138,7 @@ def get_buckets(rdd, buckets):
     return buckets
 
 def dense_to_array(sdf, colname, new_colname):
-    """
-    Casts a Vector column into a new Array column.
+    """Casts a Vector column into a new Array column.
     """
     sql_ctx = sdf.sql_ctx
     # Gets type of original column
@@ -159,8 +160,7 @@ def dense_to_array(sdf, colname, new_colname):
     return res
 
 def disassemble(sdf, colname, new_colnames=None):
-    """
-    Disassembles a Vector/Array column into multiple columns
+    """Disassembles a Vector/Array column into multiple columns
     """
     array_col = '_{}'.format(colname)
     # Gets type of original column
@@ -194,14 +194,12 @@ def disassemble(sdf, colname, new_colnames=None):
     return res
 
 def get_jvm_class(cl):
-    """
-    Builds JVM class name from Python class
+    """Builds JVM class name from Python class
     """
     return 'org.apache.{}.{}'.format(cl.__module__[2:], cl.__name__)
 
 def call_scala_method(py_class, scala_method, df, *args):
-    """
-    Given a Python class, calls a method from its Scala equivalent
+    """Given a Python class, calls a method from its Scala equivalent
     """
     sc = df.sql_ctx._sc
     # Gets the Java class from the JVM, given the name built from the Python class
@@ -237,8 +235,7 @@ def call_scala_method(py_class, scala_method, df, *args):
     return res
 
 def counts_to_df(value_counts, colnames, n_points):
-    """
-    DO NOT USE IT!
+    """DO NOT USE IT!
     """
     pdf = pd.DataFrame(value_counts
                        .to_frame('count')

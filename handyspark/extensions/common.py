@@ -1,8 +1,7 @@
 from pyspark.mllib.common import _java2py, _py2java, JavaModelWrapper
 
 def call2(self, name, *a):
-    """
-    Another call method for JavaModelWrapper.
+    """Another call method for JavaModelWrapper.
     This method should be used whenever the JavaModel returns a Scala Tuple
     that needs to be deserialized before converted to Python.
     """

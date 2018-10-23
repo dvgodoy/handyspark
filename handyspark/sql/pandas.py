@@ -27,10 +27,48 @@ class HandyPandas(object):
 
     @property
     def str(self):
+        """Returns a class to access pandas-like string column based methods through pandas UDFs
+
+        Available methods:
+        - contains
+        - startswith / endswitch
+        - match
+        - isalpha / isnumeric / isalnum / isdigit / isdecimal / isspace
+        - islower / isupper / istitle
+        - replace
+        - repeat
+        - join
+        - pad
+        - slice / slice_replace
+        - strip / lstrip / rstrip
+        - wrap / center / ljust / rjust
+        - translate
+        - get
+        - normalize
+        - lower / upper / capitalize / swapcase / title
+        - zfill
+        - count
+        - find / rfind
+        - len
+        """
         return HandyString(self._df, self._colname)
 
     @property
     def dt(self):
+        """Returns a class to access pandas-like datetime column based methods through pandas UDFs
+
+        Available methods:
+        - is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start
+        - strftime
+        - tz / time / tz_convert / tz_localize
+        - day / dayofweek / dayofyear / days_in_month / daysinmonth
+        - hour / microsecond / minute / nanosecond / second
+        - week / weekday / weekday_name
+        - month / quarter / year / weekofyear
+        - date
+        - ceil / floor / round
+        - normalize
+        """
         return HandyDatetime(self._df, self._colname)
 
     def __getattribute__(self, name):
@@ -46,7 +84,8 @@ class HandyPandas(object):
                     return HandyTransform.gen_pandas_udf(f=lambda col: col.__getattribute__(name)(**kwargs),
                                                          args=(self._colname,),
                                                          returnType=returnType)
-                wrapper.__doc__ = getattr(pd.Series, name).__doc__
+                if name not in ['str', 'dt']:
+                    wrapper.__doc__ = getattr(pd.Series, name).__doc__
                 return wrapper
             else:
                 raise e

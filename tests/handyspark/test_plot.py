@@ -1,8 +1,9 @@
 import base64
 import numpy.testing as npt
 import numpy as np
-import handyspark
 import seaborn as sns
+from handyspark import *
+from handyspark.plot import consolidate_plots, strat_histogram
 from io import BytesIO
 from matplotlib import pyplot as plt
 
@@ -119,3 +120,26 @@ def test_stratified_boxplot(sdf, pdf):
     diff = s64 - p64
     npt.assert_equal(275042, diff.sum())
     npt.assert_equal(2134, (diff != 0).sum())
+
+def test_stratified_hist(sdf, pdf):
+    hdf = sdf.toHandy()
+    bins, _ = strat_histogram(sdf, 'Fare', bins=10, categorical=False)
+    sfig = hdf.stratify(['Pclass', 'Embarked']).cols['Fare'].hist()
+    s64 = plot_to_pixels(sfig, (480, 640, 3))
+
+    paxes = pdf.groupby(['Pclass', 'Embarked'])['Fare'].hist()
+    pfig, axes = plt.subplots(3, 3)
+    axes = [ax for row in axes for ax in row]
+    idx = 0
+    clauses = []
+    for embarked in ['C', 'Q', 'S']:
+        for pclass in [1, 2, 3]:
+            clause = 'Pclass == {} and Embarked == "{}"'.format(pclass, embarked)
+            clauses.append(clause)
+            pdf.query(clause)['Fare'].hist(ax=axes[idx], bins=bins)
+            axes[idx].grid(False)
+            idx += 1
+
+    pfig = consolidate_plots(pfig, axes, 'Fare', clauses)
+    p64 = plot_to_pixels(pfig, (480, 640, 3))
+    npt.assert_equal(s64, p64)

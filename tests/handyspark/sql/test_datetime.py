@@ -1,5 +1,5 @@
 import numpy.testing as npt
-import handyspark
+from handyspark import *
 
 def test_is_leap_year(sdates, pdates):
     hdf = sdates.toHandy()

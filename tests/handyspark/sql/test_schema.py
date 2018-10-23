@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.testing as npt
-import handyspark
-from handyspark.sql.schema import generate_schema
+from handyspark.sql import generate_schema
 
 def test_generate_schema(sdf):
     res = sdf.schema

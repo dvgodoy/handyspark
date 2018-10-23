@@ -9,8 +9,7 @@ def thresholds(self):
     return self.call('thresholds')
 
 def roc(self):
-    """
-    Calls the `roc` method from the Java class
+    """Calls the `roc` method from the Java class
 
     * Returns the receiver operating characteristic (ROC) curve,
     * which is an RDD of (false positive rate, true positive rate)
@@ -21,8 +20,7 @@ def roc(self):
     return self.call2('roc')
 
 def pr(self):
-    """
-    Calls the `pr` method from the Java class
+    """Calls the `pr` method from the Java class
 
     * Returns the precision-recall curve, which is an RDD of (recall, precision),
     * NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision
@@ -33,8 +31,7 @@ def pr(self):
     return self.call2('pr')
 
 def fMeasureByThreshold(self, beta=1.0):
-    """
-    Calls the `fMeasureByThreshold` method from the Java class
+    """Calls the `fMeasureByThreshold` method from the Java class
 
     * Returns the (threshold, F-Measure) curve.
     * @param beta the beta factor in F-Measure computation.
@@ -44,16 +41,14 @@ def fMeasureByThreshold(self, beta=1.0):
     return self.call2('fMeasureByThreshold', beta)
 
 def precisionByThreshold(self):
-    """
-    Calls the `precisionByThreshold` method from the Java class
+    """Calls the `precisionByThreshold` method from the Java class
 
     * Returns the (threshold, precision) curve.
     """
     return self.call2('precisionByThreshold')
 
 def recallByThreshold(self):
-    """
-    Calls the `recallByThreshold` method from the Java class
+    """Calls the `recallByThreshold` method from the Java class
 
     * Returns the (threshold, recall) curve.
     """
@@ -70,11 +65,20 @@ def getMetricsByThreshold(self):
     return df
 
 def confusionMatrix(self, threshold=0.5):
-    """
-    Returns confusion matrix: predicted classes are in columns,
+    """Returns confusion matrix: predicted classes are in columns,
     they are ordered by class label ascending, as in "labels".
 
     Predicted classes are computed according to informed threshold.
+
+    Parameters
+    ----------
+    threshold: double, optional
+        Threshold probability for the positive class.
+        Default is 0.5.
+
+    Returns
+    -------
+    confusionMatrix: DenseMatrix
     """
     scoreAndLabels = self.call2('scoreAndLabels').map(lambda t: (float(t[0] > threshold), t[1]))
     mcm = MulticlassMetrics(scoreAndLabels)

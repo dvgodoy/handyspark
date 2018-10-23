@@ -1,5 +1,5 @@
 import numpy.testing as npt
-import handyspark
+from handyspark import *
 
 # integer returns
 def test_count(sdf, pdf):

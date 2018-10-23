@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.testing as npt
 from handyspark import *
-from handyspark.sql.dataframe import Bucket, Quantile
 from pyspark.sql import DataFrame, functions as F
 from scipy.stats import mode
 from sklearn.preprocessing import Imputer, KBinsDiscretizer
@@ -47,7 +46,7 @@ def test_stages(sdf):
 
 def test_value_counts(sdf, pdf):
     hdf = sdf.toHandy()
-    hcounts = hdf.cols['Embarked'].value_counts(keepna=False)
+    hcounts = hdf.cols['Embarked'].value_counts(dropna=True)
     counts = pdf['Embarked'].value_counts()
     npt.assert_array_equal(hcounts, counts)
 
@@ -85,8 +84,12 @@ def test_columns_nunique(sdf, pdf):
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy()
     hmode = hdf.cols['Embarked'].mode()
-    mode = pdf['Embarked'].mode()[0]
-    npt.assert_equal(hmode, mode)
+    mode = pdf['Embarked'].mode()
+    npt.assert_array_equal(hmode, mode)
+
+    hmode = hdf.cols[['Embarked', 'Pclass']].mode()
+    mode = pdf[['Embarked', 'Pclass']].mode()
+    npt.assert_array_equal(hmode, mode)
 
 def test_types(sdf):
     hdf = sdf.toHandy()
@@ -185,7 +188,7 @@ def test_stratify_pandas_df(sdf, pdf):
 def test_stratify_pandas_series(sdf, pdf):
     # pd.col
     hdf = sdf.toHandy()
-    scounts = hdf.stratify(['Pclass']).cols['Embarked'].value_counts(keepna=False)
+    scounts = hdf.stratify(['Pclass']).cols['Embarked'].value_counts(dropna=True)
     pcounts = pdf.groupby('Pclass')['Embarked'].value_counts().sort_index()
     npt.assert_array_almost_equal(scounts, pcounts)
 
@@ -214,3 +217,24 @@ def test_stratify_fill(sdf, pdf):
     npt.assert_array_equal(hage, age)
     npt.assert_array_equal(sorted(list(hdf_filled.statistics_.items())),
                            sorted(list(statistics.items())))
+
+def test_repr(sdf):
+    hdf = sdf.toHandy()
+    repr = str(hdf.cols['Fare'])
+    npt.assert_equal(repr, "HandyColumns[Fare]")
+
+def test_stratify_bucket(sdf):
+    hdf = sdf.toHandy()
+    hres = hdf.stratify(['Pclass', Bucket('Age', 3)]).cols['Embarked'].mode()
+    npt.assert_equal(hres.values.ravel(), np.array(['S'] * 9))
+
+    hdf = sdf.toHandy()
+    hres = hdf.stratify(['Pclass', Bucket('Age', 3)]).cols['Embarked'].value_counts()
+    npt.assert_equal(hres.values.ravel(), np.array([21, 23, 40, 2, 68, 13, 17, 8, 59, 7, 1, 86,
+                                                    1, 11, 28, 14, 166, 13, 8, 119, 2, 5]))
+
+def test_stratified_nunique(sdf, pdf):
+    hdf = sdf.toHandy()
+    hnunique = hdf.stratify(['Pclass']).cols['Cabin'].nunique()
+    nunique = pdf.groupby(['Pclass'])['Cabin'].nunique()
+    npt.assert_array_equal(hnunique, nunique)

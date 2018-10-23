@@ -12,8 +12,7 @@ from scipy.linalg import inv
 from scipy.stats import chi2
 
 def mahalanobis(sdf, colnames):
-    """
-    Computes Mahalanobis distance from origin and compares to critical values
+    """Computes Mahalanobis distance from origin and compares to critical values
     using Chi-Squared distribution to identify possible outliers.
     """
     check_columns(sdf, colnames)
@@ -88,8 +87,7 @@ def mutual_info(sdf, colnames):
     return pd.DataFrame(res, index=colnames, columns=colnames)
 
 def StatisticalSummaryValues(sdf, colnames):
-    """
-    Builds a Java StatisticalSummaryValues object for each column
+    """Builds a Java StatisticalSummaryValues object for each column
     """
     colnames = ensure_list(colnames)
     check_columns(sdf, colnames)
@@ -105,8 +103,7 @@ def StatisticalSummaryValues(sdf, colnames):
     return ssvs
 
 def tTest(jvm, *ssvs):
-    """
-    Performs a t-Test for difference of means using StatisticalSummaryValues objects
+    """Performs a t-Test for difference of means using StatisticalSummaryValues objects
     """
     n = len(ssvs)
     res = np.identity(n)
@@ -120,8 +117,7 @@ def tTest(jvm, *ssvs):
     return res
 
 def KolmogorovSmirnovTest(sdf, colname, dist='normal', *params):
-    """
-    Performs a KolmogorovSmirnov test for comparing the distribution of values in a column
+    """Performs a KolmogorovSmirnov test for comparing the distribution of values in a column
     to a named canonical distribution.
     """
     check_columns(sdf, colname)

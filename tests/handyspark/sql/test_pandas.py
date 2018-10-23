@@ -1,5 +1,5 @@
 import numpy.testing as npt
-import handyspark
+from handyspark import *
 
 # boolean returns
 def test_between(sdf, pdf):

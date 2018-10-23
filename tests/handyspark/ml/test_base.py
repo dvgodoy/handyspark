@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.testing as npt
-import handyspark
+from handyspark.ml import HandyImputer, HandyFencer
 from operator import itemgetter
 from sklearn.preprocessing import Imputer
 
