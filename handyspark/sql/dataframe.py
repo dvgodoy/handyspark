@@ -20,7 +20,11 @@ def toHandy(self):
     """
     return HandyFrame(self)
 
+def notHandy(self):
+    return self
+
 DataFrame.toHandy = toHandy
+DataFrame.notHandy = notHandy
 
 class Handy(object):
     def __init__(self, df):
@@ -171,11 +175,12 @@ class Handy(object):
 
     def _update_types(self):
         self._types = list(map(lambda t: (t.name, t.dataType.typeName()), self._df.schema.fields))
-        self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['string', 'array', 'map'],
-                                                         self._types)))
+
+        self._numerical = list(map(itemgetter(0), filter(lambda t: t[1] in ['byte', 'short', 'integer', 'long',
+                                                                            'float', 'double'], self._types)))
         self._continuous = list(map(itemgetter(0), filter(lambda t: t[1] in ['double', 'float'], self._types)))
-        self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] not in ['double', 'float', 'array', 'map'],
-                                                           self._types)))
+        self._categorical = list(map(itemgetter(0), filter(lambda t: t[1] in ['byte', 'short', 'integer', 'long',
+                                                                              'boolan', 'string'], self._types)))
         self._array = list(map(itemgetter(0), filter(lambda t: t[1] in ['array', 'map'], self._types)))
         self._string = list(map(itemgetter(0), filter(lambda t: t[1] in ['string'], self._types)))
 
@@ -370,7 +375,7 @@ class Handy(object):
     def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
-        return boxplot(self._df.notHandy(), colnames, ax, showfliers)
+        return boxplot(self._df, colnames, ax, showfliers)
 
     def _post_boxplot(self, res):
         return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
@@ -382,7 +387,7 @@ class Handy(object):
 
     def scatterplot(self, colnames, ax=None, **kwargs):
         check_columns(self._df, colnames)
-        return scatterplot(self._df.notHandy(), colnames[0], colnames[1], ax=ax)
+        return scatterplot(self._df, colnames[0], colnames[1], ax=ax)
 
     ### Histogram functions
     def _strat_hist(self, colname, bins=10, **kwargs):
@@ -400,9 +405,9 @@ class Handy(object):
         # include split per response/columns
         check_columns(self._df, colname)
         if colname in self._continuous:
-            return histogram(self._df.notHandy(), colname, bins=bins, categorical=False, ax=ax)
+            return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
         else:
-            return histogram(self._df.notHandy(), colname, bins=bins, categorical=True, ax=ax)
+            return histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
 
 
 class HandyGrouped(GroupedData):

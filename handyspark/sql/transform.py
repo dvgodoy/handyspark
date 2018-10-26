@@ -84,7 +84,7 @@ class HandyTransform(object):
         if returnType is None:
             returnType = HandyTransform._signatureType(sig)
 
-        schema = sdf.select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
+        schema = sdf.notHandy().select(*args).withColumn(name, F.lit(None).cast(returnType)).schema
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
         def pudf(pdf):

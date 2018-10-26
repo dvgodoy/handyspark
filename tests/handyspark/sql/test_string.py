@@ -23,7 +23,6 @@ def test_len(sdf, pdf):
     res = pdf['Name'].str.len()[:20]
     npt.assert_array_equal(hres, res)
 
-# boolean returns
 def test_rfind(sdf, pdf):
     hdf = sdf.toHandy()
     hdf = hdf.assign(newcol=hdf.pandas['Name'].str.rfind(sub='Mr.'))
@@ -31,6 +30,7 @@ def test_rfind(sdf, pdf):
     res = pdf['Name'].str.rfind(sub='Mr.')[:20]
     npt.assert_array_equal(hres, res)
 
+# boolean returns
 def test_contains(sdf, pdf):
     hdf = sdf.toHandy()
     hdf = hdf.assign(newcol=hdf.pandas['Name'].str.contains(pat='Mr.'))

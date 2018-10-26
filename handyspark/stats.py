@@ -54,7 +54,7 @@ def mahalanobis(sdf, colnames):
 
 def distribution(sdf, colname):
     check_columns(sdf, colname)
-    rdd = sdf.select(colname).rdd.map(lambda row: (row[0], 1))
+    rdd = sdf.notHandy().select(colname).rdd.map(lambda row: (row[0], 1))
     n = rdd.count()
     return rdd.reduceByKey(add).map(lambda t: Row(__col=t[0], __probability=t[1]/n)).toDF()
 
@@ -93,7 +93,7 @@ def StatisticalSummaryValues(sdf, colnames):
     check_columns(sdf, colnames)
 
     jvm = sdf._sc._jvm
-    summ = sdf.select(colnames).describe().toPandas().set_index('summary')
+    summ = sdf.notHandy().select(colnames).describe().toPandas().set_index('summary')
     ssvs = {}
     for colname in colnames:
         values = list(map(float, summ[colname].values))
@@ -136,7 +136,7 @@ def KolmogorovSmirnovTest(sdf, colname, dist='normal', *params):
         params = (0., 1.)
     jvm = sdf._sc._jvm
     # Maps the DF column into a numeric RDD and turns it into Java RDD
-    rdd = sdf.select(colname).rdd.map(lambda t: t[0])
+    rdd = sdf.notHandy().select(colname).rdd.map(lambda t: t[0])
     jrdd = _py2java(sdf._sc, rdd)
     # Gets the Java class of the corresponding distribution and creates an obj
     java_class = getattr(jvm, 'org.apache.commons.math3.distribution.{}Distribution'.format(dist))

@@ -20,7 +20,7 @@ class HandyDatetime(object):
     def __init__(self, df, colname):
         self._df = df
         self._colname = colname
-        if self._df.select(colname).dtypes[0][1] != 'timestamp':
+        if self._df.notHandy().select(colname).dtypes[0][1] != 'timestamp':
             raise AttributeError('Can only use .dt accessor with datetimelike values')
 
     def __getattribute__(self, name):

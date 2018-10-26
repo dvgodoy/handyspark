@@ -142,7 +142,7 @@ def dense_to_array(sdf, colname, new_colname):
     """
     sql_ctx = sdf.sql_ctx
     # Gets type of original column
-    coltype = sdf.select(colname).dtypes[0][1]
+    coltype = sdf.notHandy().select(colname).dtypes[0][1]
     # If it is indeed a vector...
     if coltype == 'vector':
         idx = sdf.columns.index(colname)
@@ -164,7 +164,7 @@ def disassemble(sdf, colname, new_colnames=None):
     """
     array_col = '_{}'.format(colname)
     # Gets type of original column
-    coltype = sdf.select(colname).schema.fields[0].dataType.typeName()
+    coltype = sdf.notHandy().select(colname).schema.fields[0].dataType.typeName()
     # If it is a vector or array...
     if coltype in ['vectorudt', 'array']:
         # Makes the conversion from vector to array (or not :-))
@@ -172,7 +172,7 @@ def disassemble(sdf, colname, new_colnames=None):
         # Checks the MIN size of the arrays in the dataset
         # If there are arrays with multiple sizes, it can still safely
         # convert up to that size
-        size = tdf.select(F.min(F.size(array_col))).take(1)[0][0]
+        size = tdf.notHandy().select(F.min(F.size(array_col))).take(1)[0][0]
         # If no new names were given, just uses the original name and
         # a sequence number as suffix
         if new_colnames is None:

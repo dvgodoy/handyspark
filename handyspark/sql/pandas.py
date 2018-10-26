@@ -80,7 +80,7 @@ class HandyPandas(object):
                 def wrapper(*args, **kwargs):
                     returnType=self.__types.get(name, 'string')
                     if returnType == 'same':
-                        returnType = self._df.select(self._colname).dtypes[0][1]
+                        returnType = self._df.notHandy().select(self._colname).dtypes[0][1]
                     return HandyTransform.gen_pandas_udf(f=lambda col: col.__getattribute__(name)(**kwargs),
                                                          args=(self._colname,),
                                                          returnType=returnType)

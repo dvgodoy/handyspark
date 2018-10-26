@@ -40,6 +40,7 @@ def consolidate_plots(fig, axs, title, clauses):
 
 ### Correlations
 def correlations(sdf, colnames, method='pearson', ax=None, plot=True):
+    sdf = sdf.notHandy()
     correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]), method=method)
     pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
     if plot:
@@ -65,6 +66,7 @@ def strat_scatterplot(sdf, col1, col2, n=30):
 
 def scatterplot(sdf, col1, col2, n=30, ax=None):
     strat_ax, data = sdf._get_strata()
+    sdf = sdf.notHandy()
     if data is None:
         data = strat_scatterplot(sdf, col1, col2, n)
     else:
@@ -115,6 +117,7 @@ def strat_histogram(sdf, colname, bins=10, categorical=False):
 
 def histogram(sdf, colname, bins=10, categorical=False, ax=None):
     strat_ax, data = sdf._get_strata()
+    sdf = sdf.notHandy()
     if data is None:
         data = strat_histogram(sdf, colname, bins, categorical)
     else:
@@ -214,11 +217,12 @@ def _calc_tukey(col_summ):
 
 def boxplot(sdf, colnames, ax=None, showfliers=True):
     strat_ax, data = sdf._get_strata()
+    sdf = sdf.notHandy()
     if data is None:
         if ax is None:
             fig, ax = plt.subplots(1, 1)
 
-    pdf = sdf.select(colnames).notHandy().summary().toPandas().set_index('summary')
+    pdf = sdf.select(colnames).summary().toPandas().set_index('summary')
     pdf.loc['fence', :] = pdf.apply(_calc_tukey)
 
     # faster than stats()
