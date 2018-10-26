@@ -23,7 +23,7 @@ def toHandy(self):
 DataFrame.toHandy = toHandy
 
 class Handy(object):
-    def __init__(self, df, response=None):
+    def __init__(self, df):
         self._df = df
 
         # classification
@@ -51,8 +51,10 @@ class Handy(object):
         self._n_cols = 1
         self._n_rows = 1
 
+        self._safety_limit = 1000
+        self._safety = True
+
         self._update_types()
-        self.set_response(response)
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -91,10 +93,10 @@ class Handy(object):
                 return res
             else:
                 check_columns(self._df, list(self._group_cols) + [item])
-                pdf = self._df.select(list(self._group_cols) + [item])
+                pdf = self._df.notHandy().select(list(self._group_cols) + [item])
                 if n != -1:
                     pdf = pdf.limit(n)
-                res = pdf.notHandy().toPandas().set_index(list(self._group_cols)).sort_index()[item]
+                res = pdf.toPandas().set_index(list(self._group_cols)).sort_index()[item]
                 return res
 
     @property
@@ -179,8 +181,8 @@ class Handy(object):
 
     def _take_array(self, colname, n):
         check_columns(self._df, colname)
-        datatype = self._df.select(colname).schema.fields[0].dataType.typeName()
-        rdd = self._df.select(colname).rdd.map(itemgetter(0))
+        datatype = self._df.notHandy().select(colname).schema.fields[0].dataType.typeName()
+        rdd = self._df.notHandy().select(colname).rdd.map(itemgetter(0))
 
         if n == -1:
             data = rdd.collect()
@@ -200,7 +202,7 @@ class Handy(object):
 
     def _value_counts(self, colnames, dropna=True):
         check_columns(self._df, colnames)
-        data = self._df.select(colnames)
+        data = self._df.notHandy().select(colnames)
         if dropna:
             data = data.dropna()
         values = (data
@@ -266,17 +268,17 @@ class Handy(object):
             strategy = [strategy] * len(continuous)
 
         self._fill_values(continuous, categorical, strategy)
-        res = HandyFrame(self._df.na.fill(self._imputed_values), self)
+        res = HandyFrame(self._df.notHandy().na.fill(self._imputed_values), self)
         return res
 
     def _dense_to_array(self, colname, array_colname):
         check_columns(self._df, colname)
-        res = dense_to_array(self._df, colname, array_colname)
+        res = dense_to_array(self._df.notHandy(), colname, array_colname)
         return HandyFrame(res, self)
 
     def disassemble(self, colname, new_colnames=None):
         check_columns(self._df, colname)
-        res = disassemble(self._df, colname, new_colnames)
+        res = disassemble(self._df.notHandy(), colname, new_colnames)
         return HandyFrame(res, self)
 
     def to_metrics_RDD(self, prob_col, label):
@@ -304,13 +306,13 @@ class Handy(object):
         colnames = none2default(colnames, self._df.columns)
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
-        return pd.Series([self._df.select(col).dropna().distinct().count() for col in colnames],
+        return pd.Series([self._df.notHandy().select(col).dropna().distinct().count() for col in colnames],
                          index=colnames)
 
     def fence(self, colnames):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
-        df = self._df
+        df = self._df.notHandy()
         for colname in colnames:
             q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
             iqr = q3 - q1
@@ -330,10 +332,10 @@ class Handy(object):
         if colname is not None:
             if colname not in self._continuous:
                 self._is_classification = True
-                self._classes = self._df.select(colname).rdd.map(itemgetter(0)).distinct().collect()
+                self._classes = self._df.notHandy().select(colname).rdd.map(itemgetter(0)).distinct().collect()
                 self._nclasses = len(self._classes)
 
-        return HandyFrame(self._df, self)
+        return self
 
     def value_counts(self, colname, dropna=True):
         values = self._value_counts(colname, dropna).collect()
@@ -348,7 +350,7 @@ class Handy(object):
         colnames = none2default(colnames, self._numerical)
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
-        pdf = correlations(self._df, colnames, method=method, ax=None, plot=False)
+        pdf = correlations(self._df.notHandy(), colnames, method=method, ax=None, plot=False)
         return pdf
 
     ### Boxplot functions
@@ -365,10 +367,10 @@ class Handy(object):
         self._build_strat_plot(n_rows, n_cols, **kwds)
         return None
 
-    def boxplot(self, colnames, ax=None, showfliers=True):
+    def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
-        return boxplot(self._df, colnames, ax, showfliers)
+        return boxplot(self._df.notHandy(), colnames, ax, showfliers)
 
     def _post_boxplot(self, res):
         return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
@@ -376,11 +378,11 @@ class Handy(object):
     ### Scatterplot functions
     def _strat_scatterplot(self, colnames, **kwargs):
         self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
-        return strat_scatterplot(self._df, colnames[0], colnames[1])
+        return strat_scatterplot(self._df.notHandy(), colnames[0], colnames[1])
 
-    def scatterplot(self, colnames, ax=None):
+    def scatterplot(self, colnames, ax=None, **kwargs):
         check_columns(self._df, colnames)
-        return scatterplot(self._df, colnames[0], colnames[1], ax=ax)
+        return scatterplot(self._df.notHandy(), colnames[0], colnames[1], ax=ax)
 
     ### Histogram functions
     def _strat_hist(self, colname, bins=10, **kwargs):
@@ -388,19 +390,19 @@ class Handy(object):
         categorical = True
         if colname in self._continuous:
             categorical = False
-        res = strat_histogram(self._df, colname, bins, categorical)
+        res = strat_histogram(self._df.notHandy(), colname, bins, categorical)
         self._strata_plot[0].suptitle('')
         plt.tight_layout()
         return res
 
-    def hist(self, colname, bins=10, ax=None):
+    def hist(self, colname, bins=10, ax=None, **kwargs):
         # TO DO
         # include split per response/columns
         check_columns(self._df, colname)
         if colname in self._continuous:
-            return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
+            return histogram(self._df.notHandy(), colname, bins=bins, categorical=False, ax=ax)
         else:
-            return histogram(self._df, colname, bins=bins, categorical=True, ax=ax)
+            return histogram(self._df.notHandy(), colname, bins=bins, categorical=True, ax=ax)
 
 
 class HandyGrouped(GroupedData):
@@ -461,7 +463,7 @@ class HandyFrame(DataFrame):
         Numpy representation of HandyFrame.
     """
 
-    def __init__(self, df, handy=None, safety_off=False):
+    def __init__(self, df, handy=None):
         super().__init__(df._jdf, df.sql_ctx)
         if handy is None:
             handy = Handy(self)
@@ -470,9 +472,8 @@ class HandyFrame(DataFrame):
             handy._df = self
             handy._update_types()
         self._handy = handy
-        self._safety_off = safety_off
-        self._safety = not self._safety_off
-        self._safety_limit = 1000
+        self._safety = self._handy._safety
+        self._safety_limit = self._handy._safety_limit
         self.__overriden = ['collect', 'take']
         self._strat_handy = None
         self._strat_index = None
@@ -489,10 +490,11 @@ class HandyFrame(DataFrame):
                     raise HandyException(str(e), summary=True)
 
                 if name != 'notHandy':
-                    if isinstance(res, DataFrame):
-                        res = HandyFrame(res, self._handy, self._safety_off)
-                    if isinstance(res, GroupedData):
-                        res = HandyGrouped(res._jgd, res._df, *args)
+                    if not isinstance(res, HandyFrame):
+                        if isinstance(res, DataFrame):
+                            res = HandyFrame(res, self._handy)
+                        if isinstance(res, GroupedData):
+                            res = HandyGrouped(res._jgd, res._df, *args)
                 return res
             return wrapper
         else:
@@ -674,12 +676,15 @@ class HandyFrame(DataFrame):
     def set_safety_limit(self, limit):
         """Sets safety limit used for ``collect`` method.
         """
+        self._handy._safety_limit = limit
         self._safety_limit = limit
 
     def safety_off(self):
         """Disables safety limit for a single call of ``collect`` method.
         """
-        self._safety_off = True
+        #self._safety_off = True
+        self._handy._safety = False
+        self._safety = False
         return self
 
     def collect(self):
@@ -693,8 +698,9 @@ class HandyFrame(DataFrame):
                 print('\nINFO: Safety is ON - returning up to {} instances.'.format(self._safety_limit))
                 return super().limit(self._safety_limit).collect()
             else:
+                res = super().collect()
                 self._safety = True
-                return super().collect()
+                return res
         except HandyException as e:
             raise HandyException(str(e), summary=False)
         except Exception as e:
@@ -703,8 +709,10 @@ class HandyFrame(DataFrame):
     def take(self, num):
         """Returns the first ``num`` rows as a :class:`list` of :class:`Row`.
         """
-        self._safety_off = True
-        return super().take(num)
+        self._handy._safety = False
+        res = super().take(num)
+        self._handy._safety = True
+        return res
 
     def stratify(self, strata):
         """Stratify the HandyFrame.
@@ -971,6 +979,7 @@ class HandyColumns(object):
         self._handy = handy
         self._strata = strata
         self._colnames = None
+        self._handy._summaries()
 
     def __getitem__(self, *args):
         if isinstance(args[0], tuple):
@@ -999,10 +1008,16 @@ class HandyColumns(object):
                     n = 20
 
                 if isinstance(self._colnames, (tuple, list)):
-                    res = self._df.select(self._colnames)
+                    res = self._df.notHandy().select(self._colnames)
+                    if n == -1:
+                        if self._df._safety:
+                            n = self._df._safety_limit
                     if n != -1:
                         res = res.limit(n)
-                    return res.toPandas()
+                    res = res.toPandas()
+                    self._handy._safety = True
+                    self._df._safety = True
+                    return res
                 else:
                     return self._handy.__getitem__(self._colnames, n)
         else:
@@ -1044,7 +1059,7 @@ class HandyColumns(object):
         return self._handy._array
 
     def _get_summary(self, statistic):
-        return self._handy._summary.loc[statistic, self._colnames]
+        return self._handy._summary.loc[statistic, self._handy._numerical]
 
     def mean(self):
         return self._get_summary('mean').dropna()
