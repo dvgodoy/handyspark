@@ -305,7 +305,7 @@ class Handy(object):
             name += '(ratio)'
             missing /= base
         missing.name = name
-        return missing.astype(np.int)
+        return missing
 
     def outliers(self, colnames=None, ratio=False, method='tukey'):
         colnames = none2default(colnames, self._numerical)
@@ -324,7 +324,7 @@ class Handy(object):
                 outliers.append(self._df.filter(~F.col(colname).between(lfence, ufence)).count())
                 if ratio:
                     outliers[-1] /= self._counts[colname]
-            res = pd.Series(outliers, index=colnames)
+            res = pd.Series(outliers, index=colnames, dtype=np.float64)
 
         return res
 
