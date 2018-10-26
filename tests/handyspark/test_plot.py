@@ -106,7 +106,7 @@ def test_scatterplot(sdf, pdf):
 
 def test_stratified_boxplot(sdf, pdf):
     hdf = sdf.toHandy()
-    sfig = hdf.stratify(['Pclass']).cols['Fare'].boxplot(showfliers=False)
+    sfig, _ = hdf.stratify(['Pclass']).cols['Fare'].boxplot(showfliers=False)
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 
     pax = pdf.boxplot('Fare', by='Pclass', showfliers=False)
@@ -124,7 +124,7 @@ def test_stratified_boxplot(sdf, pdf):
 def test_stratified_hist(sdf, pdf):
     hdf = sdf.toHandy()
     bins, _ = strat_histogram(sdf, 'Fare', bins=10, categorical=False)
-    sfig = hdf.stratify(['Pclass', 'Embarked']).cols['Fare'].hist()
+    sfig, _ = hdf.stratify(['Pclass', 'Embarked']).cols['Fare'].hist()
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 
     paxes = pdf.groupby(['Pclass', 'Embarked'])['Fare'].hist()
@@ -140,6 +140,6 @@ def test_stratified_hist(sdf, pdf):
             axes[idx].grid(False)
             idx += 1
 
-    pfig = consolidate_plots(pfig, axes, 'Fare', clauses)
+    pfig, _ = consolidate_plots(pfig, axes, 'Fare', clauses)
     p64 = plot_to_pixels(pfig, (480, 640, 3))
     npt.assert_equal(s64, p64)

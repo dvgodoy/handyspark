@@ -36,7 +36,7 @@ def consolidate_plots(fig, axs, title, clauses):
         fig.suptitle(title)
         fig.tight_layout()
         fig.subplots_adjust(top=0.85)
-    return fig
+    return fig, axs
 
 ### Correlations
 def correlations(sdf, colnames, method='pearson', ax=None, plot=True):

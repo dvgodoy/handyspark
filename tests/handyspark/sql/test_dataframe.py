@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 from handyspark import *
+import pandas as pd
 from pyspark.sql import DataFrame, functions as F
 from scipy.stats import mode
 from sklearn.preprocessing import Imputer, KBinsDiscretizer
@@ -104,6 +105,20 @@ def test_columns_nunique(sdf, pdf):
     nunique = pdf[['Pclass', 'Embarked']].nunique()
     npt.assert_array_equal(hnunique, nunique)
 
+def test_outliers(sdf, pdf):
+    hdf = sdf.toHandy()
+    houtliers = hdf.outliers()
+
+    outliers = []
+    for colname in hdf.cols.numerical:
+        q1, q3 = hdf._handy._summary.loc['25%', colname], hdf._handy._summary.loc['75%', colname]
+        iqr = q3 - q1
+        lfence = q1 - (1.5 * iqr)
+        ufence = q3 + (1.5 * iqr)
+        outliers.append((~pdf[colname].dropna().between(lfence, ufence)).sum())
+    outliers = pd.Series(outliers, hdf.cols.numerical)
+    npt.assert_array_almost_equal(houtliers, outliers)
+
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy()
     hmode = hdf.cols['Embarked'].mode()
@@ -145,6 +160,12 @@ def test_corr(sdf, pdf):
     hdf = sdf.toHandy()
     hcorr = hdf.cols[['Fare', 'Age']].corr()
     corr = pdf[['Fare', 'Age']].corr()
+    npt.assert_array_almost_equal(hcorr, corr)
+
+def test_stratified_corr(sdf, pdf):
+    hdf = sdf.toHandy()
+    hcorr = hdf.dropna().stratify(['Pclass']).cols[:].corr()
+    corr = pdf.dropna().groupby(['Pclass']).corr()
     npt.assert_array_almost_equal(hcorr, corr)
 
 def test_fence(sdf, pdf):

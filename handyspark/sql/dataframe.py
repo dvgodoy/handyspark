@@ -307,6 +307,27 @@ class Handy(object):
         missing.name = name
         return missing
 
+    def outliers(self, colnames=None, ratio=False, method='tukey'):
+        colnames = none2default(colnames, self._numerical)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+        self._summaries()
+
+        if method == 'tukey':
+            outliers = []
+            for colname in colnames:
+                q1, q3 = self._summary.loc['25%', colname], self._summary.loc['75%', colname]
+                iqr = q3 - q1
+                lfence = q1 - (1.5 * iqr)
+                ufence = q3 + (1.5 * iqr)
+                outliers.append(self._df.filter(~F.col(colname).between(lfence, ufence)).count())
+                if ratio:
+                    outliers[-1] /= self._counts[colname]
+            res = pd.Series(outliers, index=colnames)
+
+        return res
+
     def nunique(self, colnames=None):
         colnames = none2default(colnames, self._df.columns)
         colnames = ensure_list(colnames)
@@ -317,6 +338,7 @@ class Handy(object):
     def fence(self, colnames):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
         df = self._df.notHandy()
         for colname in colnames:
             q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
@@ -355,6 +377,9 @@ class Handy(object):
         colnames = none2default(colnames, self._numerical)
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+        if self._strata is not None:
+            colnames = sorted([col for col in colnames if col not in self._strata])
         pdf = correlations(self._df.notHandy(), colnames, method=method, ax=None, plot=False)
         return pdf
 
@@ -375,6 +400,7 @@ class Handy(object):
     def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
         return boxplot(self._df, colnames, ax, showfliers)
 
     def _post_boxplot(self, res):
@@ -386,7 +412,9 @@ class Handy(object):
         return strat_scatterplot(self._df.notHandy(), colnames[0], colnames[1])
 
     def scatterplot(self, colnames, ax=None, **kwargs):
+        assert len(colnames) == 2, "There must be two columns to plot!"
         check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
         return scatterplot(self._df, colnames[0], colnames[1], ax=ax)
 
     ### Histogram functions
@@ -403,6 +431,7 @@ class Handy(object):
     def hist(self, colname, bins=10, ax=None, **kwargs):
         # TO DO
         # include split per response/columns
+        assert len(colname) == 1, "Only single columns can be plot!"
         check_columns(self._df, colname)
         if colname in self._continuous:
             return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
@@ -730,9 +759,13 @@ class HandyFrame(DataFrame):
         return self._handy._stratify(strata)
 
     def transform(self, f, name=None, args=None, returnType=None):
+        """INTERNAL USE
+        """
         return HandyTransform.transform(self, f, name=name, args=args, returnType=returnType)
 
     def apply(self, f, name=None, args=None, returnType=None):
+        """INTERNAL USE
+        """
         return HandyTransform.apply(self, f, name=name, args=args, returnType=returnType)
 
     def assign(self, **kwargs):
@@ -771,13 +804,32 @@ class HandyFrame(DataFrame):
         return self._handy.isnull(ratio)
 
     def nunique(self):
-        """Return Series with number of distinct observations for specified columns.
+        """Return Series with number of distinct observations for all columns.
 
         Returns
         -------
         nunique: Series
         """
         return self._handy.nunique(self.columns)
+
+    def outliers(self, ratio=False, method='tukey'):
+        """Return Series with number of outlier observations according to
+         the specified method for all columns.
+
+         Parameters
+         ----------
+         ratio: boolean, optional
+            If True, returns proportion instead of counts.
+            Default is True.
+         method: string, optional
+            Method used to detect outliers. Currently, only Tukey's method is supported.
+            Default is tukey.
+
+         Returns
+         -------
+         outliers: Series
+        """
+        return self._handy.outliers(self.columns, ratio=ratio, method=method)
 
     def set_response(self, colname):
         """Sets column to be used as response in supervised learning algorithms.
@@ -1016,6 +1068,7 @@ class HandyColumns(object):
                     res = self._df.notHandy().select(self._colnames)
                     if n == -1:
                         if self._df._safety:
+                            print('\nINFO: Safety is ON - returning up to {} instances.'.format(self._df._safety_limit))
                             n = self._df._safety_limit
                     if n != -1:
                         res = res.limit(n)
@@ -1026,6 +1079,10 @@ class HandyColumns(object):
                 else:
                     return self._handy.__getitem__(self._colnames, n)
         else:
+            if self._colnames is None:
+                if item == slice(None, None, None):
+                    item = self._df.columns
+
             self._strata._handycolumns = item
             return self._strata
 
@@ -1064,7 +1121,8 @@ class HandyColumns(object):
         return self._handy._array
 
     def _get_summary(self, statistic):
-        return self._handy._summary.loc[statistic, self._handy._numerical]
+        colnames = [col for col in self._colnames if col in self.numerical]
+        return self._handy._summary.loc[statistic, colnames]
 
     def mean(self):
         return self._get_summary('mean').dropna()
@@ -1137,7 +1195,8 @@ class HandyColumns(object):
         -------
         y : DataFrame
         """
-        return self._handy.corr(self._colnames, method=method)
+        colnames = [col for col in self._colnames if col in self.numerical]
+        return self._handy.corr(colnames, method=method)
 
     def nunique(self):
         """Return Series with number of distinct observations for specified columns.
@@ -1147,6 +1206,25 @@ class HandyColumns(object):
         nunique: Series
         """
         return self._handy.nunique(self._colnames)
+
+    def outliers(self, ratio=False, method='tukey'):
+        """Return Series with number of outlier observations according to
+         the specified method for all columns.
+
+         Parameters
+         ----------
+         ratio: boolean, optional
+            If True, returns proportion instead of counts.
+            Default is True.
+         method: string, optional
+            Method used to detect outliers. Currently, only Tukey's method is supported.
+            Default is tukey.
+
+         Returns
+         -------
+         outliers: Series
+        """
+        return self._handy.outliers(self._colnames, method)
 
     def hist(self, bins=10, ax=None):
         """Draws histogram of the HandyFrame's column using matplotlib / pylab.
@@ -1168,7 +1246,8 @@ class HandyColumns(object):
         showfliers : bool, optional (True)
             Show the outliers beyond the caps.
         """
-        return self._handy.boxplot(self._colnames, ax, showfliers)
+        colnames = [col for col in self._colnames if col in self.numerical]
+        return self._handy.boxplot(colnames, ax, showfliers)
 
     def scatterplot(self, ax=None):
         """Makes a scatter plot of two HandyFrame columns.
@@ -1177,7 +1256,8 @@ class HandyColumns(object):
         ----------
         ax : matplotlib axes object, default None
         """
-        return self._handy.scatterplot(self._colnames, ax)
+        colnames = [col for col in self._colnames if col in self.numerical]
+        return self._handy.scatterplot(colnames, ax)
 
 
 class HandyStrata(object):
@@ -1288,7 +1368,10 @@ class HandyStrata(object):
                                 strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
                                 strat_res.append(r.assign(**strata_dict)
                                                  .reset_index())
-                            res = pd.concat(strat_res).sort_values(by=strata_cols).set_index(strata_cols + indexes)
+                            res = (pd.concat(strat_res)
+                                   .sort_values(by=strata_cols)
+                                   .set_index(strata_cols + indexes)
+                                   .sort_index())
                         elif isinstance(res[0], pd.Series):
                             strat_res = []
                             for r, s in zip(res, strata):
