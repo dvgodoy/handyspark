@@ -26,11 +26,34 @@ def test_safety_limit(sdf):
     hdf = sdf.toHandy()
     # maximum 10 elements returned
     hdf.set_safety_limit(10)
-    npt.assert_equal(len(hdf.collect()), 10)
+    res = hdf.collect()
+    npt.assert_equal(len(res), 10)
+    npt.assert_equal(hdf._safety, True)
     # deliberately turn safety off -> get everything
-    npt.assert_equal(len(hdf.safety_off().collect()), 891)
+    res = hdf.safety_off().collect()
+    npt.assert_equal(hdf._safety, True)
+    npt.assert_equal(len(res), 891)
+    # safety should kick back in
+    res = hdf.collect()
+    npt.assert_equal(len(res), 10)
     # safety limit does not affect TAKE
     npt.assert_equal(len(hdf.take(20)), 20)
+    npt.assert_equal(hdf._safety_limit, 10)
+
+def test_safety_limit2(sdf):
+    hdf = sdf.toHandy()
+    # maximum 10 elements returned
+    hdf.set_safety_limit(10)
+    res = hdf.cols[:][:]
+    npt.assert_equal(len(res), 10)
+    npt.assert_equal(hdf._safety, True)
+    # deliberately turn safety off -> get everything
+    res = hdf.safety_off().cols[:][:]
+    npt.assert_equal(hdf._safety, True)
+    npt.assert_equal(len(res), 891)
+    # safety should kick back in
+    res = hdf.cols[:][:]
+    npt.assert_equal(len(res), 10)
 
 def test_values(sdf, pdf):
     hdf = sdf.toHandy()
