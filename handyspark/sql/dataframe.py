@@ -151,12 +151,11 @@ class Handy(object):
             return pd.DataFrame(data=self._strata_combinations, columns=self._strata)
 
     def _stratify(self, strata):
-        self._strata = strata
         return HandyStrata(self, strata)
 
-    def _set_combinations(self, combinations, clauses):
-        if self._strata is not None:
-            assert len(combinations[0]) == len(self._strata), "Mismatched number of combinations and strata!"
+    def _set_combinations(self, strata, combinations, clauses):
+        if strata is not None:
+            assert len(combinations[0]) == len(strata), "Mismatched number of combinations and strata!"
             self._strata_combinations = combinations
             self._strata_clauses = clauses
             self._n_cols = len(set(map(itemgetter(0), combinations)))
@@ -204,6 +203,13 @@ class Handy(object):
         self._means = self._summary.loc['mean', self._continuous]
         self._medians = self._summary.loc['50%', self._continuous]
         self._counts = self._summary.loc['count'].astype('double')
+
+    def _get_summary(self, colnames, statistic):
+        colnames = ensure_list(colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+        check_columns(self._df, colnames)
+        self._summaries()
+        return self._summary.loc[statistic, colnames]
 
     def _value_counts(self, colnames, dropna=True):
         check_columns(self._df, colnames)
@@ -382,6 +388,30 @@ class Handy(object):
             colnames = sorted([col for col in colnames if col not in self._strata])
         pdf = correlations(self._df.notHandy(), colnames, method=method, ax=None, plot=False)
         return pdf
+
+    def mean(self, colnames):
+        return self._get_summary(colnames, 'mean').dropna()
+
+    def min(self, colnames):
+        return self._get_summary(colnames, 'min').dropna()
+
+    def max(self, colnames):
+        return self._get_summary(colnames, 'max').dropna()
+
+    def median(self, colnames):
+        return self._get_summary(colnames, '50%').dropna()
+
+    def stddev(self, colnames):
+        return self._get_summary(colnames, 'stddev').dropna()
+
+    def var(self, colnames):
+        return self._get_summary(colnames, 'stddev').dropna() ** 2
+
+    def q1(self, colnames):
+        return self._get_summary(colnames, '25%').dropna()
+
+    def q3(self, colnames):
+        return self._get_summary(colnames, '75%').dropna()
 
     ### Boxplot functions
     def _strat_boxplot(self, colnames, **kwargs):
@@ -678,19 +708,6 @@ class HandyFrame(DataFrame):
         If stratified, first level keys are filter clauses for stratification.
         """
         return self._handy.fences_
-
-    @property
-    def is_stratified(self):
-        """Returns True if the HandyFrame is stratified
-        """
-        return self._handy._strata is not None
-
-    @property
-    def strata(self):
-        """Returns pandas DataFrame containing the strata used in the HandyFrame.
-        """
-        if self.is_stratified:
-            return self._handy.strata
 
     @property
     def values(self):
@@ -1037,6 +1054,11 @@ class HandyColumns(object):
         self._strata = strata
         self._colnames = None
         self._handy._summaries()
+        self.COLTYPES = {'continuous': self.continuous,
+                         'categorical': self.categorical,
+                         'numerical': self.numerical,
+                         'string': self.string,
+                         'array': self.array}
 
     def __getitem__(self, *args):
         if isinstance(args[0], tuple):
@@ -1046,6 +1068,13 @@ class HandyColumns(object):
             if self._colnames is None:
                 if item == slice(None, None, None):
                     item = self._df.columns
+
+                if isinstance(item, str):
+                    try:
+                        # try it as an alias
+                        item = self.COLTYPES[item]
+                    except KeyError:
+                        pass
 
                 check_columns(self._df, item)
                 self._colnames = item
@@ -1082,6 +1111,13 @@ class HandyColumns(object):
             if self._colnames is None:
                 if item == slice(None, None, None):
                     item = self._df.columns
+
+                if isinstance(item, str):
+                    try:
+                        # try it as an alias
+                        item = self.COLTYPES[item]
+                    except KeyError:
+                        pass
 
             self._strata._handycolumns = item
             return self._strata
@@ -1120,33 +1156,29 @@ class HandyColumns(object):
         """
         return self._handy._array
 
-    def _get_summary(self, statistic):
-        colnames = [col for col in self._colnames if col in self.numerical]
-        return self._handy._summary.loc[statistic, colnames]
-
     def mean(self):
-        return self._get_summary('mean').dropna()
+        return self._handy._get_summary(self._colnames, 'mean').dropna()
 
     def min(self):
-        return self._get_summary('min').dropna()
+        return self._handy._get_summary(self._colnames, 'min').dropna()
 
     def max(self):
-        return self._get_summary('max').dropna()
+        return self._handy._get_summary(self._colnames, 'max').dropna()
 
     def median(self):
-        return self._get_summary('50%').dropna()
+        return self._handy._get_summary(self._colnames, '50%').dropna()
 
     def stddev(self):
-        return self._get_summary('stddev').dropna()
+        return self._handy._get_summary(self._colnames, 'stddev').dropna()
 
     def var(self):
-        return self._get_summary('stddev').dropna() ** 2
+        return self._handy._get_summary(self._colnames, 'stddev').dropna() ** 2
 
     def q1(self):
-        return self._get_summary('25%').dropna()
+        return self._handy._get_summary(self._colnames, '25%').dropna()
 
     def q3(self):
-        return self._get_summary('75%').dropna()
+        return self._handy._get_summary(self._colnames, '75%').dropna()
 
     def value_counts(self, dropna=True):
         """Returns object containing counts of unique values.
@@ -1165,6 +1197,7 @@ class HandyColumns(object):
         -------
         counts: Series
         """
+        assert len(ensure_list(self._colnames)) == 1, "A single column must be selected!"
         return self._handy.value_counts(self._colnames, dropna)
 
     def mode(self):
@@ -1224,7 +1257,7 @@ class HandyColumns(object):
          -------
          outliers: Series
         """
-        return self._handy.outliers(self._colnames, method)
+        return self._handy.outliers(self._colnames, ratio=ratio, method=method)
 
     def hist(self, bins=10, ax=None):
         """Draws histogram of the HandyFrame's column using matplotlib / pylab.
@@ -1298,7 +1331,6 @@ class HandyStrata(object):
                                       for col, value in zip(self._strata, comb))
                          for comb in self._combinations]
         self._strat_df = [self._df.filter(clause) for clause in self._clauses]
-        self._handy._set_combinations(self._combinations, self._clauses)
 
         # Shares the same HANDY object among all sub dataframes
         for i, df in enumerate(self._strat_df):
@@ -1325,6 +1357,12 @@ class HandyStrata(object):
             if name in self.__handy_methods:
                 def wrapper(*args, **kwargs):
                     try:
+                        # Makes stratification
+                        self._handy._strata = self._strata
+                        for df in self._strat_df:
+                            df._handy._strata = self._strata
+                        self._handy._set_combinations(self._strata, self._combinations, self._clauses)
+
                         if self._handycolumns is not None:
                             args = (self._handycolumns,) + args
 
@@ -1357,6 +1395,14 @@ class HandyStrata(object):
                                     self._imputed_values.update({clause: strat_df.statistics_})
                                     self._fenced_values.update({clause: strat_df.fences_})
                                     joined_df = joined_df.unionAll(strat_df)
+
+                                # Clears stratification
+                                self._handy._strata = None
+                                self._handy._strata_combinations = []
+                                self._handy._strata_clauses = []
+                                self._handy._n_cols = 1
+                                self._handy._n_rows = 1
+
                                 res = HandyFrame(joined_df, self._handy)
                                 res._handy._imputed_values = self._imputed_values
                                 res._handy._fenced_values = self._fenced_values
@@ -1378,6 +1424,8 @@ class HandyStrata(object):
                             for r, s in zip(res, strata):
                                 strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
                                 series_name = none2default(r.name, 0)
+                                if series_name == name:
+                                    series_name = 'index'
                                 strat_res.append(r.reset_index()
                                                  .rename(columns={series_name: name, 'index': series_name})
                                                  .assign(**strata_dict)
@@ -1410,6 +1458,13 @@ class HandyStrata(object):
                         raise HandyException(str(e), summary=False)
                     except Exception as e:
                         raise HandyException(str(e), summary=True)
+                    finally:
+                        # Clears stratification
+                        self._handy._strata = None
+                        self._handy._strata_combinations = []
+                        self._handy._strata_clauses = []
+                        self._handy._n_cols = 1
+                        self._handy._n_rows = 1
                 return wrapper
             else:
                 raise e

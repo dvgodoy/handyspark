@@ -119,6 +119,18 @@ def test_outliers(sdf, pdf):
     outliers = pd.Series(outliers, hdf.cols.numerical)
     npt.assert_array_almost_equal(houtliers, outliers)
 
+def test_mean(sdf, pdf):
+    hdf = sdf.toHandy()
+    hmean = hdf.cols['continuous'].mean()
+    mean = pdf[hdf.cols.continuous].mean()
+    npt.assert_array_almost_equal(hmean, mean)
+
+#def test_stratified_mean(sdf, pdf):
+#    hdf = sdf.toHandy()
+#    hmean = hdf.stratify(['Pclass']).cols['continuous'].mean()
+#    mean = pdf.groupby(['Pclass'])[hdf.cols.continuous].mean()
+#    npt.assert_array_almost_equal(hmean, mean)
+
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy()
     hmode = hdf.cols['Embarked'].mode()
