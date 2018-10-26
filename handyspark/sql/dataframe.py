@@ -305,7 +305,7 @@ class Handy(object):
             name += '(ratio)'
             missing /= base
         missing.name = name
-        return missing
+        return missing.astype(np.int)
 
     def outliers(self, colnames=None, ratio=False, method='tukey'):
         colnames = none2default(colnames, self._numerical)
@@ -431,7 +431,7 @@ class Handy(object):
     def hist(self, colname, bins=10, ax=None, **kwargs):
         # TO DO
         # include split per response/columns
-        assert len(colname) == 1, "Only single columns can be plot!"
+        assert len(ensure_list(colname)) == 1, "Only single columns can be plot!"
         check_columns(self._df, colname)
         if colname in self._continuous:
             return histogram(self._df, colname, bins=bins, categorical=False, ax=ax)
@@ -1246,7 +1246,8 @@ class HandyColumns(object):
         showfliers : bool, optional (True)
             Show the outliers beyond the caps.
         """
-        colnames = [col for col in self._colnames if col in self.numerical]
+        colnames = ensure_list(self._colnames)
+        colnames = [col for col in colnames if col in self.numerical]
         return self._handy.boxplot(colnames, ax, showfliers)
 
     def scatterplot(self, ax=None):
