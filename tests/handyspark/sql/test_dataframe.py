@@ -111,7 +111,7 @@ def test_outliers(sdf, pdf):
 
     outliers = []
     for colname in hdf.cols.numerical:
-        q1, q3 = hdf._handy._summary.loc['25%', colname], hdf._handy._summary.loc['75%', colname]
+        q1, q3 = hdf._summary.loc['25%', colname], hdf._summary.loc['75%', colname]
         iqr = q3 - q1
         lfence = q1 - (1.5 * iqr)
         ufence = q3 + (1.5 * iqr)
@@ -125,11 +125,11 @@ def test_mean(sdf, pdf):
     mean = pdf[hdf.cols.continuous].mean()
     npt.assert_array_almost_equal(hmean, mean)
 
-#def test_stratified_mean(sdf, pdf):
-#    hdf = sdf.toHandy()
-#    hmean = hdf.stratify(['Pclass']).cols['continuous'].mean()
-#    mean = pdf.groupby(['Pclass'])[hdf.cols.continuous].mean()
-#    npt.assert_array_almost_equal(hmean, mean)
+def test_stratified_mean(sdf, pdf):
+    hdf = sdf.toHandy()
+    hmean = hdf.stratify(['Pclass']).cols['continuous'].mean()
+    mean = pdf.groupby(['Pclass'])[hdf.cols.continuous].mean()
+    npt.assert_array_almost_equal(hmean, mean)
 
 def test_mode(sdf, pdf):
     hdf = sdf.toHandy()
@@ -139,7 +139,10 @@ def test_mode(sdf, pdf):
 
     hmode = hdf.cols[['Embarked', 'Pclass']].mode()
     mode = pdf[['Embarked', 'Pclass']].mode()
-    npt.assert_array_equal(hmode, mode)
+    npt.assert_array_equal(hmode, mode.iloc[0])
+
+    hmode = hdf.stratify(['Pclass']).cols['Embarked'].mode()
+    npt.assert_array_equal(hmode, ['S', 'S', 'S'])
 
 def test_types(sdf):
     hdf = sdf.toHandy()
@@ -167,6 +170,13 @@ def test_fill_continuous(sdf, pdf):
 
     npt.assert_array_equal(hage, age)
     npt.assert_array_equal(hdf_filled.statistics_['Age'], imputer.statistics_[0])
+
+def test_sequential_fill(sdf):
+    hdf = sdf.toHandy()
+    hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
+    hdf_filled = hdf_filled.fill(categorical=['Embarked'])
+    npt.assert_array_equal(sorted(hdf_filled.statistics_.keys()),
+                           ['Embarked', 'Pclass == "1"', 'Pclass == "2"', 'Pclass == "3"'])
 
 def test_corr(sdf, pdf):
     hdf = sdf.toHandy()
@@ -224,7 +234,7 @@ def test_stratify_length(sdf, pdf):
     hdf = sdf.toHandy()
     sfare = hdf.stratify(['Pclass']).cols['Fare'].mode()
     pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: mode(v)[0]})
-    npt.assert_array_almost_equal(sfare, pfare)
+    npt.assert_array_almost_equal(sfare, pfare['Fare'])
 
 def test_stratify_list(sdf, pdf):
     # list
