@@ -223,7 +223,7 @@ def boxplot(sdf, colnames, ax=None, showfliers=True, k=1.5):
             fig, ax = plt.subplots(1, 1)
 
     pdf = sdf.select(colnames).summary().toPandas().set_index('summary')
-    pdf.loc['fence', :] = pdf.apply(_calc_tukey, k)
+    pdf.loc['fence', :] = pdf.apply(lambda v: _calc_tukey(v, k))
 
     # faster than stats()
     def minmax(a, b):
