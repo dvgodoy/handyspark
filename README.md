@@ -1,5 +1,5 @@
-![Build Status](https://travis-ci.org/dvgodoy/handyspark.svg?branch=master)](https://travis-ci.org/dvgodoy/handyspark)
-![Documentation Status](http://readthedocs.org/projects/handyspark/badge/?version=latest)](http://handyspark.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/dvgodoy/handyspark.svg?branch=master)](https://travis-ci.org/dvgodoy/handyspark)
+[![Documentation Status](http://readthedocs.org/projects/handyspark/badge/?version=latest)](http://handyspark.readthedocs.io/en/latest/?badge=latest)
 
 # HandySpark
 
