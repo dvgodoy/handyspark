@@ -5,9 +5,9 @@ def readme():
         return f.read()
 
 setup(name='handyspark',
-      version='0.0.1dev1',
+      version='0.0.1dev2',
       install_requires=['pyspark', 'matplotlib', 'numpy', 'scipy', 'seaborn', 'pandas', 'scikit-learn', 'findspark', 'pyarrow'],
-      description='"HandySpark',
+      description='HandySpark - bringing pandas capabilities to Spark dataframes',
       long_description=readme(),
       long_description_content_type='text/markdown',
       url='https://github.com/dvgodoy/handyspark',

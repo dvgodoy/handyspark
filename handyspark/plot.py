@@ -9,6 +9,8 @@ from pyspark.ml.pipeline import Pipeline
 from pyspark.mllib.stat import Statistics
 from pyspark.sql import functions as F
 from matplotlib.artist import setp
+import matplotlib as mpl
+mpl.rc("lines", markeredgewidth=0.5)
 
 def title_fom_clause(clause):
     return clause.replace(' and ', '\n').replace(' == ', '=').replace('"', '')

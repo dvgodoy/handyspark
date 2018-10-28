@@ -233,7 +233,6 @@ class Handy(object):
         return res
 
     def _fill_values(self, continuous, categorical, strategy):
-        #self._df._summaries()
         values = {}
         values.update(dict(self._df._means[map(itemgetter(0),
                                      filter(lambda t: t[1] == 'mean', zip(continuous, strategy)))]))
@@ -286,7 +285,6 @@ class Handy(object):
             return self.__fill_self(continuous=continuous, categorical=categorical, strategy=strategy)
 
     def isnull(self, ratio=False):
-        #self._df._summaries()
         name = 'missing'
         nrows = self.nrows
         missing = (nrows - self._df._counts)
@@ -302,7 +300,6 @@ class Handy(object):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
-        #self._df._summaries()
 
         if method == 'tukey':
             outliers = []
@@ -509,10 +506,23 @@ class HandyFrame(DataFrame):
         If stratified, first level keys are filter clauses for stratification
     is_stratified: boolean
         True if HandyFrame was stratified
-    strata: NDFrame
-        Strata used in the HandyFrame
     values: ndarray
         Numpy representation of HandyFrame.
+
+    Available methods:
+    - notHandy: makes it a plain Spark dataframe
+    - stratify: used to perform stratified operations
+    - isnull: checks for missing values
+    - fill: fills missing values
+    - outliers: checks for outliers
+    - fence: fences outliers
+    - set_safety_limit: defines new safety limit for collect operations
+    - safety_off: disables safety limit for a single operation
+    - assign: appends a new columns based on an expression
+    - nunique: returns number of unique values in each column
+    - set_response: sets column to be used as response / label
+    - disassemble: turns a vector / array column into multiple columns
+    - to_metrics_RDD: turns probability and label columns into a tuple RDD
     """
 
     def __init__(self, df, handy=None):
@@ -607,7 +617,6 @@ class HandyFrame(DataFrame):
         colnames = ensure_list(colnames)
         colnames = [col for col in colnames if col in self._handy._numerical]
         check_columns(self, colnames)
-        #self._summaries()
         return self._summary.loc[statistic, colnames]
 
     @property
@@ -744,7 +753,6 @@ class HandyFrame(DataFrame):
     def safety_off(self):
         """Disables safety limit for a single call of ``collect`` method.
         """
-        #self._safety_off = True
         self._handy._safety = False
         self._safety = False
         return self
@@ -1061,7 +1069,6 @@ class HandyColumns(object):
         self._handy = handy
         self._strata = strata
         self._colnames = None
-        #self._df._summaries()
         self.COLTYPES = {'continuous': self.continuous,
                          'categorical': self.categorical,
                          'numerical': self.numerical,
