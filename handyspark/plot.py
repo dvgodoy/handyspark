@@ -208,14 +208,14 @@ def draw_boxplot(ax, stats):
     setp(bp['medians'], color=colors[2], alpha=1)
     return ax
 
-def _calc_tukey(col_summ):
+def _calc_tukey(col_summ, k=1.5):
     q1, q3 = float(none2zero(col_summ['25%'])), float(none2zero(col_summ['75%']))
     iqr = q3 - q1
-    lfence = q1 - (1.5 * iqr)
-    ufence = q3 + (1.5 * iqr)
+    lfence = q1 - (k * iqr)
+    ufence = q3 + (k * iqr)
     return lfence, ufence
 
-def boxplot(sdf, colnames, ax=None, showfliers=True):
+def boxplot(sdf, colnames, ax=None, showfliers=True, k=1.5):
     strat_ax, data = sdf._get_strata()
     sdf = sdf.notHandy()
     if data is None:
@@ -223,7 +223,7 @@ def boxplot(sdf, colnames, ax=None, showfliers=True):
             fig, ax = plt.subplots(1, 1)
 
     pdf = sdf.select(colnames).summary().toPandas().set_index('summary')
-    pdf.loc['fence', :] = pdf.apply(_calc_tukey)
+    pdf.loc['fence', :] = pdf.apply(_calc_tukey, k)
 
     # faster than stats()
     def minmax(a, b):

@@ -276,7 +276,7 @@ class Handy(object):
         return HandyFrame(res, self)
 
     def to_metrics_RDD(self, prob_col, label):
-        check_columns(self, [prob_col, label])
+        check_columns(self._df, [prob_col, label])
         return self.disassemble(prob_col).select('{}_1'.format(prob_col), F.col(label).cast('double')).rdd.map(tuple)
 
     def fill(self, *args, continuous=None, categorical=None, strategy=None):
@@ -325,7 +325,7 @@ class Handy(object):
         return pd.Series([self._df.notHandy().select(col).dropna().distinct().count() for col in colnames],
                          index=colnames)
 
-    def fence(self, colnames):
+    def fence(self, colnames, k=1.5):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
@@ -333,8 +333,8 @@ class Handy(object):
         for colname in colnames:
             q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
             iqr = q3 - q1
-            lfence = q1 - (1.5 * iqr)
-            ufence = q3 + (1.5 * iqr)
+            lfence = q1 - (k * iqr)
+            ufence = q3 + (k * iqr)
             self._fenced_values.update({colname: [lfence, ufence]})
             df = (df
                   .withColumn('__fence', F.lit(lfence))
@@ -413,12 +413,12 @@ class Handy(object):
         self._build_strat_plot(n_rows, n_cols, **kwds)
         return None
 
-    def boxplot(self, colnames, ax=None, showfliers=True, **kwargs):
+    def boxplot(self, colnames, ax=None, showfliers=True, k=1.5, **kwargs):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
         assert len(colnames), "Only numerical columns can be plot!"
-        return boxplot(self._df, colnames, ax, showfliers)
+        return boxplot(self._df, colnames, ax, showfliers, k)
 
     def _post_boxplot(self, res):
         return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
@@ -432,7 +432,7 @@ class Handy(object):
         assert len(colnames) == 2, "There must be two columns to plot!"
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
-        assert len(colnames) == 1, "Both columns must be numerical!"
+        assert len(colnames) == 2, "Both columns must be numerical!"
         return scatterplot(self._df, colnames[0], colnames[1], ax=ax)
 
     ### Histogram functions
@@ -900,7 +900,7 @@ class HandyFrame(DataFrame):
         """
         return self._handy.fill(*args, continuous=continuous, categorical=categorical, strategy=strategy)
 
-    def fence(self, colnames):
+    def fence(self, colnames, k=1.5):
         """Caps outliers using lower and upper fences given by Tukey's method,
         using 1.5 times the interquartile range (IQR).
 
@@ -913,13 +913,16 @@ class HandyFrame(DataFrame):
         ----------
         colnames: list of string
             Column names to apply fencing.
+        k: float, optional
+            Constant multiplier for the IQR.
+            Default is 1.5 (corresponding to Tukey's outlier, use 3 for "far out" values)
 
         Returns
         -------
         df : HandyFrame
             A new HandyFrame with capped outliers.
         """
-        return self._handy.fence(colnames)
+        return self._handy.fence(colnames, k=k)
 
     def disassemble(self, colname, new_colnames=None):
         """Disassembles a Vector or Array column into multiple columns.
@@ -1274,7 +1277,7 @@ class HandyColumns(object):
         """
         return self._handy.hist(self._colnames, bins, ax)
 
-    def boxplot(self, ax=None, showfliers=True):
+    def boxplot(self, ax=None, showfliers=True, k=1.5):
         """Makes a box plot from HandyFrame column.
 
         Parameters
@@ -1282,8 +1285,11 @@ class HandyColumns(object):
         ax : matplotlib axes object, default None
         showfliers : bool, optional (True)
             Show the outliers beyond the caps.
+        k: float, optional
+            Constant multiplier for the IQR.
+            Default is 1.5 (corresponding to Tukey's outlier, use 3 for "far out" values)
         """
-        return self._handy.boxplot(self._colnames, ax, showfliers)
+        return self._handy.boxplot(self._colnames, ax, showfliers, k)
 
     def scatterplot(self, ax=None):
         """Makes a scatter plot of two HandyFrame columns.
