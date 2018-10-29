@@ -295,7 +295,7 @@ class Handy(object):
         missing.name = name
         return missing
 
-    def outliers(self, colnames=None, ratio=False, method='tukey'):
+    def outliers(self, colnames=None, ratio=False, method='tukey', **kwargs):
         colnames = none2default(colnames, self._numerical)
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
@@ -303,11 +303,15 @@ class Handy(object):
 
         if method == 'tukey':
             outliers = []
+            try:
+                k = kwargs['k']
+            except KeyError:
+                k = 1.5
             for colname in colnames:
                 q1, q3 = self._df._summary.loc['25%', colname], self._df._summary.loc['75%', colname]
                 iqr = q3 - q1
-                lfence = q1 - (1.5 * iqr)
-                ufence = q3 + (1.5 * iqr)
+                lfence = q1 - (k * iqr)
+                ufence = q3 + (k * iqr)
                 outliers.append(self._df.filter(~F.col(colname).between(lfence, ufence)).count())
                 if ratio:
                     outliers[-1] /= self._df._counts[colname]
@@ -848,7 +852,7 @@ class HandyFrame(DataFrame):
         """
         return self._handy.nunique(self.columns)
 
-    def outliers(self, ratio=False, method='tukey'):
+    def outliers(self, ratio=False, method='tukey', **kwargs):
         """Return Series with number of outlier observations according to
          the specified method for all columns.
 
@@ -865,7 +869,7 @@ class HandyFrame(DataFrame):
          -------
          outliers: Series
         """
-        return self._handy.outliers(self.columns, ratio=ratio, method=method)
+        return self._handy.outliers(self.columns, ratio=ratio, method=method, **kwargs)
 
     def set_response(self, colname):
         """Sets column to be used as response in supervised learning algorithms.
