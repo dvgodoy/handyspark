@@ -228,7 +228,7 @@ imputer = hdf_filled.transformers.imputer()
 
 In the example above, ***imputer*** is now a full-fledged serializable PySpark transformer! What does that mean? You can use it in your ***pipeline*** and ***save / load*** at will :-)
 
-####  Detecting outliers
+###  Detecting outliers
 
 Second only to the problem of missing data, outliers can pose a challenge for training proper machine learning models.
 
