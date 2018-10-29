@@ -15,7 +15,7 @@ Moreover, it introduces the ***stratify*** operation, so users can perform more 
 
 Finally, it brings the long missing capability of ***plotting*** data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don't ever do that!).
 
-### Google Colab
+## Google Colab
 
 Eager to try it out right away? Don't wait any longer!
 
@@ -23,18 +23,18 @@ Open the notebook directly on Google Colab and try it yourself:
 
 - [Exploring Titanic](https://colab.research.google.com/github/dvgodoy/handyspark/blob/master/notebooks/Exploring_Titanic.ipynb)
 
-### Installation
+## Installation
 
 To install ***HandySpark*** from [PyPI](https://pypi.org/project/handyspark/), just type:
 ```python
 pip install handyspark
 ```
 
-### Documentation
+## Documentation
 
 You can find the full documentations at [Read the Docs](http://handyspark.readthedocs.io/).
 
-### Quick Start
+## Quick Start
 
 To use ***HandySpark***, all you need to do is import the package and, after loading your data into a Spark dataframe, call the ***toHandy()*** method to get your own ***HandyFrame***:
 ```python
@@ -46,7 +46,7 @@ sdf = spark.read.csv('./tests/rawdata/train.csv', header=True, inferSchema=True)
 hdf = sdf.toHandy()
 ```
 
-#### Fetching and plotting data
+### Fetching and plotting data
 
 Now you can easily fetch data as if you were using pandas, just use the ***cols*** object from your ***HandyFrame***:
 ```python
@@ -102,7 +102,7 @@ hdf.cols['Fare'].boxplot(ax=axs[2])
 
 Handy, right (pun intended!)? But things can get ***even more*** interesting if you use ***stratify***!
 
-#### Stratify
+### Stratify
 
 Stratifying a HandyFrame means using a ***split-apply-combine*** approach. It will first split your HandyFrame according to the specified (discrete) columns, then it will apply some function to each stratum of data and finally combine the results back together.
 
@@ -157,9 +157,9 @@ What about ***plotting*** it? Yes, ***HandySpark*** can handle that as well!
 hdf.stratify(['Sex', Bucket('Age', 2)]).cols['Embarked'].hist(figsize=(8, 6))
 ```
 
-![stratified hist](/images/stratified_hist.png.png)
+![stratified hist](/images/stratified_hist.png)
 
-#### Handling missing data
+### Handling missing data
 
 ***HandySpark*** makes it very easy to spot and fill missing values. To figure if there are any missing values, just use ***isnull***:
 ```python
@@ -284,7 +284,7 @@ It works quite similarly to the ***fill*** method and, I hope you guessed, it **
 fencer = hdf_fenced.transformers.fencer()
 ```
 
-#### Pandas and more pandas!
+### Pandas and more pandas!
 
 With ***HandySpark*** you can feel ***almost*** as if you were using traditional pandas :-)
 
@@ -342,7 +342,7 @@ hdf_fenced = hdf_fenced.assign(is_mrs=col_mrs > 0)
 
 There are many, many more available methods:
 
-1. String methods:
+1. ***String methods***:
 - contains
 - startswith / endswitch
 - match
@@ -364,7 +364,7 @@ There are many, many more available methods:
 - find / rfind
 - len
 
-2. Date / Datetime methods:
+2. ***Date / Datetime methods***:
 - is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start
 - strftime
 - tz / time / tz_convert / tz_localize
@@ -376,7 +376,7 @@ There are many, many more available methods:
 - ceil / floor / round
 - normalize
 
-#### Your own functions
+### Your own functions
 
 The sky is the limit! You can create regular Python functions and use assign to create new columns :-)
 
@@ -451,7 +451,7 @@ OK, so, what happened here?
 3. We ***wrap*** the function with the return type `ArrayType(DoubleType())` by invoking the extended method `ret`.
 4. Finally, we assign it to a new column name, and that's it!
 
-#### Nicer exceptions
+### Nicer exceptions
 
 Now, suppose you make a mistake while creating your function... if you have used Spark, even a little bit, you already realized that, when an exception is raised, it will be ***loooong***, right?
 
@@ -459,7 +459,7 @@ To help you with that, ***HandySpark*** analyzes the error message and parses it
 
 ![exception](/images/handy_exception.png)
 
-#### Safety first
+### Safety first
 
 ***HandySpark*** wants to protect your cluster and network, so it implements a ***safety*** whenever you perform an operation that are going to retrieve ***ALL*** data from your ***HandyFrame***, like `collect` or `toPandas`.
 
@@ -467,7 +467,7 @@ How does that work? Every time a ***HandyFrame*** has one of these methods calle
 
 ![safety on](/images/safety_on.png)
 
-Do you want to set a different safety limit for your ***HandyFram***?
+Do you want to set a different safety limit for your ***HandyFrame***?
 
 ![safety limit](/images/safety_limit.png)
 
@@ -475,7 +475,7 @@ What if you want to retrieve everything nonetheless?! You can invoke the ***safe
 
 ![safety off](/images/safety_off.png)
 
-#### Don't feel like Handy anymore?
+### Don't feel like Handy anymore?
 
 To get back your original Spark dataframe, you only need to call ***notHandy*** to make it not handy again:
 
