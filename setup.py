@@ -5,18 +5,18 @@ def readme():
         return f.read()
 
 setup(name='handyspark',
-      version='0.0.1dev2',
+      version='0.1.0a1',
       install_requires=['pyspark', 'matplotlib', 'numpy', 'scipy', 'seaborn', 'pandas', 'scikit-learn', 'findspark', 'pyarrow'],
-      description='HandySpark - bringing pandas capabilities to Spark dataframes',
+      description='HandySpark - bringing pandas-like capabilities to Spark dataframes',
       long_description=readme(),
       long_description_content_type='text/markdown',
       url='https://github.com/dvgodoy/handyspark',
       author='Daniel Voigt Godoy',
       author_email='datagnosis@gmail.com',
-      keywords=['spark', 'big data', 'data cleaning', 'plot', 'exploratory data analysis'],
+      keywords=['spark', 'big data', 'data cleaning', 'visualization', 'exploratory data analysis', 'pandas'],
       license='MIT',
       classifiers=[
-          'Development Status :: 2 - Pre-Alpha',
+          'Development Status :: 3 - Alpha',
           'Intended Audience :: Developers',
           'Intended Audience :: Education',
           'Intended Audience :: Science/Research',

@@ -5,7 +5,7 @@
 
 ## Bringing pandas-like capabilities to Spark dataframes!
 
-***HandySpark*** is a package designed to improve ***PySpark*** user experience, especially when it comes to ***exploratory data analysis***, including ***visualization*** capabilities, which are completely absent in the original API.
+***HandySpark*** is a package designed to improve ***PySpark*** user experience, especially when it comes to ***exploratory data analysis***, including ***visualization*** capabilities!
 
 It makes fetching data or computing statistics for columns really easy, returning ***pandas objects*** straight away.
 
@@ -92,10 +92,11 @@ Name: Embarked, dtype: int64
 
 You can also make some plots:
 ```python
-fig, axs = plt.subplots(1, 3, figsize=(12, 4))
+fig, axs = plt.subplots(1, 4, figsize=(12, 4))
 hdf.cols['Embarked'].hist(ax=axs[0])
 hdf.cols['Age'].boxplot(ax=axs[1])
 hdf.cols['Fare'].boxplot(ax=axs[2])
+hdf.cols[['Fare', 'Age']].scatterplot(ax=axs[3])
 ```
 
 ![cols plots](/images/cols_plot.png)
@@ -197,7 +198,7 @@ hdf_filled = hdf.fill(categorical=['Embarked'])
 
 Categorical variables use a `mode` strategy by default.
 
-But you do not to stick with the basics anymore... you can fancy it up using ***stratify*** together with ***fill***:
+But you do not need to stick with the basics anymore... you can fancy it up using ***stratify*** together with ***fill***:
 ```python
 hdf_filled = hdf_filled.stratify(['Pclass', 'Sex']).fill(continuous=['Age'], strategy=['mean'])
 ```
@@ -230,7 +231,7 @@ In the example above, ***imputer*** is now a full-fledged serializable PySpark t
 
 ###  Detecting outliers
 
-Second only to the problem of missing data, outliers can pose a challenge for training proper machine learning models.
+Second only to the problem of missing data, outliers can pose a challenge for training machine learning models.
 
 ***HandyFrame*** to the rescue, with its ***outliers*** method:
 
@@ -318,6 +319,8 @@ hdf_fenced.cols['is_c_or_q'][:5]
 Name: is_c_or_q, dtype: bool
 ```
 
+You got that right! ***HandyFrame*** has a very convenient ***assign*** method, just like in pandas!
+
 It does not get much easier than that :-) There are several column methods available already:
 - betweeen / between_time
 - isin
@@ -389,17 +392,17 @@ import numpy as np
 hdf_fenced = hdf_fenced.assign(logFare=lambda Fare: np.log(Fare + 1))
 ```
 
+![logfare](/images/logfare.png)
+
 You can also use multiple columns:
 
 ```python
 hdf_fenced = hdf_fenced.assign(fare_times_age=lambda Fare, Age: Fare * Age)
 ```
 
-![logfare](/images/logfare.png)
-
 Even though the result is kinda pointless, it will work :-)
 
-Keep in mind that the ***return type***, that is the column type of the new column will be the same as the first column used (`Fare`, in the example).
+Keep in mind that the ***return type***, that is, the column type of the new column, will be the same as the first column used (`Fare`, in the example).
 
 What if you want to return something of a ***different*** type?! No worries! You only need to ***wrap*** your function with the desired return type. An example should make this more clear:
 
@@ -447,13 +450,13 @@ Name: fare_list, dtype: object
 OK, so, what happened here?
 
 1. First, we imported the necessary types, ***ArrayType*** and ***DoubleType***, since we are building a function that returns a list of doubles.
-2. We actually built the function - notice that we call ***apply*** straight from ***Fare***, as it is still understood as a pandas Series under the hood.
+2. We actually built the function - notice that we call ***apply*** straight from ***Fare***, which is treated as a pandas Series under the hood.
 3. We ***wrap*** the function with the return type `ArrayType(DoubleType())` by invoking the extended method `ret`.
 4. Finally, we assign it to a new column name, and that's it!
 
 ### Nicer exceptions
 
-Now, suppose you make a mistake while creating your function... if you have used Spark, even a little bit, you already realized that, when an exception is raised, it will be ***loooong***, right?
+Now, suppose you make a mistake while creating your function... if you have used Spark for a while, you already realized that, when an exception is raised, it will be ***loooong***, right?
 
 To help you with that, ***HandySpark*** analyzes the error message and parses it nicely for you at the very ***top*** of the error message, in ***bold red***:
 
