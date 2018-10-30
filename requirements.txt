@@ -1,9 +1,0 @@
-numpy>=1.14
-scikit-learn>=0.20.0
-pandas>=0.22
-matplotlib>=2.2.3
-seaborn>=0.9
-pyspark>=2.3
-scipy>=1.0
-findspark
-pyarrow>=0.8.0

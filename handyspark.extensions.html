@@ -1,0 +1,353 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.extensions package &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="handyspark-extensions-package">
+<h1>handyspark.extensions package<a class="headerlink" href="#handyspark-extensions-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-handyspark.extensions.common">
+<span id="handyspark-extensions-common-module"></span><h2>handyspark.extensions.common module<a class="headerlink" href="#module-handyspark.extensions.common" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="handyspark.extensions.common.call2">
+<code class="descclassname">handyspark.extensions.common.</code><code class="descname">call2</code><span class="sig-paren">(</span><em>self</em>, <em>name</em>, <em>*a</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/common.html#call2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.common.call2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Another call method for JavaModelWrapper.
+This method should be used whenever the JavaModel returns a Scala Tuple
+that needs to be deserialized before converted to Python.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.extensions.evaluation">
+<span id="handyspark-extensions-evaluation-module"></span><h2>handyspark.extensions.evaluation module<a class="headerlink" href="#module-handyspark.extensions.evaluation" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.confusionMatrix">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">confusionMatrix</code><span class="sig-paren">(</span><em>self</em>, <em>threshold=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#confusionMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.confusionMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns confusion matrix: predicted classes are in columns,
+they are ordered by class label ascending, as in “labels”.</p>
+<p>Predicted classes are computed according to informed threshold.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>threshold</strong> (<em>double</em><em>, </em><em>optional</em>) – Threshold probability for the positive class.
+Default is 0.5.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>confusionMatrix</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DenseMatrix</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.fMeasureByThreshold">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">fMeasureByThreshold</code><span class="sig-paren">(</span><em>self</em>, <em>beta=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#fMeasureByThreshold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.fMeasureByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>fMeasureByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, F-Measure) curve.</li>
+<li>&#64;param beta the beta factor in F-Measure computation.</li>
+<li>&#64;return an RDD of (threshold, F-Measure) pairs.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/F1_score">http://en.wikipedia.org/wiki/F1_score</a>”&gt;F1 score (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.getMetricsByThreshold">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">getMetricsByThreshold</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#getMetricsByThreshold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.getMetricsByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.pr">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">pr</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#pr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.pr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>pr</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the precision-recall curve, which is an RDD of (recall, precision),</li>
+<li>NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision</li>
+<li>associated with the lowest recall on the curve.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/Precision_and_recall">http://en.wikipedia.org/wiki/Precision_and_recall</a>”&gt;</li>
+<li>Precision and recall (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.precisionByThreshold">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">precisionByThreshold</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#precisionByThreshold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.precisionByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>precisionByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, precision) curve.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.recallByThreshold">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">recallByThreshold</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#recallByThreshold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.recallByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>recallByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, recall) curve.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.roc">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">roc</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#roc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.roc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>roc</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the receiver operating characteristic (ROC) curve,</li>
+<li>which is an RDD of (false positive rate, true positive rate)</li>
+<li>with (0.0, 0.0) prepended and (1.0, 1.0) appended to it.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/Receiver_operating_characteristic">http://en.wikipedia.org/wiki/Receiver_operating_characteristic</a>”&gt;</li>
+<li>Receiver operating characteristic (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.extensions.evaluation.thresholds">
+<code class="descclassname">handyspark.extensions.evaluation.</code><code class="descname">thresholds</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/evaluation.html#thresholds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.evaluation.thresholds" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>Returns thresholds in descending order.</li>
+</ul>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.extensions.types">
+<span id="handyspark-extensions-types-module"></span><h2>handyspark.extensions.types module<a class="headerlink" href="#module-handyspark.extensions.types" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="handyspark.extensions.types.ret">
+<code class="descclassname">handyspark.extensions.types.</code><code class="descname">ret</code><span class="sig-paren">(</span><em>self</em>, <em>expr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/extensions/types.html#ret"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.types.ret" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns a return type to the expression when used inside an <cite>assign</cite> method.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.extensions">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-handyspark.extensions" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.extensions.BinaryClassificationMetrics">
+<em class="property">class </em><code class="descclassname">handyspark.extensions.</code><code class="descname">BinaryClassificationMetrics</code><span class="sig-paren">(</span><em>scoreAndLabels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyspark/mllib/evaluation.html#BinaryClassificationMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.mllib.common.JavaModelWrapper</span></code></p>
+<p>Evaluator for binary classification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>scoreAndLabels</strong> – an RDD of (score, label) pairs</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scoreAndLabels</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">parallelize</span><span class="p">([</span>
+<span class="gp">... </span>    <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)],</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span> <span class="o">=</span> <span class="n">BinaryClassificationMetrics</span><span class="p">(</span><span class="n">scoreAndLabels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span><span class="o">.</span><span class="n">areaUnderROC</span>
+<span class="go">0.70...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span><span class="o">.</span><span class="n">areaUnderPR</span>
+<span class="go">0.83...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.4.0.</span></p>
+</div>
+<dl class="attribute">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.areaUnderPR">
+<code class="descname">areaUnderPR</code><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.areaUnderPR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the area under the precision-recall curve.</p>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.4.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.areaUnderROC">
+<code class="descname">areaUnderROC</code><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.areaUnderROC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the area under the receiver operating characteristic
+(ROC) curve.</p>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.4.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.confusionMatrix">
+<code class="descname">confusionMatrix</code><span class="sig-paren">(</span><em>threshold=0.5</em><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.confusionMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns confusion matrix: predicted classes are in columns,
+they are ordered by class label ascending, as in “labels”.</p>
+<p>Predicted classes are computed according to informed threshold.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>threshold</strong> (<em>double</em><em>, </em><em>optional</em>) – Threshold probability for the positive class.
+Default is 0.5.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>confusionMatrix</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DenseMatrix</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.fMeasureByThreshold">
+<code class="descname">fMeasureByThreshold</code><span class="sig-paren">(</span><em>beta=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.fMeasureByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>fMeasureByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, F-Measure) curve.</li>
+<li>&#64;param beta the beta factor in F-Measure computation.</li>
+<li>&#64;return an RDD of (threshold, F-Measure) pairs.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/F1_score">http://en.wikipedia.org/wiki/F1_score</a>”&gt;F1 score (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.getMetricsByThreshold">
+<code class="descname">getMetricsByThreshold</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.getMetricsByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.pr">
+<code class="descname">pr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.pr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>pr</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the precision-recall curve, which is an RDD of (recall, precision),</li>
+<li>NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision</li>
+<li>associated with the lowest recall on the curve.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/Precision_and_recall">http://en.wikipedia.org/wiki/Precision_and_recall</a>”&gt;</li>
+<li>Precision and recall (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.precisionByThreshold">
+<code class="descname">precisionByThreshold</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.precisionByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>precisionByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, precision) curve.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.recallByThreshold">
+<code class="descname">recallByThreshold</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.recallByThreshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>recallByThreshold</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the (threshold, recall) curve.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.roc">
+<code class="descname">roc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.roc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the <cite>roc</cite> method from the Java class</p>
+<ul class="simple">
+<li>Returns the receiver operating characteristic (ROC) curve,</li>
+<li>which is an RDD of (false positive rate, true positive rate)</li>
+<li>with (0.0, 0.0) prepended and (1.0, 1.0) appended to it.</li>
+<li>&#64;see &lt;a href=”<a class="reference external" href="http://en.wikipedia.org/wiki/Receiver_operating_characteristic">http://en.wikipedia.org/wiki/Receiver_operating_characteristic</a>”&gt;</li>
+<li>Receiver operating characteristic (Wikipedia)&lt;/a&gt;</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.thresholds">
+<code class="descname">thresholds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.thresholds" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>Returns thresholds in descending order.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.extensions.BinaryClassificationMetrics.unpersist">
+<code class="descname">unpersist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyspark/mllib/evaluation.html#BinaryClassificationMetrics.unpersist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.extensions.BinaryClassificationMetrics.unpersist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpersists intermediate RDDs used in the computation.</p>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.4.0.</span></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/handyspark.extensions.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

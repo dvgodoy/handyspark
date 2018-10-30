@@ -1,0 +1,142 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.sql.schema &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.sql.schema</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="k">import</span> <span class="n">StructType</span>
+
+<span class="n">_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
+            <span class="nb">bool</span><span class="p">:</span> <span class="s1">&#39;boolean&#39;</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">:</span> <span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+            <span class="nb">float</span><span class="p">:</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">:</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span> <span class="s1">&#39;timestamp&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span> <span class="s1">&#39;boolean&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span> <span class="s1">&#39;byte&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">:</span> <span class="s1">&#39;short&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span> <span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">:</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span> <span class="s1">&#39;double&#39;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span> <span class="s1">&#39;array&#39;</span><span class="p">,</span>
+            <span class="nb">object</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
+            <span class="nb">list</span><span class="p">:</span> <span class="s1">&#39;array&#39;</span><span class="p">,</span>
+            <span class="nb">tuple</span><span class="p">:</span> <span class="s1">&#39;array&#39;</span><span class="p">,</span>
+            <span class="nb">dict</span><span class="p">:</span> <span class="s1">&#39;map&#39;</span><span class="p">}</span>
+
+<div class="viewcode-block" id="generate_schema"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.schema.generate_schema">[docs]</a><span class="k">def</span> <span class="nf">generate_schema</span><span class="p">(</span><span class="n">colnames</span><span class="p">,</span> <span class="n">coltypes</span><span class="p">,</span> <span class="n">nullables</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    colnames: list of string</span>
+<span class="sd">    coltypes: list of type</span>
+<span class="sd">    nullables: list of boolean, optional</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    schema: StructType</span>
+<span class="sd">        Spark DataFrame schema corresponding to Python/numpy types.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">coltypes</span><span class="p">),</span> <span class="s2">&quot;You must specify types for all columns.&quot;</span>
+    <span class="n">invalid_types</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">new_types</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">())))</span>
+    <span class="k">for</span> <span class="n">coltype</span> <span class="ow">in</span> <span class="n">coltypes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coltype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">invalid_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coltype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coltype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;O&#39;</span><span class="p">):</span>
+                <span class="n">new_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">coltype</span><span class="p">)])</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">invalid_types</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Invalid type(s) specified: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_types</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">nullables</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nullables</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span>
+
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;nullable&quot;</span><span class="p">:</span> <span class="n">nullable</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">_mapping</span><span class="p">[</span><span class="n">typ</span><span class="p">]}</span>
+              <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">nullable</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">colnames</span><span class="p">,</span> <span class="n">new_types</span><span class="p">,</span> <span class="n">nullables</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">StructType</span><span class="o">.</span><span class="n">fromJson</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;struct&quot;</span><span class="p">,</span> <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="n">fields</span><span class="p">})</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

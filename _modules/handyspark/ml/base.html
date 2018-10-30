@@ -1,0 +1,272 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.ml.base &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.ml.base</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.base</span> <span class="k">import</span> <span class="n">Transformer</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.util</span> <span class="k">import</span> <span class="n">DefaultParamsReadable</span><span class="p">,</span> <span class="n">DefaultParamsWritable</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.param</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
+
+<div class="viewcode-block" id="HandyTransformers"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HandyTransformers">[docs]</a><span class="k">class</span> <span class="nc">HandyTransformers</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates transformers to be used in pipelines.</span>
+
+<span class="sd">    Available transformers:</span>
+<span class="sd">    imputer: Transformer</span>
+<span class="sd">        Imputation transformer for completing missing values.</span>
+<span class="sd">    fencer: Transformer</span>
+<span class="sd">        Fencer transformer for capping outliers according to lower and upper fences.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_df</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handy</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">_handy</span>
+
+<div class="viewcode-block" id="HandyTransformers.imputer"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HandyTransformers.imputer">[docs]</a>    <span class="k">def</span> <span class="nf">imputer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates a transformer to impute missing values, using values</span>
+<span class="sd">        from the HandyFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HandyImputer</span><span class="p">()</span><span class="o">.</span><span class="n">setDictValues</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">statistics_</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HandyTransformers.fencer"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HandyTransformers.fencer">[docs]</a>    <span class="k">def</span> <span class="nf">fencer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates a transformer to fence outliers, using statistics</span>
+<span class="sd">        from the HandyFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HandyFencer</span><span class="p">()</span><span class="o">.</span><span class="n">setDictValues</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">fences_</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="HasDict"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HasDict">[docs]</a><span class="k">class</span> <span class="nc">HasDict</span><span class="p">(</span><span class="n">Params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixin for a Dictionary parameter.</span>
+<span class="sd">    It dumps the dictionary into a JSON string for storage and</span>
+<span class="sd">    reloads it whenever needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dictValues</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">Params</span><span class="o">.</span><span class="n">_dummy</span><span class="p">(),</span> <span class="s2">&quot;dictValues&quot;</span><span class="p">,</span> <span class="s2">&quot;Dictionary values&quot;</span><span class="p">,</span> <span class="n">typeConverter</span><span class="o">=</span><span class="n">TypeConverters</span><span class="o">.</span><span class="n">toString</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">HasDict</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setDefault</span><span class="p">(</span><span class="n">dictValues</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HasDict.setDictValues"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HasDict.setDictValues">[docs]</a>    <span class="k">def</span> <span class="nf">setDictValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the value of :py:attr:`dictValues`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">dictValues</span><span class="o">=</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HasDict.getDictValues"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HasDict.getDictValues">[docs]</a>    <span class="k">def</span> <span class="nf">getDictValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the value of dictValues or its default value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getOrDefault</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dictValues</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="HandyImputer"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HandyImputer">[docs]</a><span class="k">class</span> <span class="nc">HandyImputer</span><span class="p">(</span><span class="n">Transformer</span><span class="p">,</span> <span class="n">HasDict</span><span class="p">,</span> <span class="n">DefaultParamsReadable</span><span class="p">,</span> <span class="n">DefaultParamsWritable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Imputation transformer for completing missing values.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    statistics : dict</span>
+<span class="sd">        The imputation fill value for each feature. If stratified, first level keys are</span>
+<span class="sd">        filter clauses for stratification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="c1"># Loads dictionary with values for imputation</span>
+        <span class="n">fillingValues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getDictValues</span><span class="p">()</span>
+
+        <span class="n">joined_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">fill_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">clauses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">fillingValues</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="c1"># Loops over items...</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="c1"># If value is another dictionary, it means we&#39;re dealing with</span>
+            <span class="c1"># stratified imputation - the key is the filering clause</span>
+            <span class="c1"># and the value is the dictionary {column: value}</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="c1"># Filters dataset according to clause and fills missing values</span>
+                <span class="n">strat_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="c1"># Rejoins the filtered datasets back together</span>
+                <span class="n">joined_df</span> <span class="o">=</span> <span class="n">strat_df</span> <span class="k">if</span> <span class="n">joined_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">unionAll</span><span class="p">(</span><span class="n">strat_df</span><span class="p">)</span>
+
+        <span class="c1"># It could happen that not all rows were handled - unseen values, for instance</span>
+        <span class="c1"># So, the remainder rows are also rejoined to the resulting DataFrame</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">clauses</span><span class="p">):</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;not (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39; or &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">clauses</span><span class="p">))))</span>
+            <span class="n">joined_df</span> <span class="o">=</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">unionAll</span><span class="p">(</span><span class="n">remainder</span><span class="p">)</span>
+
+        <span class="c1"># Time to check all items that are NOT stratified and build a dictionary for them</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">fill_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">})</span>
+
+        <span class="c1"># If there was no stratified filling, assumes the original dataset</span>
+        <span class="k">if</span> <span class="n">joined_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">joined_df</span> <span class="o">=</span> <span class="n">dataset</span>
+
+        <span class="c1"># Finally, uses the non-stratified dictionary to fill remaining values</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">na</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">fill_dict</span><span class="p">)</span>
+
+        <span class="c1"># If it is a HandyFrame, make it a regular DataFrame</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getDictValues</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="HandyFencer"><a class="viewcode-back" href="../../../handyspark.ml.html#handyspark.ml.base.HandyFencer">[docs]</a><span class="k">class</span> <span class="nc">HandyFencer</span><span class="p">(</span><span class="n">Transformer</span><span class="p">,</span> <span class="n">HasDict</span><span class="p">,</span> <span class="n">DefaultParamsReadable</span><span class="p">,</span> <span class="n">DefaultParamsWritable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fencer transformer for capping outliers according to lower and upper fences.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fences : dict</span>
+<span class="sd">        The fence values for each feature. If stratified, first level keys are</span>
+<span class="sd">        filter clauses for stratification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">__fence</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">colname</span><span class="p">,</span> <span class="p">(</span><span class="n">lfence</span><span class="p">,</span> <span class="n">ufence</span><span class="p">)</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Generates two columns, for lower and upper fences</span>
+        <span class="c1"># and then applies `greatest` and `least` functions</span>
+        <span class="c1"># to effectively fence the values.</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;__fence&#39;</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">lfence</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">greatest</span><span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="s1">&#39;__fence&#39;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;__fence&#39;</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">ufence</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">least</span><span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="s1">&#39;__fence&#39;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;__fence&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">columns</span>
+        <span class="c1"># Loads dictionary with values for fencing</span>
+        <span class="n">fences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getDictValues</span><span class="p">()</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">fences</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+
+        <span class="n">joined_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">clauses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Loops over items...</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="c1"># If value is another dictionary, it means we&#39;re dealing with</span>
+            <span class="c1"># stratified imputation - the key is the filering clause</span>
+            <span class="c1"># and the value is the dictionary {column: value}</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="c1"># Filters dataset according to clause and applies fencing</span>
+                <span class="n">strat_df</span> <span class="o">=</span> <span class="n">HandyFencer</span><span class="o">.</span><span class="n">__fence</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+                <span class="c1"># Rejoins the filtered datasets back together</span>
+                <span class="n">joined_df</span> <span class="o">=</span> <span class="n">strat_df</span> <span class="k">if</span> <span class="n">joined_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">unionAll</span><span class="p">(</span><span class="n">strat_df</span><span class="p">)</span>
+
+        <span class="c1"># It could happen that not all rows were handled - unseen values, for instance</span>
+        <span class="c1"># So, the remainder rows are also rejoined to the resulting DataFrame</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">clauses</span><span class="p">):</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;not (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39; or &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">clauses</span><span class="p">))))</span>
+            <span class="n">joined_df</span> <span class="o">=</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">unionAll</span><span class="p">(</span><span class="n">remainder</span><span class="p">)</span>
+
+        <span class="c1"># If there was no stratified filling, assumes the original dataset</span>
+        <span class="k">if</span> <span class="n">joined_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">joined_df</span> <span class="o">=</span> <span class="n">dataset</span>
+
+        <span class="c1"># Time to check all items that are NOT stratified and apply fencing to them</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">joined_df</span> <span class="o">=</span> <span class="n">HandyFencer</span><span class="o">.</span><span class="n">__fence</span><span class="p">(</span><span class="n">joined_df</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">})</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">joined_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="c1"># If it is a HandyFrame, make it a regular DataFrame</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getDictValues</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

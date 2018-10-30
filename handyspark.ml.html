@@ -1,0 +1,228 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.ml package &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="handyspark-ml-package">
+<h1>handyspark.ml package<a class="headerlink" href="#handyspark-ml-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-handyspark.ml.base">
+<span id="handyspark-ml-base-module"></span><h2>handyspark.ml.base module<a class="headerlink" href="#module-handyspark.ml.base" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.ml.base.HandyFencer">
+<em class="property">class </em><code class="descclassname">handyspark.ml.base.</code><code class="descname">HandyFencer</code><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyFencer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HandyFencer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.base.Transformer</span></code>, <a class="reference internal" href="#handyspark.ml.base.HasDict" title="handyspark.ml.base.HasDict"><code class="xref py py-class docutils literal"><span class="pre">handyspark.ml.base.HasDict</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsReadable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsWritable</span></code></p>
+<p>Fencer transformer for capping outliers according to lower and upper fences.</p>
+<dl class="attribute">
+<dt id="handyspark.ml.base.HandyFencer.fences">
+<code class="descname">fences</code><a class="headerlink" href="#handyspark.ml.base.HandyFencer.fences" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – The fence values for each feature. If stratified, first level keys are
+filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">fences</code></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.ml.base.HandyImputer">
+<em class="property">class </em><code class="descclassname">handyspark.ml.base.</code><code class="descname">HandyImputer</code><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyImputer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HandyImputer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.base.Transformer</span></code>, <a class="reference internal" href="#handyspark.ml.base.HasDict" title="handyspark.ml.base.HasDict"><code class="xref py py-class docutils literal"><span class="pre">handyspark.ml.base.HasDict</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsReadable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsWritable</span></code></p>
+<p>Imputation transformer for completing missing values.</p>
+<dl class="attribute">
+<dt id="handyspark.ml.base.HandyImputer.statistics">
+<code class="descname">statistics</code><a class="headerlink" href="#handyspark.ml.base.HandyImputer.statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – The imputation fill value for each feature. If stratified, first level keys are
+filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">statistics</code></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.ml.base.HandyTransformers">
+<em class="property">class </em><code class="descclassname">handyspark.ml.base.</code><code class="descname">HandyTransformers</code><span class="sig-paren">(</span><em>df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyTransformers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HandyTransformers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Generates transformers to be used in pipelines.</p>
+<p>Available transformers:
+imputer: Transformer</p>
+<blockquote>
+<div>Imputation transformer for completing missing values.</div></blockquote>
+<dl class="docutils">
+<dt>fencer: Transformer</dt>
+<dd>Fencer transformer for capping outliers according to lower and upper fences.</dd>
+</dl>
+<dl class="method">
+<dt id="handyspark.ml.base.HandyTransformers.fencer">
+<code class="descname">fencer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyTransformers.fencer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HandyTransformers.fencer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a transformer to fence outliers, using statistics
+from the HandyFrame</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.ml.base.HandyTransformers.imputer">
+<code class="descname">imputer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyTransformers.imputer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HandyTransformers.imputer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a transformer to impute missing values, using values
+from the HandyFrame</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.ml.base.HasDict">
+<em class="property">class </em><code class="descclassname">handyspark.ml.base.</code><code class="descname">HasDict</code><a class="reference internal" href="_modules/handyspark/ml/base.html#HasDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HasDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.param.Params</span></code></p>
+<p>Mixin for a Dictionary parameter.
+It dumps the dictionary into a JSON string for storage and
+reloads it whenever needed.</p>
+<dl class="attribute">
+<dt id="handyspark.ml.base.HasDict.dictValues">
+<code class="descname">dictValues</code><em class="property"> = Param(parent='undefined', name='dictValues', doc='Dictionary values')</em><a class="headerlink" href="#handyspark.ml.base.HasDict.dictValues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.ml.base.HasDict.getDictValues">
+<code class="descname">getDictValues</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/ml/base.html#HasDict.getDictValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HasDict.getDictValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the value of dictValues or its default value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.ml.base.HasDict.setDictValues">
+<code class="descname">setDictValues</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/ml/base.html#HasDict.setDictValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.base.HasDict.setDictValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the value of <a class="reference internal" href="#handyspark.ml.base.HasDict.dictValues" title="handyspark.ml.base.HasDict.dictValues"><code class="xref py py-attr docutils literal"><span class="pre">dictValues</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.ml">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-handyspark.ml" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.ml.HandyFencer">
+<em class="property">class </em><code class="descclassname">handyspark.ml.</code><code class="descname">HandyFencer</code><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyFencer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.HandyFencer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.base.Transformer</span></code>, <a class="reference internal" href="#handyspark.ml.base.HasDict" title="handyspark.ml.base.HasDict"><code class="xref py py-class docutils literal"><span class="pre">handyspark.ml.base.HasDict</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsReadable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsWritable</span></code></p>
+<p>Fencer transformer for capping outliers according to lower and upper fences.</p>
+<dl class="attribute">
+<dt id="handyspark.ml.HandyFencer.fences">
+<code class="descname">fences</code><a class="headerlink" href="#handyspark.ml.HandyFencer.fences" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – The fence values for each feature. If stratified, first level keys are
+filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">fences</code></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.ml.HandyImputer">
+<em class="property">class </em><code class="descclassname">handyspark.ml.</code><code class="descname">HandyImputer</code><a class="reference internal" href="_modules/handyspark/ml/base.html#HandyImputer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.ml.HandyImputer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.base.Transformer</span></code>, <a class="reference internal" href="#handyspark.ml.base.HasDict" title="handyspark.ml.base.HasDict"><code class="xref py py-class docutils literal"><span class="pre">handyspark.ml.base.HasDict</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsReadable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">pyspark.ml.util.DefaultParamsWritable</span></code></p>
+<p>Imputation transformer for completing missing values.</p>
+<dl class="attribute">
+<dt id="handyspark.ml.HandyImputer.statistics">
+<code class="descname">statistics</code><a class="headerlink" href="#handyspark.ml.HandyImputer.statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – The imputation fill value for each feature. If stratified, first level keys are
+filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">statistics</code></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/handyspark.ml.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,179 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.extensions.evaluation &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.extensions.evaluation</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">pyspark.mllib.evaluation</span> <span class="k">import</span> <span class="n">BinaryClassificationMetrics</span><span class="p">,</span> <span class="n">MulticlassMetrics</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">SQLContext</span>
+
+<div class="viewcode-block" id="thresholds"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.thresholds">[docs]</a><span class="k">def</span> <span class="nf">thresholds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    * Returns thresholds in descending order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;thresholds&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="roc"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.roc">[docs]</a><span class="k">def</span> <span class="nf">roc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the `roc` method from the Java class</span>
+
+<span class="sd">    * Returns the receiver operating characteristic (ROC) curve,</span>
+<span class="sd">    * which is an RDD of (false positive rate, true positive rate)</span>
+<span class="sd">    * with (0.0, 0.0) prepended and (1.0, 1.0) appended to it.</span>
+<span class="sd">    * @see &lt;a href=&quot;http://en.wikipedia.org/wiki/Receiver_operating_characteristic&quot;&gt;</span>
+<span class="sd">    * Receiver operating characteristic (Wikipedia)&lt;/a&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;roc&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="pr"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.pr">[docs]</a><span class="k">def</span> <span class="nf">pr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the `pr` method from the Java class</span>
+
+<span class="sd">    * Returns the precision-recall curve, which is an RDD of (recall, precision),</span>
+<span class="sd">    * NOT (precision, recall), with (0.0, p) prepended to it, where p is the precision</span>
+<span class="sd">    * associated with the lowest recall on the curve.</span>
+<span class="sd">    * @see &lt;a href=&quot;http://en.wikipedia.org/wiki/Precision_and_recall&quot;&gt;</span>
+<span class="sd">    * Precision and recall (Wikipedia)&lt;/a&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;pr&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="fMeasureByThreshold"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.fMeasureByThreshold">[docs]</a><span class="k">def</span> <span class="nf">fMeasureByThreshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the `fMeasureByThreshold` method from the Java class</span>
+
+<span class="sd">    * Returns the (threshold, F-Measure) curve.</span>
+<span class="sd">    * @param beta the beta factor in F-Measure computation.</span>
+<span class="sd">    * @return an RDD of (threshold, F-Measure) pairs.</span>
+<span class="sd">    * @see &lt;a href=&quot;http://en.wikipedia.org/wiki/F1_score&quot;&gt;F1 score (Wikipedia)&lt;/a&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;fMeasureByThreshold&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="precisionByThreshold"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.precisionByThreshold">[docs]</a><span class="k">def</span> <span class="nf">precisionByThreshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the `precisionByThreshold` method from the Java class</span>
+
+<span class="sd">    * Returns the (threshold, precision) curve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;precisionByThreshold&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="recallByThreshold"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.recallByThreshold">[docs]</a><span class="k">def</span> <span class="nf">recallByThreshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the `recallByThreshold` method from the Java class</span>
+
+<span class="sd">    * Returns the (threshold, recall) curve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;recallByThreshold&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="getMetricsByThreshold"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.getMetricsByThreshold">[docs]</a><span class="k">def</span> <span class="nf">getMetricsByThreshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;thresholds&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="n">roc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;roc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">pr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;pr&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">roc</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">roc</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">pr</span><span class="p">)))</span>
+    <span class="n">metrics</span> <span class="o">+=</span> <span class="p">[(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)]</span>
+    <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sc</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;fpr&#39;</span><span class="p">,</span> <span class="s1">&#39;recall&#39;</span><span class="p">,</span> <span class="s1">&#39;precision&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="confusionMatrix"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.confusionMatrix">[docs]</a><span class="k">def</span> <span class="nf">confusionMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns confusion matrix: predicted classes are in columns,</span>
+<span class="sd">    they are ordered by class label ascending, as in &quot;labels&quot;.</span>
+
+<span class="sd">    Predicted classes are computed according to informed threshold.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    threshold: double, optional</span>
+<span class="sd">        Threshold probability for the positive class.</span>
+<span class="sd">        Default is 0.5.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    confusionMatrix: DenseMatrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scoreAndLabels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">call2</span><span class="p">(</span><span class="s1">&#39;scoreAndLabels&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">),</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">mcm</span> <span class="o">=</span> <span class="n">MulticlassMetrics</span><span class="p">(</span><span class="n">scoreAndLabels</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mcm</span><span class="o">.</span><span class="n">confusionMatrix</span><span class="p">()</span></div>
+
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="n">thresholds</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">roc</span> <span class="o">=</span> <span class="n">roc</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">pr</span> <span class="o">=</span> <span class="n">pr</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">fMeasureByThreshold</span> <span class="o">=</span> <span class="n">fMeasureByThreshold</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">precisionByThreshold</span> <span class="o">=</span> <span class="n">precisionByThreshold</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">recallByThreshold</span> <span class="o">=</span> <span class="n">recallByThreshold</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">getMetricsByThreshold</span> <span class="o">=</span> <span class="n">getMetricsByThreshold</span>
+<span class="n">BinaryClassificationMetrics</span><span class="o">.</span><span class="n">confusionMatrix</span> <span class="o">=</span> <span class="n">confusionMatrix</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

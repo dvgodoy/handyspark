@@ -1,0 +1,176 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.sql.pandas &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.sql.pandas</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">handyspark.sql.datetime</span> <span class="k">import</span> <span class="n">HandyDatetime</span>
+<span class="kn">from</span> <span class="nn">handyspark.sql.string</span> <span class="k">import</span> <span class="n">HandyString</span>
+<span class="kn">from</span> <span class="nn">handyspark.sql.transform</span> <span class="k">import</span> <span class="n">HandyTransform</span>
+<span class="kn">from</span> <span class="nn">handyspark.util</span> <span class="k">import</span> <span class="n">check_columns</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<div class="viewcode-block" id="HandyPandas"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.pandas.HandyPandas">[docs]</a><span class="k">class</span> <span class="nc">HandyPandas</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">__supported</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;boolean&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;between&#39;</span><span class="p">,</span> <span class="s1">&#39;between_time&#39;</span><span class="p">,</span> <span class="s1">&#39;isin&#39;</span><span class="p">,</span> <span class="s1">&#39;isna&#39;</span><span class="p">,</span> <span class="s1">&#39;isnull&#39;</span><span class="p">,</span> <span class="s1">&#39;notna&#39;</span><span class="p">,</span> <span class="s1">&#39;notnull&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;same&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span> <span class="s1">&#39;clip&#39;</span><span class="p">,</span> <span class="s1">&#39;clip_lower&#39;</span><span class="p">,</span> <span class="s1">&#39;clip_upper&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">,</span> <span class="s1">&#39;round&#39;</span><span class="p">,</span> <span class="s1">&#39;truncate&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;tz_convert&#39;</span><span class="p">,</span> <span class="s1">&#39;tz_localize&#39;</span><span class="p">]}</span>
+    <span class="n">__as_series</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="s1">&#39;interpolate&#39;</span><span class="p">,</span> <span class="s1">&#39;pct_change&#39;</span><span class="p">,</span> <span class="s1">&#39;bfill&#39;</span><span class="p">,</span> <span class="s1">&#39;cummax&#39;</span><span class="p">,</span> <span class="s1">&#39;cummin&#39;</span><span class="p">,</span> <span class="s1">&#39;cumprod&#39;</span><span class="p">,</span> <span class="s1">&#39;cumsum&#39;</span><span class="p">,</span> <span class="s1">&#39;diff&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;ffill&#39;</span><span class="p">,</span> <span class="s1">&#39;fillna&#39;</span><span class="p">,</span> <span class="s1">&#39;shift&#39;</span><span class="p">]</span>
+    <span class="n">__available</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">__supported</span><span class="p">[</span><span class="s1">&#39;boolean&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">__supported</span><span class="p">[</span><span class="s1">&#39;same&#39;</span><span class="p">])</span>
+    <span class="n">__types</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">__supported</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">v</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_df</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_colname</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">check_columns</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_colname</span> <span class="o">=</span> <span class="n">item</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a class to access pandas-like string column based methods through pandas UDFs</span>
+
+<span class="sd">        Available methods:</span>
+<span class="sd">        - contains</span>
+<span class="sd">        - startswith / endswitch</span>
+<span class="sd">        - match</span>
+<span class="sd">        - isalpha / isnumeric / isalnum / isdigit / isdecimal / isspace</span>
+<span class="sd">        - islower / isupper / istitle</span>
+<span class="sd">        - replace</span>
+<span class="sd">        - repeat</span>
+<span class="sd">        - join</span>
+<span class="sd">        - pad</span>
+<span class="sd">        - slice / slice_replace</span>
+<span class="sd">        - strip / lstrip / rstrip</span>
+<span class="sd">        - wrap / center / ljust / rjust</span>
+<span class="sd">        - translate</span>
+<span class="sd">        - get</span>
+<span class="sd">        - normalize</span>
+<span class="sd">        - lower / upper / capitalize / swapcase / title</span>
+<span class="sd">        - zfill</span>
+<span class="sd">        - count</span>
+<span class="sd">        - find / rfind</span>
+<span class="sd">        - len</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HandyString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colname</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a class to access pandas-like datetime column based methods through pandas UDFs</span>
+
+<span class="sd">        Available methods:</span>
+<span class="sd">        - is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start</span>
+<span class="sd">        - strftime</span>
+<span class="sd">        - tz / time / tz_convert / tz_localize</span>
+<span class="sd">        - day / dayofweek / dayofyear / days_in_month / daysinmonth</span>
+<span class="sd">        - hour / microsecond / minute / nanosecond / second</span>
+<span class="sd">        - week / weekday / weekday_name</span>
+<span class="sd">        - month / quarter / year / weekofyear</span>
+<span class="sd">        - date</span>
+<span class="sd">        - ceil / floor / round</span>
+<span class="sd">        - normalize</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HandyDatetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colname</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">attr</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__available</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    <span class="n">returnType</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__types</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">returnType</span> <span class="o">==</span> <span class="s1">&#39;same&#39;</span><span class="p">:</span>
+                        <span class="n">returnType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_colname</span><span class="p">)</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">return</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">gen_pandas_udf</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+                                                         <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_colname</span><span class="p">,),</span>
+                                                         <span class="n">returnType</span><span class="o">=</span><span class="n">returnType</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;dt&#39;</span><span class="p">]:</span>
+                    <span class="n">wrapper</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="vm">__doc__</span>
+                <span class="k">return</span> <span class="n">wrapper</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

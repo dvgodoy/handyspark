@@ -1,0 +1,1966 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.sql package &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="handyspark-sql-package">
+<h1>handyspark.sql package<a class="headerlink" href="#handyspark-sql-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-handyspark.sql.dataframe">
+<span id="handyspark-sql-dataframe-module"></span><h2>handyspark.sql.dataframe module<a class="headerlink" href="#module-handyspark.sql.dataframe" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.dataframe.Bucket">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">Bucket</code><span class="sig-paren">(</span><em>colname</em>, <em>bins=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Bucket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Bucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Bucketizes a column of continuous values into equal sized bins
+to perform stratification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>bins</strong> (<em>integer</em>) – Number of equal sized bins to map original values to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>bucket</strong> – Bucket object to be used as column in stratification.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.Bucket" title="handyspark.sql.dataframe.Bucket">Bucket</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Bucket.colname">
+<code class="descname">colname</code><a class="headerlink" href="#handyspark.sql.dataframe.Bucket.colname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.Handy">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">Handy</code><span class="sig-paren">(</span><em>df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.boxplot">
+<code class="descname">boxplot</code><span class="sig-paren">(</span><em>colnames</em>, <em>ax=None</em>, <em>showfliers=True</em>, <em>k=1.5</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.boxplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.boxplot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.classes">
+<code class="descname">classes</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.classes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.corr">
+<code class="descname">corr</code><span class="sig-paren">(</span><em>colnames=None</em>, <em>method='pearson'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.corr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.disassemble">
+<code class="descname">disassemble</code><span class="sig-paren">(</span><em>colname</em>, <em>new_colnames=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.disassemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.disassemble" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.fence">
+<code class="descname">fence</code><span class="sig-paren">(</span><em>colnames</em>, <em>k=1.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.fence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.fence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.fences_">
+<code class="descname">fences_</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.fences_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.fill">
+<code class="descname">fill</code><span class="sig-paren">(</span><em>*args</em>, <em>continuous=None</em>, <em>categorical=None</em>, <em>strategy=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.fill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.fill" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.hist">
+<code class="descname">hist</code><span class="sig-paren">(</span><em>colname</em>, <em>bins=10</em>, <em>ax=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.hist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.is_classification">
+<code class="descname">is_classification</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.is_classification" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.isnull">
+<code class="descname">isnull</code><span class="sig-paren">(</span><em>ratio=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.isnull"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.isnull" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.max">
+<code class="descname">max</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.max"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.mean">
+<code class="descname">mean</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.mean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.median">
+<code class="descname">median</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.median"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.median" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.min">
+<code class="descname">min</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.min"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.mode">
+<code class="descname">mode</code><span class="sig-paren">(</span><em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.nclasses">
+<code class="descname">nclasses</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.nclasses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.ncols">
+<code class="descname">ncols</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.ncols" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.nrows">
+<code class="descname">nrows</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.nrows" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.nunique">
+<code class="descname">nunique</code><span class="sig-paren">(</span><em>colnames=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.nunique"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.nunique" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.outliers">
+<code class="descname">outliers</code><span class="sig-paren">(</span><em>colnames=None</em>, <em>ratio=False</em>, <em>method='tukey'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.outliers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.outliers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.q1">
+<code class="descname">q1</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.q1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.q1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.q3">
+<code class="descname">q3</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.q3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.q3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.response">
+<code class="descname">response</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.scatterplot">
+<code class="descname">scatterplot</code><span class="sig-paren">(</span><em>colnames</em>, <em>ax=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.scatterplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.scatterplot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.set_response">
+<code class="descname">set_response</code><span class="sig-paren">(</span><em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.set_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.set_response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.shape">
+<code class="descname">shape</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.stages">
+<code class="descname">stages</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.stages" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.statistics_">
+<code class="descname">statistics_</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.statistics_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.stddev">
+<code class="descname">stddev</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.stddev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.stddev" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.Handy.strata">
+<code class="descname">strata</code><a class="headerlink" href="#handyspark.sql.dataframe.Handy.strata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.to_metrics_RDD">
+<code class="descname">to_metrics_RDD</code><span class="sig-paren">(</span><em>prob_col</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.to_metrics_RDD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.to_metrics_RDD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.value_counts">
+<code class="descname">value_counts</code><span class="sig-paren">(</span><em>colname</em>, <em>dropna=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.value_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.value_counts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.Handy.var">
+<code class="descname">var</code><span class="sig-paren">(</span><em>colnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Handy.var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Handy.var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.HandyColumns">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">HandyColumns</code><span class="sig-paren">(</span><em>df</em>, <em>handy</em>, <em>strata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>HandyColumn(s) in a HandyFrame.</p>
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyColumns.numerical">
+<code class="descname">numerical</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.numerical" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list of string</em> – List of numerical columns (integer, float, double)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyColumns.categorical">
+<code class="descname">categorical</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.categorical" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list of string</em> – List of categorical columns (string, integer)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyColumns.continuous">
+<code class="descname">continuous</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.continuous" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list of string</em> – List of continous columns (float, double)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyColumns.string">
+<code class="descname">string</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.string" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list of string</em> – List of string columns (string)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyColumns.array">
+<code class="descname">array</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.array" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list of string</em> – List of array columns (array, map)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">array</code></dt>
+<dd><p>Returns list of array or map columns in the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.boxplot">
+<code class="descname">boxplot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>showfliers=True</em>, <em>k=1.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.boxplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.boxplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a box plot from HandyFrame column.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ax</strong> (<em>matplotlib axes object</em><em>, </em><em>default None</em>) – </li>
+<li><strong>showfliers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.7)"><em>True</em></a><em>)</em>) – Show the outliers beyond the caps.</li>
+<li><strong>k</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Constant multiplier for the IQR.
+Default is 1.5 (corresponding to Tukey’s outlier, use 3 for “far out” values)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">categorical</code></dt>
+<dd><p>Returns list of categorical columns in the HandyFrame.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">continuous</code></dt>
+<dd><p>Returns list of continuous columns in the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.corr">
+<code class="descname">corr</code><span class="sig-paren">(</span><em>method='pearson'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute pairwise correlation of columns, excluding NA/null values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>method</strong> (<em>{'pearson'</em><em>, </em><em>'spearman'}</em>) – <ul class="simple">
+<li>pearson : standard correlation coefficient</li>
+<li>spearman : Spearman rank correlation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>y</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.hist">
+<code class="descname">hist</code><span class="sig-paren">(</span><em>bins=10</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws histogram of the HandyFrame’s column using matplotlib / pylab.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>bins</strong> (<em>integer</em><em>, </em><em>default 10</em>) – Number of histogram bins to be used</li>
+<li><strong>ax</strong> (<em>matplotlib axes object</em><em>, </em><em>default None</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.max">
+<code class="descname">max</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.max"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.mean">
+<code class="descname">mean</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.mean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.median">
+<code class="descname">median</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.median"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.median" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.min">
+<code class="descname">min</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.min"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.mode">
+<code class="descname">mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns same-type modal (most common) value for each column.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>mode</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">numerical</code></dt>
+<dd><p>Returns list of numerical columns in the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.nunique">
+<code class="descname">nunique</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.nunique"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.nunique" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of distinct observations for specified columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>nunique</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.outliers">
+<code class="descname">outliers</code><span class="sig-paren">(</span><em>ratio=False</em>, <em>method='tukey'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.outliers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.outliers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of outlier observations according to
+the specified method for all columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ratio</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, returns proportion instead of counts.
+Default is True.</li>
+<li><strong>method</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Method used to detect outliers. Currently, only Tukey’s method is supported.
+Default is tukey.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>outliers</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Series</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.q1">
+<code class="descname">q1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.q1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.q1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.q3">
+<code class="descname">q3</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.q3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.q3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.scatterplot">
+<code class="descname">scatterplot</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.scatterplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.scatterplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a scatter plot of two HandyFrame columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> (<em>matplotlib axes object</em><em>, </em><em>default None</em>) – </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.stddev">
+<code class="descname">stddev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.stddev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.stddev" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">string</code></dt>
+<dd><p>Returns list of string columns in the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.value_counts">
+<code class="descname">value_counts</code><span class="sig-paren">(</span><em>dropna=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.value_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.value_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns object containing counts of unique values.</p>
+<p>The resulting object will be in descending order so that the
+first element is the most frequently-occurring element.
+Excludes NA values by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dropna</strong> (<em>boolean</em><em>, </em><em>default True</em>) – Don’t include counts of missing values.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>counts</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyColumns.var">
+<code class="descname">var</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyColumns.var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyColumns.var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.HandyFrame">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">HandyFrame</code><span class="sig-paren">(</span><em>df</em>, <em>handy=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.sql.dataframe.DataFrame</span></code></p>
+<p>HandySpark version of DataFrame.</p>
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.cols">
+<code class="descname">cols</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.cols" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyColumns</em> – class to access pandas-like column based methods implemented in Spark</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.pandas">
+<code class="descname">pandas</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.pandas" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyPandas</em> – class to access pandas-like column based methods through pandas UDFs</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.transformers">
+<code class="descname">transformers</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.transformers" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyTransformers</em> – class to generate Handy transformers</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.stages">
+<code class="descname">stages</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.stages" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of stages in the execution plan</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.response">
+<code class="descname">response</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.response" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>string</em> – name of the response column</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.is_classification">
+<code class="descname">is_classification</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.is_classification" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>boolean</em> – True if response is a categorical variable</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.classes">
+<code class="descname">classes</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.classes" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list</em> – list of classes for a classification problem</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.nclasses">
+<code class="descname">nclasses</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.nclasses" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of classes for a classification problem</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.ncols">
+<code class="descname">ncols</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.ncols" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of columns of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.nrows">
+<code class="descname">nrows</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.nrows" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of rows of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.shape">
+<code class="descname">shape</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.shape" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple</em> – tuple representing dimensionality of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.statistics_">
+<code class="descname">statistics_</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.statistics_" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – imputation fill value for each feature
+If stratified, first level keys are filter clauses for stratification</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.fences_">
+<code class="descname">fences_</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.fences_" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – fence values for each feature
+If stratified, first level keys are filter clauses for stratification</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.is_stratified">
+<code class="descname">is_stratified</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.is_stratified" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>boolean</em> – True if HandyFrame was stratified</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.dataframe.HandyFrame.values">
+<code class="descname">values</code><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.values" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>ndarray</em> – Numpy representation of HandyFrame.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">Available methods</code></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- notHandy</code></dt>
+<dd><p><em>makes it a plain Spark dataframe</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- stratify</code></dt>
+<dd><p><em>used to perform stratified operations</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- isnull</code></dt>
+<dd><p><em>checks for missing values</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- fill</code></dt>
+<dd><p><em>fills missing values</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- outliers</code></dt>
+<dd><p><em>checks for outliers</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- fence</code></dt>
+<dd><p><em>fences outliers</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- set_safety_limit</code></dt>
+<dd><p><em>defines new safety limit for collect operations</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- safety_off</code></dt>
+<dd><p><em>disables safety limit for a single operation</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- assign</code></dt>
+<dd><p><em>appends a new columns based on an expression</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- nunique</code></dt>
+<dd><p><em>returns number of unique values in each column</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- set_response</code></dt>
+<dd><p><em>sets column to be used as response / label</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- disassemble</code></dt>
+<dd><p><em>turns a vector / array column into multiple columns</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- to_metrics_RDD</code></dt>
+<dd><p><em>turns probability and label columns into a tuple RDD</em></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.apply">
+<code class="descname">apply</code><span class="sig-paren">(</span><em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>INTERNAL USE</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.assign">
+<code class="descname">assign</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.assign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.assign" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign new columns to a HandyFrame, returning a new object (a copy)
+with all the original columns in addition to the new ones.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/keyword.html#module-keyword" title="(in Python v3.7)"><em>keyword</em></a><em>, </em><em>value pairs</em>) – keywords are the column names.
+If the values are callable, they are computed on the DataFrame and
+assigned to the new columns.
+If the values are not callable, (e.g. a scalar, or string),
+they are simply assigned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>df</strong> – A new HandyFrame with the new columns in addition to
+all the existing columns.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">classes</code></dt>
+<dd><p>Returns list of classes for a classification problem.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.collect">
+<code class="descname">collect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the records as a list of <code class="xref py py-class docutils literal"><span class="pre">Row</span></code>.</p>
+<p>By default, its output is limited by the safety limit.
+To get original <cite>collect</cite> behavior, call <code class="docutils literal"><span class="pre">safety_off</span></code> method first.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">cols</code></dt>
+<dd><p>Returns a class to access pandas-like column based methods implemented in Spark</p>
+<p>Available methods:
+- min
+- max
+- median
+- q1
+- q3
+- stddev
+- value_counts
+- mode
+- corr
+- nunique
+- hist
+- boxplot
+- scatterplot</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.disassemble">
+<code class="descname">disassemble</code><span class="sig-paren">(</span><em>colname</em>, <em>new_colnames=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.disassemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.disassemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disassembles a Vector or Array column into multiple columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing Vector or Array elements.</li>
+<li><strong>new_colnames</strong> (<em>list of string</em><em>, </em><em>optional</em>) – Default is None, column names are generated using a sequentially
+generated suffix (e.g., _0, _1, etc.) for <code class="docutils literal"><span class="pre">colname</span></code>.
+If informed, it must have as many column names as elements
+in the shortest vector/array of <code class="docutils literal"><span class="pre">colname</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with the new disassembled columns in addition to
+all the existing columns.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.fence">
+<code class="descname">fence</code><span class="sig-paren">(</span><em>colnames</em>, <em>k=1.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.fence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.fence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caps outliers using lower and upper fences given by Tukey’s method,
+using 1.5 times the interquartile range (IQR).</p>
+<p>The fence values used for capping outliers are kept in <code class="docutils literal"><span class="pre">fences_</span></code> property
+and can later be used to generate a corresponding HandyFencer transformer.</p>
+<p>For more information, check: <a class="reference external" href="https://en.wikipedia.org/wiki/Outlier#Tukey's_fences">https://en.wikipedia.org/wiki/Outlier#Tukey’s_fences</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colnames</strong> (<em>list of string</em>) – Column names to apply fencing.</li>
+<li><strong>k</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Constant multiplier for the IQR.
+Default is 1.5 (corresponding to Tukey’s outlier, use 3 for “far out” values)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with capped outliers.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">fences_</code></dt>
+<dd><p>Returns dictionary with fence values for each feature.
+If stratified, first level keys are filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.fill">
+<code class="descname">fill</code><span class="sig-paren">(</span><em>*args</em>, <em>categorical=None</em>, <em>continuous=None</em>, <em>strategy=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.fill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.fill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fill NA/NaN values using the specified methods.</p>
+<p>The values used for imputation are kept in <code class="docutils literal"><span class="pre">statistics_</span></code> property
+and can later be used to generate a corresponding HandyImputer transformer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>categorical</strong> (<em>'all'</em><em> or </em><em>list of string</em><em>, </em><em>optional</em>) – List of categorical columns.
+These columns are filled with its coresponding modes (most common values).</li>
+<li><strong>continuous</strong> (<em>'all'</em><em> or </em><em>list of string</em><em>, </em><em>optional</em>) – List of continuous value columns.
+By default, these columns are filled with its  corresponding means.
+If a same-sized list is provided in the <code class="docutils literal"><span class="pre">strategy</span></code> argument, it uses
+the corresponding straegy for each column.</li>
+<li><strong>strategy</strong> (<em>list of string</em><em>, </em><em>optional</em>) – If informed, it must contain a strategy - either <code class="docutils literal"><span class="pre">mean</span></code> or <code class="docutils literal"><span class="pre">median</span></code> - for
+each one of the continuous columns.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with filled missing values.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">is_classification</code></dt>
+<dd><p>Returns True if response is a categorical variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.isnull">
+<code class="descname">isnull</code><span class="sig-paren">(</span><em>ratio=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.isnull"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.isnull" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns array with counts of missing value for each column in the HandyFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ratio</strong> (<em>boolean</em><em>, </em><em>default False</em>) – If True, returns ratios instead of absolute counts.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>counts</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">nclasses</code></dt>
+<dd><p>Returns the number of classes for a classification problem.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">ncols</code></dt>
+<dd><p>Returns the number of columns of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.notHandy">
+<code class="descname">notHandy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.notHandy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.notHandy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts HandyFrame back into Spark’s DataFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">nrows</code></dt>
+<dd><p>Returns the number of rows of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.nunique">
+<code class="descname">nunique</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.nunique"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.nunique" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of distinct observations for all columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>nunique</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.outliers">
+<code class="descname">outliers</code><span class="sig-paren">(</span><em>ratio=False</em>, <em>method='tukey'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.outliers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.outliers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of outlier observations according to
+the specified method for all columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ratio</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, returns proportion instead of counts.
+Default is True.</li>
+<li><strong>method</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Method used to detect outliers. Currently, only Tukey’s method is supported.
+Default is tukey.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>outliers</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Series</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">pandas</code></dt>
+<dd><p>Returns a class to access pandas-like column based methods through pandas UDFs</p>
+<p>Available methods:
+- betweeen / between_time
+- isin
+- isna / isnull
+- notna / notnull
+- abs
+- clip / clip_lower / clip_upper
+- replace
+- round / truncate
+- tz_convert / tz_localize</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">response</code></dt>
+<dd><p>Returns the name of the response column.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.safety_off">
+<code class="descname">safety_off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.safety_off"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.safety_off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables safety limit for a single call of <code class="docutils literal"><span class="pre">collect</span></code> method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.set_response">
+<code class="descname">set_response</code><span class="sig-paren">(</span><em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.set_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.set_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets column to be used as response in supervised learning algorithms.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.set_safety_limit">
+<code class="descname">set_safety_limit</code><span class="sig-paren">(</span><em>limit</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.set_safety_limit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.set_safety_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets safety limit used for <code class="docutils literal"><span class="pre">collect</span></code> method.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">shape</code></dt>
+<dd><p>Return a tuple representing the dimensionality of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">stages</code></dt>
+<dd><p>Returns the number of stages in the execution plan.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">statistics_</code></dt>
+<dd><p>Returns dictionary with imputation fill value for each feature.
+If stratified, first level keys are filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.stratify">
+<code class="descname">stratify</code><span class="sig-paren">(</span><em>strata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.stratify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.stratify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stratify the HandyFrame.</p>
+<p>Stratified operations should be more efficient than group by operations, as they
+rely on three iterative steps, namely: filtering the underlying HandyFrame, performing
+the operation and aggregating the results.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.take">
+<code class="descname">take</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.take"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.take" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the first <code class="docutils literal"><span class="pre">num</span></code> rows as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">list</span></code></a> of <code class="xref py py-class docutils literal"><span class="pre">Row</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.to_metrics_RDD">
+<code class="descname">to_metrics_RDD</code><span class="sig-paren">(</span><em>prob_col='probability'</em>, <em>label_col='label'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.to_metrics_RDD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.to_metrics_RDD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a DataFrame containing predicted probabilities and classification labels
+into a RDD suited for use with <code class="docutils literal"><span class="pre">BinaryClassificationMetrics</span></code> object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>prob_col</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing Vectors of probabilities.
+Default is ‘probability’.</li>
+<li><strong>label_col</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing labels.
+Default is ‘label’.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rdd</strong> – RDD of tuples (probability, label)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">RDD</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyFrame.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyFrame.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>INTERNAL USE</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">transformers</code></dt>
+<dd><p>Returns a class to generate Handy transformers</p>
+<p>Available transformers:
+- HandyImputer
+- HandyFencer</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">values</code></dt>
+<dd><p>Numpy representation of HandyFrame.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.HandyGrouped">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">HandyGrouped</code><span class="sig-paren">(</span><em>jgd</em>, <em>df</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyGrouped"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyGrouped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.sql.group.GroupedData</span></code></p>
+<dl class="method">
+<dt id="handyspark.sql.dataframe.HandyGrouped.agg">
+<code class="descname">agg</code><span class="sig-paren">(</span><em>*exprs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyGrouped.agg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyGrouped.agg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.HandyStrata">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">HandyStrata</code><span class="sig-paren">(</span><em>handy</em>, <em>strata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyStrata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.HandyStrata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.dataframe.Quantile">
+<em class="property">class </em><code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">Quantile</code><span class="sig-paren">(</span><em>colname</em>, <em>bins=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Quantile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.Quantile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#handyspark.sql.dataframe.Bucket" title="handyspark.sql.dataframe.Bucket"><code class="xref py py-class docutils literal"><span class="pre">handyspark.sql.dataframe.Bucket</span></code></a></p>
+<p>Bucketizes a column of continuous values into quantiles
+to perform stratification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>bins</strong> (<em>integer</em>) – Number of quantiles to map original values to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>quantile</strong> – Quantile object to be used as column in stratification.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.html#handyspark.Quantile" title="handyspark.Quantile">Quantile</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.sql.dataframe.notHandy">
+<code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">notHandy</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#notHandy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.notHandy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="handyspark.sql.dataframe.toHandy">
+<code class="descclassname">handyspark.sql.dataframe.</code><code class="descname">toHandy</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#toHandy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.dataframe.toHandy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Spark DataFrame into HandyFrame.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql.datetime">
+<span id="handyspark-sql-datetime-module"></span><h2>handyspark.sql.datetime module<a class="headerlink" href="#module-handyspark.sql.datetime" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.datetime.HandyDatetime">
+<em class="property">class </em><code class="descclassname">handyspark.sql.datetime.</code><code class="descname">HandyDatetime</code><span class="sig-paren">(</span><em>df</em>, <em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/datetime.html#HandyDatetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.datetime.HandyDatetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql.pandas">
+<span id="handyspark-sql-pandas-module"></span><h2>handyspark.sql.pandas module<a class="headerlink" href="#module-handyspark.sql.pandas" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.pandas.HandyPandas">
+<em class="property">class </em><code class="descclassname">handyspark.sql.pandas.</code><code class="descname">HandyPandas</code><span class="sig-paren">(</span><em>df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/pandas.html#HandyPandas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.pandas.HandyPandas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="handyspark.sql.pandas.HandyPandas.dt">
+<code class="descname">dt</code><a class="headerlink" href="#handyspark.sql.pandas.HandyPandas.dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a class to access pandas-like datetime column based methods through pandas UDFs</p>
+<p>Available methods:
+- is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start
+- strftime
+- tz / time / tz_convert / tz_localize
+- day / dayofweek / dayofyear / days_in_month / daysinmonth
+- hour / microsecond / minute / nanosecond / second
+- week / weekday / weekday_name
+- month / quarter / year / weekofyear
+- date
+- ceil / floor / round
+- normalize</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.pandas.HandyPandas.str">
+<code class="descname">str</code><a class="headerlink" href="#handyspark.sql.pandas.HandyPandas.str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a class to access pandas-like string column based methods through pandas UDFs</p>
+<p>Available methods:
+- contains
+- startswith / endswitch
+- match
+- isalpha / isnumeric / isalnum / isdigit / isdecimal / isspace
+- islower / isupper / istitle
+- replace
+- repeat
+- join
+- pad
+- slice / slice_replace
+- strip / lstrip / rstrip
+- wrap / center / ljust / rjust
+- translate
+- get
+- normalize
+- lower / upper / capitalize / swapcase / title
+- zfill
+- count
+- find / rfind
+- len</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql.schema">
+<span id="handyspark-sql-schema-module"></span><h2>handyspark.sql.schema module<a class="headerlink" href="#module-handyspark.sql.schema" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="handyspark.sql.schema.generate_schema">
+<code class="descclassname">handyspark.sql.schema.</code><code class="descname">generate_schema</code><span class="sig-paren">(</span><em>colnames</em>, <em>coltypes</em>, <em>nullables=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/schema.html#generate_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.schema.generate_schema" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colnames</strong> (<em>list of string</em>) – </li>
+<li><strong>coltypes</strong> (<em>list of type</em>) – </li>
+<li><strong>nullables</strong> (<em>list of boolean</em><em>, </em><em>optional</em>) – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>schema</strong> – Spark DataFrame schema corresponding to Python/numpy types.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">StructType</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql.string">
+<span id="handyspark-sql-string-module"></span><h2>handyspark.sql.string module<a class="headerlink" href="#module-handyspark.sql.string" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.string.HandyString">
+<em class="property">class </em><code class="descclassname">handyspark.sql.string.</code><code class="descname">HandyString</code><span class="sig-paren">(</span><em>df</em>, <em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/string.html#HandyString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.string.HandyString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="handyspark.sql.string.HandyString.remove_accents">
+<code class="descname">remove_accents</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/string.html#HandyString.remove_accents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.string.HandyString.remove_accents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql.transform">
+<span id="handyspark-sql-transform-module"></span><h2>handyspark.sql.transform module<a class="headerlink" href="#module-handyspark.sql.transform" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.transform.HandyTransform">
+<em class="property">class </em><code class="descclassname">handyspark.sql.transform.</code><code class="descname">HandyTransform</code><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="staticmethod">
+<dt id="handyspark.sql.transform.HandyTransform.apply">
+<em class="property">static </em><code class="descname">apply</code><span class="sig-paren">(</span><em>sdf</em>, <em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform.apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="handyspark.sql.transform.HandyTransform.assign">
+<em class="property">static </em><code class="descname">assign</code><span class="sig-paren">(</span><em>sdf</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform.assign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform.assign" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="handyspark.sql.transform.HandyTransform.gen_grouped_pandas_udf">
+<em class="property">static </em><code class="descname">gen_grouped_pandas_udf</code><span class="sig-paren">(</span><em>sdf</em>, <em>f</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform.gen_grouped_pandas_udf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform.gen_grouped_pandas_udf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="handyspark.sql.transform.HandyTransform.gen_pandas_udf">
+<em class="property">static </em><code class="descname">gen_pandas_udf</code><span class="sig-paren">(</span><em>f</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform.gen_pandas_udf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform.gen_pandas_udf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="handyspark.sql.transform.HandyTransform.transform">
+<em class="property">static </em><code class="descname">transform</code><span class="sig-paren">(</span><em>sdf</em>, <em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/transform.html#HandyTransform.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.transform.HandyTransform.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-handyspark.sql">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-handyspark.sql" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="handyspark.sql.HandyFrame">
+<em class="property">class </em><code class="descclassname">handyspark.sql.</code><code class="descname">HandyFrame</code><span class="sig-paren">(</span><em>df</em>, <em>handy=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyspark.sql.dataframe.DataFrame</span></code></p>
+<p>HandySpark version of DataFrame.</p>
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.cols">
+<code class="descname">cols</code><a class="headerlink" href="#handyspark.sql.HandyFrame.cols" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyColumns</em> – class to access pandas-like column based methods implemented in Spark</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.pandas">
+<code class="descname">pandas</code><a class="headerlink" href="#handyspark.sql.HandyFrame.pandas" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyPandas</em> – class to access pandas-like column based methods through pandas UDFs</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.transformers">
+<code class="descname">transformers</code><a class="headerlink" href="#handyspark.sql.HandyFrame.transformers" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>HandyTransformers</em> – class to generate Handy transformers</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.stages">
+<code class="descname">stages</code><a class="headerlink" href="#handyspark.sql.HandyFrame.stages" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of stages in the execution plan</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.response">
+<code class="descname">response</code><a class="headerlink" href="#handyspark.sql.HandyFrame.response" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>string</em> – name of the response column</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.is_classification">
+<code class="descname">is_classification</code><a class="headerlink" href="#handyspark.sql.HandyFrame.is_classification" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>boolean</em> – True if response is a categorical variable</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.classes">
+<code class="descname">classes</code><a class="headerlink" href="#handyspark.sql.HandyFrame.classes" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>list</em> – list of classes for a classification problem</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.nclasses">
+<code class="descname">nclasses</code><a class="headerlink" href="#handyspark.sql.HandyFrame.nclasses" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of classes for a classification problem</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.ncols">
+<code class="descname">ncols</code><a class="headerlink" href="#handyspark.sql.HandyFrame.ncols" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of columns of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.nrows">
+<code class="descname">nrows</code><a class="headerlink" href="#handyspark.sql.HandyFrame.nrows" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>integer</em> – number of rows of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.shape">
+<code class="descname">shape</code><a class="headerlink" href="#handyspark.sql.HandyFrame.shape" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple</em> – tuple representing dimensionality of the HandyFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.statistics_">
+<code class="descname">statistics_</code><a class="headerlink" href="#handyspark.sql.HandyFrame.statistics_" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – imputation fill value for each feature
+If stratified, first level keys are filter clauses for stratification</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.fences_">
+<code class="descname">fences_</code><a class="headerlink" href="#handyspark.sql.HandyFrame.fences_" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>dict</em> – fence values for each feature
+If stratified, first level keys are filter clauses for stratification</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.is_stratified">
+<code class="descname">is_stratified</code><a class="headerlink" href="#handyspark.sql.HandyFrame.is_stratified" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>boolean</em> – True if HandyFrame was stratified</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="handyspark.sql.HandyFrame.values">
+<code class="descname">values</code><a class="headerlink" href="#handyspark.sql.HandyFrame.values" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>ndarray</em> – Numpy representation of HandyFrame.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">Available methods</code></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- notHandy</code></dt>
+<dd><p><em>makes it a plain Spark dataframe</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- stratify</code></dt>
+<dd><p><em>used to perform stratified operations</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- isnull</code></dt>
+<dd><p><em>checks for missing values</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- fill</code></dt>
+<dd><p><em>fills missing values</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- outliers</code></dt>
+<dd><p><em>checks for outliers</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- fence</code></dt>
+<dd><p><em>fences outliers</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- set_safety_limit</code></dt>
+<dd><p><em>defines new safety limit for collect operations</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- safety_off</code></dt>
+<dd><p><em>disables safety limit for a single operation</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- assign</code></dt>
+<dd><p><em>appends a new columns based on an expression</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- nunique</code></dt>
+<dd><p><em>returns number of unique values in each column</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- set_response</code></dt>
+<dd><p><em>sets column to be used as response / label</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- disassemble</code></dt>
+<dd><p><em>turns a vector / array column into multiple columns</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">- to_metrics_RDD</code></dt>
+<dd><p><em>turns probability and label columns into a tuple RDD</em></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.apply">
+<code class="descname">apply</code><span class="sig-paren">(</span><em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>INTERNAL USE</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.assign">
+<code class="descname">assign</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.assign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.assign" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign new columns to a HandyFrame, returning a new object (a copy)
+with all the original columns in addition to the new ones.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/keyword.html#module-keyword" title="(in Python v3.7)"><em>keyword</em></a><em>, </em><em>value pairs</em>) – keywords are the column names.
+If the values are callable, they are computed on the DataFrame and
+assigned to the new columns.
+If the values are not callable, (e.g. a scalar, or string),
+they are simply assigned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>df</strong> – A new HandyFrame with the new columns in addition to
+all the existing columns.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">classes</code></dt>
+<dd><p>Returns list of classes for a classification problem.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.collect">
+<code class="descname">collect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the records as a list of <code class="xref py py-class docutils literal"><span class="pre">Row</span></code>.</p>
+<p>By default, its output is limited by the safety limit.
+To get original <cite>collect</cite> behavior, call <code class="docutils literal"><span class="pre">safety_off</span></code> method first.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">cols</code></dt>
+<dd><p>Returns a class to access pandas-like column based methods implemented in Spark</p>
+<p>Available methods:
+- min
+- max
+- median
+- q1
+- q3
+- stddev
+- value_counts
+- mode
+- corr
+- nunique
+- hist
+- boxplot
+- scatterplot</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.disassemble">
+<code class="descname">disassemble</code><span class="sig-paren">(</span><em>colname</em>, <em>new_colnames=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.disassemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.disassemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disassembles a Vector or Array column into multiple columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing Vector or Array elements.</li>
+<li><strong>new_colnames</strong> (<em>list of string</em><em>, </em><em>optional</em>) – Default is None, column names are generated using a sequentially
+generated suffix (e.g., _0, _1, etc.) for <code class="docutils literal"><span class="pre">colname</span></code>.
+If informed, it must have as many column names as elements
+in the shortest vector/array of <code class="docutils literal"><span class="pre">colname</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with the new disassembled columns in addition to
+all the existing columns.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.fence">
+<code class="descname">fence</code><span class="sig-paren">(</span><em>colnames</em>, <em>k=1.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.fence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.fence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caps outliers using lower and upper fences given by Tukey’s method,
+using 1.5 times the interquartile range (IQR).</p>
+<p>The fence values used for capping outliers are kept in <code class="docutils literal"><span class="pre">fences_</span></code> property
+and can later be used to generate a corresponding HandyFencer transformer.</p>
+<p>For more information, check: <a class="reference external" href="https://en.wikipedia.org/wiki/Outlier#Tukey's_fences">https://en.wikipedia.org/wiki/Outlier#Tukey’s_fences</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colnames</strong> (<em>list of string</em>) – Column names to apply fencing.</li>
+<li><strong>k</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Constant multiplier for the IQR.
+Default is 1.5 (corresponding to Tukey’s outlier, use 3 for “far out” values)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with capped outliers.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">fences_</code></dt>
+<dd><p>Returns dictionary with fence values for each feature.
+If stratified, first level keys are filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.fill">
+<code class="descname">fill</code><span class="sig-paren">(</span><em>*args</em>, <em>categorical=None</em>, <em>continuous=None</em>, <em>strategy=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.fill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.fill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fill NA/NaN values using the specified methods.</p>
+<p>The values used for imputation are kept in <code class="docutils literal"><span class="pre">statistics_</span></code> property
+and can later be used to generate a corresponding HandyImputer transformer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>categorical</strong> (<em>'all'</em><em> or </em><em>list of string</em><em>, </em><em>optional</em>) – List of categorical columns.
+These columns are filled with its coresponding modes (most common values).</li>
+<li><strong>continuous</strong> (<em>'all'</em><em> or </em><em>list of string</em><em>, </em><em>optional</em>) – List of continuous value columns.
+By default, these columns are filled with its  corresponding means.
+If a same-sized list is provided in the <code class="docutils literal"><span class="pre">strategy</span></code> argument, it uses
+the corresponding straegy for each column.</li>
+<li><strong>strategy</strong> (<em>list of string</em><em>, </em><em>optional</em>) – If informed, it must contain a strategy - either <code class="docutils literal"><span class="pre">mean</span></code> or <code class="docutils literal"><span class="pre">median</span></code> - for
+each one of the continuous columns.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with filled missing values.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">is_classification</code></dt>
+<dd><p>Returns True if response is a categorical variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.isnull">
+<code class="descname">isnull</code><span class="sig-paren">(</span><em>ratio=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.isnull"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.isnull" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns array with counts of missing value for each column in the HandyFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ratio</strong> (<em>boolean</em><em>, </em><em>default False</em>) – If True, returns ratios instead of absolute counts.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>counts</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">nclasses</code></dt>
+<dd><p>Returns the number of classes for a classification problem.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">ncols</code></dt>
+<dd><p>Returns the number of columns of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.notHandy">
+<code class="descname">notHandy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.notHandy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.notHandy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts HandyFrame back into Spark’s DataFrame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">nrows</code></dt>
+<dd><p>Returns the number of rows of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.nunique">
+<code class="descname">nunique</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.nunique"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.nunique" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of distinct observations for all columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>nunique</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.outliers">
+<code class="descname">outliers</code><span class="sig-paren">(</span><em>ratio=False</em>, <em>method='tukey'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.outliers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.outliers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Series with number of outlier observations according to
+the specified method for all columns.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ratio</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, returns proportion instead of counts.
+Default is True.</li>
+<li><strong>method</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Method used to detect outliers. Currently, only Tukey’s method is supported.
+Default is tukey.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>outliers</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Series</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">pandas</code></dt>
+<dd><p>Returns a class to access pandas-like column based methods through pandas UDFs</p>
+<p>Available methods:
+- betweeen / between_time
+- isin
+- isna / isnull
+- notna / notnull
+- abs
+- clip / clip_lower / clip_upper
+- replace
+- round / truncate
+- tz_convert / tz_localize</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">response</code></dt>
+<dd><p>Returns the name of the response column.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.safety_off">
+<code class="descname">safety_off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.safety_off"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.safety_off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables safety limit for a single call of <code class="docutils literal"><span class="pre">collect</span></code> method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.set_response">
+<code class="descname">set_response</code><span class="sig-paren">(</span><em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.set_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.set_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets column to be used as response in supervised learning algorithms.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.set_safety_limit">
+<code class="descname">set_safety_limit</code><span class="sig-paren">(</span><em>limit</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.set_safety_limit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.set_safety_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets safety limit used for <code class="docutils literal"><span class="pre">collect</span></code> method.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">shape</code></dt>
+<dd><p>Return a tuple representing the dimensionality of the HandyFrame.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">stages</code></dt>
+<dd><p>Returns the number of stages in the execution plan.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">statistics_</code></dt>
+<dd><p>Returns dictionary with imputation fill value for each feature.
+If stratified, first level keys are filter clauses for stratification.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.stratify">
+<code class="descname">stratify</code><span class="sig-paren">(</span><em>strata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.stratify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.stratify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stratify the HandyFrame.</p>
+<p>Stratified operations should be more efficient than group by operations, as they
+rely on three iterative steps, namely: filtering the underlying HandyFrame, performing
+the operation and aggregating the results.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.take">
+<code class="descname">take</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.take"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.take" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the first <code class="docutils literal"><span class="pre">num</span></code> rows as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">list</span></code></a> of <code class="xref py py-class docutils literal"><span class="pre">Row</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.to_metrics_RDD">
+<code class="descname">to_metrics_RDD</code><span class="sig-paren">(</span><em>prob_col='probability'</em>, <em>label_col='label'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.to_metrics_RDD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.to_metrics_RDD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a DataFrame containing predicted probabilities and classification labels
+into a RDD suited for use with <code class="docutils literal"><span class="pre">BinaryClassificationMetrics</span></code> object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>prob_col</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing Vectors of probabilities.
+Default is ‘probability’.</li>
+<li><strong>label_col</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing labels.
+Default is ‘label’.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rdd</strong> – RDD of tuples (probability, label)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">RDD</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="handyspark.sql.HandyFrame.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>f</em>, <em>name=None</em>, <em>args=None</em>, <em>returnType=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#HandyFrame.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.HandyFrame.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>INTERNAL USE</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">transformers</code></dt>
+<dd><p>Returns a class to generate Handy transformers</p>
+<p>Available transformers:
+- HandyImputer
+- HandyFencer</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">values</code></dt>
+<dd><p>Numpy representation of HandyFrame.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.Bucket">
+<em class="property">class </em><code class="descclassname">handyspark.sql.</code><code class="descname">Bucket</code><span class="sig-paren">(</span><em>colname</em>, <em>bins=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Bucket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.Bucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Bucketizes a column of continuous values into equal sized bins
+to perform stratification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>bins</strong> (<em>integer</em>) – Number of equal sized bins to map original values to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>bucket</strong> – Bucket object to be used as column in stratification.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.sql.dataframe.Bucket" title="handyspark.sql.dataframe.Bucket">Bucket</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="handyspark.sql.Bucket.colname">
+<code class="descname">colname</code><a class="headerlink" href="#handyspark.sql.Bucket.colname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="handyspark.sql.Quantile">
+<em class="property">class </em><code class="descclassname">handyspark.sql.</code><code class="descname">Quantile</code><span class="sig-paren">(</span><em>colname</em>, <em>bins=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/dataframe.html#Quantile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.Quantile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#handyspark.sql.dataframe.Bucket" title="handyspark.sql.dataframe.Bucket"><code class="xref py py-class docutils literal"><span class="pre">handyspark.sql.dataframe.Bucket</span></code></a></p>
+<p>Bucketizes a column of continuous values into quantiles
+to perform stratification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colname</strong> (<a class="reference internal" href="#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>bins</strong> (<em>integer</em>) – Number of quantiles to map original values to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>quantile</strong> – Quantile object to be used as column in stratification.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.html#handyspark.Quantile" title="handyspark.Quantile">Quantile</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="handyspark.sql.generate_schema">
+<code class="descclassname">handyspark.sql.</code><code class="descname">generate_schema</code><span class="sig-paren">(</span><em>colnames</em>, <em>coltypes</em>, <em>nullables=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/handyspark/sql/schema.html#generate_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#handyspark.sql.generate_schema" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>colnames</strong> (<em>list of string</em>) – </li>
+<li><strong>coltypes</strong> (<em>list of type</em>) – </li>
+<li><strong>nullables</strong> (<em>list of boolean</em><em>, </em><em>optional</em>) – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>schema</strong> – Spark DataFrame schema corresponding to Python/numpy types.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">StructType</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/handyspark.sql.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

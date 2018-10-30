@@ -1,0 +1,379 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.plot &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.plot</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">handyspark.util</span> <span class="k">import</span> <span class="n">get_buckets</span><span class="p">,</span> <span class="n">none2zero</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">add</span><span class="p">,</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.feature</span> <span class="k">import</span> <span class="n">Bucketizer</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.pipeline</span> <span class="k">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span> <span class="nn">pyspark.mllib.stat</span> <span class="k">import</span> <span class="n">Statistics</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">matplotlib.artist</span> <span class="k">import</span> <span class="n">setp</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span> <span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<div class="viewcode-block" id="title_fom_clause"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.title_fom_clause">[docs]</a><span class="k">def</span> <span class="nf">title_fom_clause</span><span class="p">(</span><span class="n">clause</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">clause</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; and &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; == &#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="consolidate_plots"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.consolidate_plots">[docs]</a><span class="k">def</span> <span class="nf">consolidate_plots</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axs</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">clauses</span><span class="p">):</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">axs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">axs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">clauses</span><span class="p">),</span> <span class="s1">&#39;Mismatched number of plots and clauses!&#39;</span>
+        <span class="n">xlim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ax</span><span class="p">:</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">(),</span> <span class="n">axs</span><span class="p">))</span>
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">xlim</span><span class="p">))),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">xlim</span><span class="p">)))]</span>
+        <span class="n">ylim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ax</span><span class="p">:</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">(),</span> <span class="n">axs</span><span class="p">))</span>
+        <span class="n">ylim</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">ylim</span><span class="p">))),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">ylim</span><span class="p">)))]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axs</span><span class="p">):</span>
+            <span class="n">subtitle</span> <span class="o">=</span> <span class="n">title_fom_clause</span><span class="p">(</span><span class="n">clauses</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">subtitle</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;fontsize&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ax</span><span class="o">.</span><span class="n">colNum</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">get_yaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ax</span><span class="o">.</span><span class="n">rowNum</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">numRows</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="mf">0.85</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span></div>
+
+<span class="c1">### Correlations</span>
+<div class="viewcode-block" id="correlations"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.correlations">[docs]</a><span class="k">def</span> <span class="nf">correlations</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colnames</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;pearson&#39;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+    <span class="n">correlations</span> <span class="o">=</span> <span class="n">Statistics</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">:]),</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">correlations</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">colnames</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">colnames</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">pdf</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;coolwarm&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;.2f&#39;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=.</span><span class="mi">05</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pdf</span></div>
+
+<span class="c1">### Scatterplot</span>
+<div class="viewcode-block" id="strat_scatterplot"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.strat_scatterplot">[docs]</a><span class="k">def</span> <span class="nf">strat_scatterplot</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+    <span class="n">stages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">]:</span>
+        <span class="n">splits</span> <span class="o">=</span> <span class="n">get_buckets</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Bucketizer</span><span class="p">(</span><span class="n">splits</span><span class="o">=</span><span class="n">splits</span><span class="p">,</span>
+                                 <span class="n">inputCol</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
+                                 <span class="n">outputCol</span><span class="o">=</span><span class="s2">&quot;__</span><span class="si">{}</span><span class="s2">_bucket&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="p">),</span>
+                                 <span class="n">handleInvalid</span><span class="o">=</span><span class="s2">&quot;skip&quot;</span><span class="p">))</span>
+
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">stages</span><span class="o">=</span><span class="n">stages</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sdf</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">sdf</span><span class="o">.</span><span class="n">count</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="scatterplot"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.scatterplot">[docs]</a><span class="k">def</span> <span class="nf">scatterplot</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">strat_ax</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">_get_strata</span><span class="p">()</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">strat_scatterplot</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">strat_ax</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">counts</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span>
+              <span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span>
+              <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="s2">&quot;__</span><span class="si">{}</span><span class="s2">_bucket&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">)))</span>
+              <span class="o">.</span><span class="n">rdd</span>
+              <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">:],</span> <span class="mi">1</span><span class="p">))</span>
+              <span class="o">.</span><span class="n">reduceByKey</span><span class="p">(</span><span class="n">add</span><span class="p">)</span>
+              <span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="n">bucket</span><span class="o">.</span><span class="n">getSplits</span><span class="p">()</span> <span class="k">for</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">]</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">split</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])))</span> <span class="k">for</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">]</span>
+
+    <span class="n">df_counts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([(</span><span class="n">splits</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])],</span>
+                               <span class="n">splits</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span>
+                               <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">],</span>
+                             <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="s1">&#39;Proportion&#39;</span><span class="p">])</span>
+
+    <span class="n">df_counts</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;Proportion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_counts</span><span class="o">.</span><span class="n">Proportion</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">total</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">df_counts</span><span class="p">,</span>
+                           <span class="n">x</span><span class="o">=</span><span class="n">col1</span><span class="p">,</span>
+                           <span class="n">y</span><span class="o">=</span><span class="n">col2</span><span class="p">,</span>
+                           <span class="n">size</span><span class="o">=</span><span class="s1">&#39;Proportion&#39;</span><span class="p">,</span>
+                           <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+                           <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<span class="c1">### Histogram</span>
+<div class="viewcode-block" id="strat_histogram"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.strat_histogram">[docs]</a><span class="k">def</span> <span class="nf">strat_histogram</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">categorical</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">categorical</span><span class="p">:</span>
+        <span class="n">start_values</span> <span class="o">=</span> <span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">rdd</span>
+                        <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)(</span><span class="n">row</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="o">.</span><span class="n">reduceByKey</span><span class="p">(</span><span class="n">add</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">sortBy</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">start_values</span><span class="p">))</span>
+        <span class="n">start_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">start_values</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start_values</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">start_values</span><span class="p">,</span> <span class="n">counts</span></div>
+
+<div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">categorical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">strat_ax</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">_get_strata</span><span class="p">()</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">strat_histogram</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">categorical</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">strat_ax</span>
+    <span class="n">start_values</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">categorical</span><span class="p">:</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+                      <span class="o">.</span><span class="n">rdd</span>
+                      <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)(</span><span class="n">row</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+                      <span class="o">.</span><span class="n">reduceByKey</span><span class="p">(</span><span class="n">add</span><span class="p">)</span>
+                      <span class="o">.</span><span class="n">sortBy</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                      <span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="n">start_values</span><span class="p">))</span>
+
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">values</span><span class="p">),</span>
+                        <span class="n">index</span><span class="o">=</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">values</span><span class="p">),</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">bins</span><span class="p">]</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">colname</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">start_values</span><span class="p">)</span>
+        <span class="n">mid_point_bins</span> <span class="o">=</span> <span class="n">start_values</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">mid_point_bins</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">start_values</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">counts</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+<span class="c1">### Stratified Histogram</span>
+<div class="viewcode-block" id="stratified_histogram"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.stratified_histogram">[docs]</a><span class="k">def</span> <span class="nf">stratified_histogram</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">strat_colname</span><span class="p">,</span> <span class="n">strat_values</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">buckets</span> <span class="o">=</span> <span class="n">get_buckets</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">strat_values</span><span class="p">:</span>
+        <span class="n">start_values</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="p">(</span><span class="n">sdf</span>
+                                <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+                                <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> == </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">strat_colname</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                                <span class="o">.</span><span class="n">rdd</span>
+                                <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+                                <span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">buckets</span><span class="p">))</span>
+        <span class="n">sns</span><span class="o">.</span><span class="n">distplot</span><span class="p">(</span><span class="n">start_values</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)],</span>
+                     <span class="n">bins</span><span class="o">=</span><span class="n">start_values</span><span class="p">,</span>
+                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                     <span class="n">norm_hist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">kde</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">hist_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;weights&quot;</span><span class="p">:</span><span class="n">counts</span><span class="p">},</span>
+                     <span class="n">label</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                     <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_legend</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+<span class="c1">### Boxplot</span>
+<span class="k">def</span> <span class="nf">_gen_dict</span><span class="p">(</span><span class="n">rc_name</span><span class="p">,</span> <span class="n">properties</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Loads properties in the dictionary from rc file if not already</span>
+<span class="sd">    in the dictionary&quot;&quot;&quot;</span>
+    <span class="n">rc_str</span> <span class="o">=</span> <span class="s1">&#39;boxplot.</span><span class="si">{0}</span><span class="s1">.</span><span class="si">{1}</span><span class="s1">&#39;</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">prop_dict</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+        <span class="n">dictionary</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">prop_dict</span><span class="p">,</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="n">rc_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rc_name</span><span class="p">,</span> <span class="n">prop_dict</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">dictionary</span>
+
+<div class="viewcode-block" id="draw_boxplot"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.draw_boxplot">[docs]</a><span class="k">def</span> <span class="nf">draw_boxplot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">stats</span><span class="p">):</span>
+    <span class="n">flier_props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;markerfacecolor&#39;</span><span class="p">,</span> <span class="s1">&#39;markeredgecolor&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;markersize&#39;</span><span class="p">,</span> <span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;linewidth&#39;</span><span class="p">]</span>
+    <span class="n">default_props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="s1">&#39;linewidth&#39;</span><span class="p">,</span> <span class="s1">&#39;linestyle&#39;</span><span class="p">]</span>
+    <span class="n">boxprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;boxprops&#39;</span><span class="p">,</span> <span class="n">default_props</span><span class="p">)</span>
+    <span class="n">whiskerprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;whiskerprops&#39;</span><span class="p">,</span> <span class="n">default_props</span><span class="p">)</span>
+    <span class="n">capprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;capprops&#39;</span><span class="p">,</span> <span class="n">default_props</span><span class="p">)</span>
+    <span class="n">medianprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;medianprops&#39;</span><span class="p">,</span> <span class="n">default_props</span><span class="p">)</span>
+    <span class="n">meanprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;meanprops&#39;</span><span class="p">,</span> <span class="n">default_props</span><span class="p">)</span>
+    <span class="n">flierprops</span> <span class="o">=</span> <span class="n">_gen_dict</span><span class="p">(</span><span class="s1">&#39;flierprops&#39;</span><span class="p">,</span> <span class="n">flier_props</span><span class="p">)</span>
+
+    <span class="n">props</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">boxprops</span><span class="o">=</span><span class="n">boxprops</span><span class="p">,</span>
+                 <span class="n">flierprops</span><span class="o">=</span><span class="n">flierprops</span><span class="p">,</span>
+                 <span class="n">medianprops</span><span class="o">=</span><span class="n">medianprops</span><span class="p">,</span>
+                 <span class="n">meanprops</span><span class="o">=</span><span class="n">meanprops</span><span class="p">,</span>
+                 <span class="n">capprops</span><span class="o">=</span><span class="n">capprops</span><span class="p">,</span>
+                 <span class="n">whiskerprops</span><span class="o">=</span><span class="n">whiskerprops</span><span class="p">)</span>
+
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;#1f77b4&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="s1">&#39;#2ca02c&#39;</span><span class="p">,</span> <span class="s1">&#39;#d62728&#39;</span><span class="p">,</span> <span class="s1">&#39;#9467bd&#39;</span><span class="p">,</span> <span class="s1">&#39;#8c564b&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;#e377c2&#39;</span><span class="p">,</span> <span class="s1">&#39;#7f7f7f&#39;</span><span class="p">,</span> <span class="s1">&#39;#bcbd22&#39;</span><span class="p">,</span> <span class="s1">&#39;#17becf&#39;</span><span class="p">,</span> <span class="s1">&#39;#1f77b4&#39;</span><span class="p">]</span>
+    <span class="n">bp</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bxp</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">setp</span><span class="p">(</span><span class="n">bp</span><span class="p">[</span><span class="s1">&#39;boxes&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">setp</span><span class="p">(</span><span class="n">bp</span><span class="p">[</span><span class="s1">&#39;whiskers&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">setp</span><span class="p">(</span><span class="n">bp</span><span class="p">[</span><span class="s1">&#39;medians&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+<span class="k">def</span> <span class="nf">_calc_tukey</span><span class="p">(</span><span class="n">col_summ</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mf">1.5</span><span class="p">):</span>
+    <span class="n">q1</span><span class="p">,</span> <span class="n">q3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;25%&#39;</span><span class="p">])),</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;75%&#39;</span><span class="p">]))</span>
+    <span class="n">iqr</span> <span class="o">=</span> <span class="n">q3</span> <span class="o">-</span> <span class="n">q1</span>
+    <span class="n">lfence</span> <span class="o">=</span> <span class="n">q1</span> <span class="o">-</span> <span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">iqr</span><span class="p">)</span>
+    <span class="n">ufence</span> <span class="o">=</span> <span class="n">q3</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">iqr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lfence</span><span class="p">,</span> <span class="n">ufence</span>
+
+<div class="viewcode-block" id="boxplot"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.boxplot">[docs]</a><span class="k">def</span> <span class="nf">boxplot</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colnames</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">showfliers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mf">1.5</span><span class="p">):</span>
+    <span class="n">strat_ax</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">_get_strata</span><span class="p">()</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">)</span>
+    <span class="n">pdf</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;fence&#39;</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">_calc_tukey</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+
+    <span class="c1"># faster than stats()</span>
+    <span class="k">def</span> <span class="nf">minmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">max</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">stats</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="n">colnames</span><span class="p">:</span>
+        <span class="n">col_summ</span> <span class="o">=</span> <span class="n">pdf</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span>
+        <span class="n">lfence</span><span class="p">,</span> <span class="n">ufence</span> <span class="o">=</span> <span class="n">col_summ</span><span class="o">.</span><span class="n">fence</span>
+
+        <span class="n">outlier</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;__</span><span class="si">{}</span><span class="s1">_outlier&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colname</span><span class="p">),</span>
+                                 <span class="o">~</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">lfence</span><span class="p">,</span> <span class="n">ufence</span><span class="p">))</span>
+
+        <span class="n">fliers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">minv</span><span class="p">,</span> <span class="n">maxv</span> <span class="o">=</span> <span class="p">(</span><span class="n">outlier</span>
+                          <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;not __</span><span class="si">{}</span><span class="s1">_outlier&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colname</span><span class="p">))</span>
+                          <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+                          <span class="o">.</span><span class="n">rdd</span>
+                          <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                          <span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">minmax</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">showfliers</span><span class="p">:</span>
+                <span class="n">fliers</span> <span class="o">=</span> <span class="p">(</span><span class="n">outlier</span>
+                          <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;__</span><span class="si">{}</span><span class="s1">_outlier&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colname</span><span class="p">))</span>
+                          <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+                          <span class="o">.</span><span class="n">rdd</span>
+                          <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+                          <span class="o">.</span><span class="n">sortBy</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                          <span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="mi">1000</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">minv</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">maxv</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="n">item</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">colname</span><span class="p">,</span>
+                <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">])),</span>
+                <span class="s1">&#39;med&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;50%&#39;</span><span class="p">])),</span>
+                <span class="s1">&#39;q1&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;25%&#39;</span><span class="p">])),</span>
+                <span class="s1">&#39;q3&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">none2zero</span><span class="p">(</span><span class="n">col_summ</span><span class="p">[</span><span class="s1">&#39;75%&#39;</span><span class="p">])),</span>
+                <span class="s1">&#39;whislo&#39;</span><span class="p">:</span> <span class="n">minv</span><span class="p">,</span>
+                <span class="s1">&#39;whishi&#39;</span><span class="p">:</span> <span class="n">maxv</span><span class="p">,</span>
+                <span class="s1">&#39;fliers&#39;</span><span class="p">:</span> <span class="n">fliers</span><span class="p">}</span>
+
+        <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">draw_boxplot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">stats</span></div>
+
+<div class="viewcode-block" id="post_boxplot"><a class="viewcode-back" href="../../handyspark.html#handyspark.plot.post_boxplot">[docs]</a><span class="k">def</span> <span class="nf">post_boxplot</span><span class="p">(</span><span class="n">axs</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">clauses</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">axs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">stats</span><span class="p">):</span>
+        <span class="n">new_res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">stat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axs</span><span class="p">,</span> <span class="n">stats</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">draw_boxplot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">stat</span><span class="p">)</span>
+            <span class="n">new_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">clause</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">clauses</span><span class="p">,</span> <span class="n">stats</span><span class="p">):</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">title_fom_clause</span><span class="p">(</span><span class="n">clause</span><span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">label</span><span class="p">})</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">draw_boxplot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
+        <span class="n">new_res</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">new_res</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

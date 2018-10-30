@@ -1,0 +1,338 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.util &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.util</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">isnan</span><span class="p">,</span> <span class="n">isinf</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pyspark.ml.linalg</span> <span class="k">import</span> <span class="n">DenseVector</span>
+<span class="kn">from</span> <span class="nn">pyspark.rdd</span> <span class="k">import</span> <span class="n">RDD</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span><span class="p">,</span> <span class="n">DataFrame</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="k">import</span> <span class="n">ArrayType</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">,</span> <span class="n">StructType</span><span class="p">,</span> <span class="n">StructField</span>
+<span class="kn">from</span> <span class="nn">pyspark.mllib.common</span> <span class="k">import</span> <span class="n">_java2py</span><span class="p">,</span> <span class="n">_py2java</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<div class="viewcode-block" id="none2default"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.none2default">[docs]</a><span class="k">def</span> <span class="nf">none2default</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default</span></div>
+
+<div class="viewcode-block" id="none2zero"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.none2zero">[docs]</a><span class="k">def</span> <span class="nf">none2zero</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">none2default</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ensure_list"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.ensure_list">[docs]</a><span class="k">def</span> <span class="nf">ensure_list</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="check_columns"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.check_columns">[docs]</a><span class="k">def</span> <span class="nf">check_columns</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">colnames</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">colnames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">available</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="n">ensure_list</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">col</span><span class="o">.</span><span class="n">colname</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">colnames</span><span class="p">]</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">available</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">),</span> <span class="s2">&quot;DataFrame does not have </span><span class="si">{}</span><span class="s2"> column(s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">diff</span><span class="p">))[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="bcolors"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.bcolors">[docs]</a><span class="k">class</span> <span class="nc">bcolors</span><span class="p">:</span>
+    <span class="n">HEADER</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[95m&#39;</span>
+    <span class="n">OKBLUE</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[94m&#39;</span>
+    <span class="n">OKGREEN</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span>
+    <span class="n">WARNING</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[93m&#39;</span>
+    <span class="n">FAIL</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span>
+    <span class="n">ENDC</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+    <span class="n">BOLD</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[1m&#39;</span>
+    <span class="n">UNDERLINE</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[4m&#39;</span></div>
+
+<div class="viewcode-block" id="HandyException"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.HandyException">[docs]</a><span class="k">class</span> <span class="nc">HandyException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Summary is a boolean argument</span>
+            <span class="c1"># If True, it prints the exception summary</span>
+            <span class="c1"># This way, we can avoid printing the summary all</span>
+            <span class="c1"># the way along the exception &quot;bubbling up&quot;</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;summary&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">HandyException</span><span class="o">.</span><span class="n">exception_summary</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<div class="viewcode-block" id="HandyException.colortext"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.HandyException.colortext">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">colortext</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">color_code</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">color_code</span> <span class="o">+</span> <span class="n">text</span> <span class="o">+</span> <span class="p">(</span><span class="n">bcolors</span><span class="o">.</span><span class="n">ENDC</span> <span class="k">if</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">bcolors</span><span class="o">.</span><span class="n">ENDC</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HandyException.errortext"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.HandyException.errortext">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">errortext</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+        <span class="c1"># Makes exception summary both BOLD and RED (FAIL)</span>
+        <span class="k">return</span> <span class="n">HandyException</span><span class="o">.</span><span class="n">colortext</span><span class="p">(</span><span class="n">HandyException</span><span class="o">.</span><span class="n">colortext</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">bcolors</span><span class="o">.</span><span class="n">FAIL</span><span class="p">),</span> <span class="n">bcolors</span><span class="o">.</span><span class="n">BOLD</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HandyException.exception_summary"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.HandyException.exception_summary">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">exception_summary</span><span class="p">():</span>
+        <span class="c1"># Gets the error stack</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Builds the &quot;frame&quot; around the text</span>
+            <span class="n">top</span> <span class="o">=</span> <span class="n">HandyException</span><span class="o">.</span><span class="n">errortext</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">75</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">HANDY EXCEPTION SUMMARY</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">bottom</span> <span class="o">=</span> <span class="n">HandyException</span><span class="o">.</span><span class="n">errortext</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">75</span><span class="p">)</span>
+            <span class="c1"># Gets the information about the error and makes it BOLD and RED</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">and</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">HandyException</span><span class="o">.</span><span class="n">errortext</span><span class="p">(</span><span class="s1">&#39;Error</span><span class="se">\t</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="c1"># Figure out where the error happened - location (file/notebook), line and function</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">strip</span><span class="p">()[:</span><span class="mi">4</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">info</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;File&#39;</span><span class="p">)</span>
+            <span class="n">where</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+            <span class="n">location</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span> <span class="o">=</span> <span class="n">where</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">:],</span> <span class="n">where</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">5</span><span class="p">:],</span> <span class="n">where</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">3</span><span class="p">:]</span>
+            <span class="c1"># If it is a notebook, figures out the cell</span>
+            <span class="k">if</span> <span class="s1">&#39;ipython-input&#39;</span> <span class="ow">in</span> <span class="n">location</span><span class="p">:</span>
+                <span class="n">location</span> <span class="o">=</span> <span class="s1">&#39;IPython - In [</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="c1"># If it is a pyspark error, just go with it</span>
+            <span class="k">if</span> <span class="s1">&#39;pyspark&#39;</span> <span class="ow">in</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">new_msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">bottom</span><span class="p">)</span>
+            <span class="c1"># Otherwise, build the summary</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s1">Location: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">Line</span><span class="se">\t</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">Function: </span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">bottom</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">new_msg</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># If we managed to raise an exception while trying to format the original exception...</span>
+            <span class="c1"># Oh, well...</span>
+            <span class="k">return</span> <span class="s1">&#39;This is awkward... </span><span class="se">\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div></div>
+
+<div class="viewcode-block" id="get_buckets"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.get_buckets">[docs]</a><span class="k">def</span> <span class="nf">get_buckets</span><span class="p">(</span><span class="n">rdd</span><span class="p">,</span> <span class="n">buckets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracted from pyspark.rdd.RDD.histogram function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">buckets</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;number of buckets must be &gt;= 1&quot;</span><span class="p">)</span>
+
+    <span class="c1"># filter out non-comparable elements</span>
+    <span class="k">def</span> <span class="nf">comparable</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span> <span class="ow">and</span> <span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">filtered</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">comparable</span><span class="p">)</span>
+
+    <span class="c1"># faster than stats()</span>
+    <span class="k">def</span> <span class="nf">minmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">max</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">minv</span><span class="p">,</span> <span class="n">maxv</span> <span class="o">=</span> <span class="n">filtered</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">minmax</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot; empty &quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can not generate buckets from empty RDD&quot;</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="k">if</span> <span class="n">minv</span> <span class="o">==</span> <span class="n">maxv</span> <span class="ow">or</span> <span class="n">buckets</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">minv</span><span class="p">,</span> <span class="n">maxv</span><span class="p">],</span> <span class="p">[</span><span class="n">filtered</span><span class="o">.</span><span class="n">count</span><span class="p">()]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">inc</span> <span class="o">=</span> <span class="p">(</span><span class="n">maxv</span> <span class="o">-</span> <span class="n">minv</span><span class="p">)</span> <span class="o">/</span> <span class="n">buckets</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Can not generate buckets with non-number in RDD&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">isinf</span><span class="p">(</span><span class="n">inc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can not generate buckets with infinite value&quot;</span><span class="p">)</span>
+
+    <span class="c1"># keep them as integer if possible</span>
+    <span class="n">inc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inc</span> <span class="o">*</span> <span class="n">buckets</span> <span class="o">!=</span> <span class="n">maxv</span> <span class="o">-</span> <span class="n">minv</span><span class="p">:</span>
+        <span class="n">inc</span> <span class="o">=</span> <span class="p">(</span><span class="n">maxv</span> <span class="o">-</span> <span class="n">minv</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">buckets</span>
+
+    <span class="n">buckets</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">inc</span> <span class="o">+</span> <span class="n">minv</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">buckets</span><span class="p">)]</span>
+    <span class="n">buckets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">maxv</span><span class="p">)</span>  <span class="c1"># fix accumulated error</span>
+    <span class="k">return</span> <span class="n">buckets</span></div>
+
+<div class="viewcode-block" id="dense_to_array"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.dense_to_array">[docs]</a><span class="k">def</span> <span class="nf">dense_to_array</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">new_colname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Casts a Vector column into a new Array column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">sql_ctx</span>
+    <span class="c1"># Gets type of original column</span>
+    <span class="n">coltype</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># If it is indeed a vector...</span>
+    <span class="k">if</span> <span class="n">coltype</span> <span class="o">==</span> <span class="s1">&#39;vector&#39;</span><span class="p">:</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">StructType</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span> <span class="o">+</span> <span class="p">[</span><span class="n">StructField</span><span class="p">(</span><span class="n">new_colname</span><span class="p">,</span> <span class="n">ArrayType</span><span class="p">(</span><span class="n">DoubleType</span><span class="p">()),</span> <span class="kc">True</span><span class="p">)])</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">)</span>
+                                      <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span> <span class="o">+</span> <span class="p">(</span><span class="n">DenseVector</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),)),</span>
+                                      <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+    <span class="c1"># Otherwise just copy the original column into a new one</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">new_colname</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">colname</span><span class="p">))</span>
+
+    <span class="c1"># Makes it a HandyFrame</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">toHandy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="disassemble"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.disassemble">[docs]</a><span class="k">def</span> <span class="nf">disassemble</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">new_colnames</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Disassembles a Vector/Array column into multiple columns</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">array_col</span> <span class="o">=</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+    <span class="c1"># Gets type of original column</span>
+    <span class="n">coltype</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dataType</span><span class="o">.</span><span class="n">typeName</span><span class="p">()</span>
+    <span class="c1"># If it is a vector or array...</span>
+    <span class="k">if</span> <span class="n">coltype</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vectorudt&#39;</span><span class="p">,</span> <span class="s1">&#39;array&#39;</span><span class="p">]:</span>
+        <span class="c1"># Makes the conversion from vector to array (or not :-))</span>
+        <span class="n">tdf</span> <span class="o">=</span> <span class="n">dense_to_array</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">array_col</span><span class="p">)</span>
+        <span class="c1"># Checks the MIN size of the arrays in the dataset</span>
+        <span class="c1"># If there are arrays with multiple sizes, it can still safely</span>
+        <span class="c1"># convert up to that size</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">tdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">array_col</span><span class="p">)))</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># If no new names were given, just uses the original name and</span>
+        <span class="c1"># a sequence number as suffix</span>
+        <span class="k">if</span> <span class="n">new_colnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_colnames</span><span class="p">)</span> <span class="o">==</span> <span class="n">size</span><span class="p">,</span> \
+            <span class="s2">&quot;There must be </span><span class="si">{}</span><span class="s2"> column names, only </span><span class="si">{}</span><span class="s2"> found!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_colnames</span><span class="p">))</span>
+        <span class="c1"># Uses `getItem` to disassemble the array into multiple columns</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">tdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">sdf</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+                         <span class="o">*</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">array_col</span><span class="p">)</span><span class="o">.</span><span class="n">getItem</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="n">new_colnames</span><span class="p">)))</span>
+    <span class="c1"># Otherwise just copy the original column into a new one</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_colnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_colnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">colname</span><span class="p">]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">new_colnames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">colname</span><span class="p">))</span>
+
+    <span class="c1"># Makes it a HandyFrame</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">toHandy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="get_jvm_class"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.get_jvm_class">[docs]</a><span class="k">def</span> <span class="nf">get_jvm_class</span><span class="p">(</span><span class="n">cl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Builds JVM class name from Python class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;org.apache.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cl</span><span class="o">.</span><span class="vm">__module__</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">cl</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="call_scala_method"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.call_scala_method">[docs]</a><span class="k">def</span> <span class="nf">call_scala_method</span><span class="p">(</span><span class="n">py_class</span><span class="p">,</span> <span class="n">scala_method</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a Python class, calls a method from its Scala equivalent</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sc</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sql_ctx</span><span class="o">.</span><span class="n">_sc</span>
+    <span class="c1"># Gets the Java class from the JVM, given the name built from the Python class</span>
+    <span class="n">java_class</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span> <span class="p">,</span> <span class="n">get_jvm_class</span><span class="p">(</span><span class="n">py_class</span><span class="p">))</span>
+    <span class="c1"># Converts all columns into doubles and access it as Java DF</span>
+    <span class="n">jdf</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;double&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span><span class="o">.</span><span class="n">_jdf</span>
+    <span class="c1"># Creates a Java object from both Java class and DataFrame</span>
+    <span class="n">java_obj</span> <span class="o">=</span> <span class="n">java_class</span><span class="p">(</span><span class="n">jdf</span><span class="p">)</span>
+    <span class="c1"># Converts remaining args from Python to Java as well</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">_py2java</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+    <span class="c1"># Gets method from Java Object and passes arguments to it to get results</span>
+    <span class="n">java_res</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">java_obj</span><span class="p">,</span> <span class="n">scala_method</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="c1"># Converts results from Java back to Python</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">_java2py</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">java_res</span><span class="p">)</span>
+    <span class="c1"># If result is an RDD, it could be the case its elements are still</span>
+    <span class="c1"># serialized tuples from Scala...</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">RDD</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Takes the first element from the result, to check what it is</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># If it is a dictionary, we need to check its value</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">first</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="c1"># If the value is a scala tuple, we need to deserialize it</span>
+                <span class="k">if</span> <span class="n">first</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;scala.Tuple&#39;</span><span class="p">):</span>
+                    <span class="n">serde</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">python</span><span class="o">.</span><span class="n">SerDe</span>
+                    <span class="c1"># We assume it is a Tuple2 and deserialize it</span>
+                    <span class="n">java_res</span> <span class="o">=</span> <span class="n">serde</span><span class="o">.</span><span class="n">fromTuple2RDD</span><span class="p">(</span><span class="n">java_res</span><span class="p">)</span>
+                    <span class="c1"># Finally, we convert the deserialized result from Java to Python</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">_java2py</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">java_res</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="counts_to_df"><a class="viewcode-back" href="../../handyspark.html#handyspark.util.counts_to_df">[docs]</a><span class="k">def</span> <span class="nf">counts_to_df</span><span class="p">(</span><span class="n">value_counts</span><span class="p">,</span> <span class="n">colnames</span><span class="p">,</span> <span class="n">n_points</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;DO NOT USE IT!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">value_counts</span>
+                       <span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s1">&#39;count&#39;</span><span class="p">)</span>
+                       <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+                       <span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">({</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]},</span>
+                                               <span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">colnames</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">toArray</span><span class="p">()))),</span>
+                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                       <span class="o">.</span><span class="n">values</span>
+                       <span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">pdf</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">/=</span> <span class="n">pdf</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">proportions</span> <span class="o">=</span> <span class="n">pdf</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">pdf</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_points</span> <span class="o">/</span> <span class="n">proportions</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pdf</span><span class="p">[</span><span class="n">colnames</span><span class="p">],</span> <span class="p">(</span><span class="n">proportions</span> <span class="o">*</span> <span class="n">factor</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">combinations</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="nb">dict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combinations</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;count&#39;</span><span class="p">))</span> <span class="o">*</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">items</span><span class="p">())]])</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

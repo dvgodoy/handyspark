@@ -1,0 +1,216 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>handyspark.sql.transform &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for handyspark.sql.transform</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="n">_MAPPING</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;string&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+            <span class="s1">&#39;boolean&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="s1">&#39;binary&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">,</span>
+            <span class="s1">&#39;byte&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span>
+            <span class="s1">&#39;short&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span>
+            <span class="s1">&#39;integer&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="s1">&#39;long&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="s1">&#39;float&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s1">&#39;double&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+            <span class="s1">&#39;array&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="s1">&#39;map&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="HandyTransform"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform">[docs]</a><span class="k">class</span> <span class="nc">HandyTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">_mapping</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>  <span class="n">_MAPPING</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+    <span class="n">_mapping</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;float&#39;</span><span class="p">:</span> <span class="s1">&#39;double&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span> <span class="s1">&#39;integer&#39;</span><span class="p">,</span> <span class="s1">&#39;list&#39;</span><span class="p">:</span> <span class="s1">&#39;array&#39;</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span> <span class="s1">&#39;boolean&#39;</span><span class="p">})</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_return</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">returnType</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">returnType</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_signatureType</span><span class="p">(</span><span class="n">sig</span><span class="p">):</span>
+        <span class="n">returnType</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">signatureType</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">return_annotation</span><span class="p">)[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="s1">&#39;_empty&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">signatureType</span><span class="p">:</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">signatureType</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="n">returnType</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">returnType</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">returnType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">&quot;invalid returnType&quot;</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()],</span> <span class="n">types</span><span class="p">))</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">returnType</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">returnType</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">types</span><span class="p">[</span><span class="mi">1</span><span class="p">:])])</span>
+                <span class="n">returnType</span> <span class="o">+=</span> <span class="s1">&#39;&gt;&#39;</span>
+        <span class="k">return</span> <span class="n">returnType</span>
+
+<div class="viewcode-block" id="HandyTransform.gen_pandas_udf"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform.gen_pandas_udf">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gen_pandas_udf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnType</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)),</span> <span class="s2">&quot;args must be list or tuple&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">returnType</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_signatureType</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">pyarrow</span>
+            <span class="nd">@F</span><span class="o">.</span><span class="n">pandas_udf</span><span class="p">(</span><span class="n">returnType</span><span class="o">=</span><span class="n">returnType</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">udf</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nd">@F</span><span class="o">.</span><span class="n">udf</span><span class="p">(</span><span class="n">returnType</span><span class="o">=</span><span class="n">returnType</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">udf</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">udf</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HandyTransform.gen_grouped_pandas_udf"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform.gen_grouped_pandas_udf">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gen_grouped_pandas_udf</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnType</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># TODO: test it properly!</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)),</span> <span class="s2">&quot;args must be list or tuple&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">returnType</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_signatureType</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">returnType</span><span class="p">))</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="nd">@F</span><span class="o">.</span><span class="n">pandas_udf</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">PandasUDFType</span><span class="o">.</span><span class="n">GROUPED_MAP</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">pudf</span><span class="p">(</span><span class="n">pdf</span><span class="p">):</span>
+            <span class="n">computed</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="nb">tuple</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pdf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">__computed</span><span class="o">=</span><span class="n">computed</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;__computed&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">pudf</span></div>
+
+<div class="viewcode-block" id="HandyTransform.transform"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform.transform">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnType</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">returnType</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">if</span> <span class="n">returnType</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_get_return</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">gen_pandas_udf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">returnType</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="HandyTransform.apply"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform.apply">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnType</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">returnType</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">if</span> <span class="n">returnType</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">returnType</span> <span class="o">=</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_get_return</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sdf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">HandyTransform</span><span class="o">.</span><span class="n">gen_pandas_udf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">returnType</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="HandyTransform.assign"><a class="viewcode-back" href="../../../handyspark.sql.html#handyspark.sql.transform.HandyTransform.assign">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">typename</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">typename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">typename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">typename</span> <span class="o">=</span> <span class="n">HandyTransform</span><span class="o">.</span><span class="n">_get_return</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">typename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">returnType</span><span class="o">=</span><span class="n">typename</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">f</span><span class="p">()))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">sdf</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

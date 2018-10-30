@@ -1,0 +1,634 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyspark.mllib.evaluation &#8212; HandySpark 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyspark.mllib.evaluation</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Licensed to the Apache Software Foundation (ASF) under one or more</span>
+<span class="c1"># contributor license agreements.  See the NOTICE file distributed with</span>
+<span class="c1"># this work for additional information regarding copyright ownership.</span>
+<span class="c1"># The ASF licenses this file to You under the Apache License, Version 2.0</span>
+<span class="c1"># (the &quot;License&quot;); you may not use this file except in compliance with</span>
+<span class="c1"># the License.  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">pyspark</span> <span class="k">import</span> <span class="n">since</span>
+<span class="kn">from</span> <span class="nn">pyspark.mllib.common</span> <span class="k">import</span> <span class="n">JavaModelWrapper</span><span class="p">,</span> <span class="n">callMLlibFunc</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">SQLContext</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="k">import</span> <span class="n">StructField</span><span class="p">,</span> <span class="n">StructType</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">,</span> <span class="n">IntegerType</span><span class="p">,</span> <span class="n">ArrayType</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BinaryClassificationMetrics&#39;</span><span class="p">,</span> <span class="s1">&#39;RegressionMetrics&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;MulticlassMetrics&#39;</span><span class="p">,</span> <span class="s1">&#39;RankingMetrics&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="BinaryClassificationMetrics"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.BinaryClassificationMetrics">[docs]</a><span class="k">class</span> <span class="nc">BinaryClassificationMetrics</span><span class="p">(</span><span class="n">JavaModelWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluator for binary classification.</span>
+
+<span class="sd">    :param scoreAndLabels: an RDD of (score, label) pairs</span>
+
+<span class="sd">    &gt;&gt;&gt; scoreAndLabels = sc.parallelize([</span>
+<span class="sd">    ...     (0.1, 0.0), (0.1, 1.0), (0.4, 0.0), (0.6, 0.0), (0.6, 1.0), (0.6, 1.0), (0.8, 1.0)], 2)</span>
+<span class="sd">    &gt;&gt;&gt; metrics = BinaryClassificationMetrics(scoreAndLabels)</span>
+<span class="sd">    &gt;&gt;&gt; metrics.areaUnderROC</span>
+<span class="sd">    0.70...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.areaUnderPR</span>
+<span class="sd">    0.83...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.unpersist()</span>
+
+<span class="sd">    .. versionadded:: 1.4.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scoreAndLabels</span><span class="p">):</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">scoreAndLabels</span><span class="o">.</span><span class="n">ctx</span>
+        <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">scoreAndLabels</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">StructType</span><span class="p">([</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)]))</span>
+        <span class="n">java_class</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">evaluation</span><span class="o">.</span><span class="n">BinaryClassificationMetrics</span>
+        <span class="n">java_model</span> <span class="o">=</span> <span class="n">java_class</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">_jdf</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BinaryClassificationMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">java_model</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">areaUnderROC</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the area under the receiver operating characteristic</span>
+<span class="sd">        (ROC) curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;areaUnderROC&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">areaUnderPR</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the area under the precision-recall curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;areaUnderPR&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryClassificationMetrics.unpersist"><a class="viewcode-back" href="../../../handyspark.extensions.html#handyspark.BinaryClassificationMetrics.unpersist">[docs]</a>    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">unpersist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unpersists intermediate RDDs used in the computation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;unpersist&quot;</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">RegressionMetrics</span><span class="p">(</span><span class="n">JavaModelWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluator for regression.</span>
+
+<span class="sd">    :param predictionAndObservations: an RDD of (prediction,</span>
+<span class="sd">                                      observation) pairs.</span>
+
+<span class="sd">    &gt;&gt;&gt; predictionAndObservations = sc.parallelize([</span>
+<span class="sd">    ...     (2.5, 3.0), (0.0, -0.5), (2.0, 2.0), (8.0, 7.0)])</span>
+<span class="sd">    &gt;&gt;&gt; metrics = RegressionMetrics(predictionAndObservations)</span>
+<span class="sd">    &gt;&gt;&gt; metrics.explainedVariance</span>
+<span class="sd">    8.859...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.meanAbsoluteError</span>
+<span class="sd">    0.5...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.meanSquaredError</span>
+<span class="sd">    0.37...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.rootMeanSquaredError</span>
+<span class="sd">    0.61...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.r2</span>
+<span class="sd">    0.94...</span>
+
+<span class="sd">    .. versionadded:: 1.4.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictionAndObservations</span><span class="p">):</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">predictionAndObservations</span><span class="o">.</span><span class="n">ctx</span>
+        <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">predictionAndObservations</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">StructType</span><span class="p">([</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;prediction&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;observation&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)]))</span>
+        <span class="n">java_class</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">evaluation</span><span class="o">.</span><span class="n">RegressionMetrics</span>
+        <span class="n">java_model</span> <span class="o">=</span> <span class="n">java_class</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">_jdf</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RegressionMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">java_model</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">explainedVariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the explained variance regression score.</span>
+<span class="sd">        explainedVariance = 1 - variance(y - \hat{y}) / variance(y)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;explainedVariance&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">meanAbsoluteError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the mean absolute error, which is a risk function corresponding to the</span>
+<span class="sd">        expected value of the absolute error loss or l1-norm loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;meanAbsoluteError&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">meanSquaredError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the mean squared error, which is a risk function corresponding to the</span>
+<span class="sd">        expected value of the squared error loss or quadratic loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;meanSquaredError&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">rootMeanSquaredError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the root mean squared error, which is defined as the square root of</span>
+<span class="sd">        the mean squared error.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;rootMeanSquaredError&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">r2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns R^2^, the coefficient of determination.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;r2&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MulticlassMetrics</span><span class="p">(</span><span class="n">JavaModelWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluator for multiclass classification.</span>
+
+<span class="sd">    :param predictionAndLabels: an RDD of (prediction, label) pairs.</span>
+
+<span class="sd">    &gt;&gt;&gt; predictionAndLabels = sc.parallelize([(0.0, 0.0), (0.0, 1.0), (0.0, 0.0),</span>
+<span class="sd">    ...     (1.0, 0.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (2.0, 2.0), (2.0, 0.0)])</span>
+<span class="sd">    &gt;&gt;&gt; metrics = MulticlassMetrics(predictionAndLabels)</span>
+<span class="sd">    &gt;&gt;&gt; metrics.confusionMatrix().toArray()</span>
+<span class="sd">    array([[ 2.,  1.,  1.],</span>
+<span class="sd">           [ 1.,  3.,  0.],</span>
+<span class="sd">           [ 0.,  0.,  1.]])</span>
+<span class="sd">    &gt;&gt;&gt; metrics.falsePositiveRate(0.0)</span>
+<span class="sd">    0.2...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precision(1.0)</span>
+<span class="sd">    0.75...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.recall(2.0)</span>
+<span class="sd">    1.0...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.fMeasure(0.0, 2.0)</span>
+<span class="sd">    0.52...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.accuracy</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.weightedFalsePositiveRate</span>
+<span class="sd">    0.19...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.weightedPrecision</span>
+<span class="sd">    0.68...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.weightedRecall</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.weightedFMeasure()</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.weightedFMeasure(2.0)</span>
+<span class="sd">    0.65...</span>
+
+<span class="sd">    .. versionadded:: 1.4.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictionAndLabels</span><span class="p">):</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">predictionAndLabels</span><span class="o">.</span><span class="n">ctx</span>
+        <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">predictionAndLabels</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">StructType</span><span class="p">([</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;prediction&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">DoubleType</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)]))</span>
+        <span class="n">java_class</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">evaluation</span><span class="o">.</span><span class="n">MulticlassMetrics</span>
+        <span class="n">java_model</span> <span class="o">=</span> <span class="n">java_class</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">_jdf</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MulticlassMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">java_model</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">confusionMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns confusion matrix: predicted classes are in columns,</span>
+<span class="sd">        they are ordered by class label ascending, as in &quot;labels&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;confusionMatrix&quot;</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">truePositiveRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns true positive rate for a given label (category).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;truePositiveRate&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">falsePositiveRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns false positive rate for a given label (category).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;falsePositiveRate&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns precision or precision for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># note:: Deprecated in 2.0.0. Use accuracy.</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Deprecated in 2.0.0. Use accuracy.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;precision&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;precision&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns recall or recall for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># note:: Deprecated in 2.0.0. Use accuracy.</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Deprecated in 2.0.0. Use accuracy.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;recall&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;recall&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">fMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns f-measure or f-measure for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">beta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># note:: Deprecated in 2.0.0. Use accuracy.</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Deprecated in 2.0.0. Use accuracy.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;fMeasure&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;fMeasure&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;If the beta parameter is specified, label can not be none&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;fMeasure&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;2.0.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns accuracy (equals to the total number of correctly classified instances</span>
+<span class="sd">        out of the total number of instances).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weightedTruePositiveRate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns weighted true positive rate.</span>
+<span class="sd">        (equals to precision, recall and f-measure)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedTruePositiveRate&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weightedFalsePositiveRate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns weighted false positive rate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedFalsePositiveRate&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weightedRecall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns weighted averaged recall.</span>
+<span class="sd">        (equals to precision, recall and f-measure)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedRecall&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weightedPrecision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns weighted averaged precision.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedPrecision&quot;</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weightedFMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns weighted averaged f-measure.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">beta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedFMeasure&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;weightedFMeasure&quot;</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RankingMetrics</span><span class="p">(</span><span class="n">JavaModelWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluator for ranking algorithms.</span>
+
+<span class="sd">    :param predictionAndLabels: an RDD of (predicted ranking,</span>
+<span class="sd">                                ground truth set) pairs.</span>
+
+<span class="sd">    &gt;&gt;&gt; predictionAndLabels = sc.parallelize([</span>
+<span class="sd">    ...     ([1, 6, 2, 7, 8, 3, 9, 10, 4, 5], [1, 2, 3, 4, 5]),</span>
+<span class="sd">    ...     ([4, 1, 5, 6, 2, 7, 3, 8, 9, 10], [1, 2, 3]),</span>
+<span class="sd">    ...     ([1, 2, 3, 4, 5], [])])</span>
+<span class="sd">    &gt;&gt;&gt; metrics = RankingMetrics(predictionAndLabels)</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precisionAt(1)</span>
+<span class="sd">    0.33...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precisionAt(5)</span>
+<span class="sd">    0.26...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precisionAt(15)</span>
+<span class="sd">    0.17...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.meanAveragePrecision</span>
+<span class="sd">    0.35...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.ndcgAt(3)</span>
+<span class="sd">    0.33...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.ndcgAt(10)</span>
+<span class="sd">    0.48...</span>
+
+<span class="sd">    .. versionadded:: 1.4.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictionAndLabels</span><span class="p">):</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">predictionAndLabels</span><span class="o">.</span><span class="n">ctx</span>
+        <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">predictionAndLabels</span><span class="p">,</span>
+                                     <span class="n">schema</span><span class="o">=</span><span class="n">sql_ctx</span><span class="o">.</span><span class="n">_inferSchema</span><span class="p">(</span><span class="n">predictionAndLabels</span><span class="p">))</span>
+        <span class="n">java_model</span> <span class="o">=</span> <span class="n">callMLlibFunc</span><span class="p">(</span><span class="s2">&quot;newRankingMetrics&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">_jdf</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RankingMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">java_model</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">precisionAt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the average precision of all the queries, truncated at ranking position k.</span>
+
+<span class="sd">        If for a query, the ranking algorithm returns n (n &lt; k) results, the precision value</span>
+<span class="sd">        will be computed as #(relevant items retrieved) / k. This formula also applies when</span>
+<span class="sd">        the size of the ground truth set is less than k.</span>
+
+<span class="sd">        If a query has an empty ground truth set, zero will be used as precision together</span>
+<span class="sd">        with a log warning.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;precisionAt&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">meanAveragePrecision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the mean average precision (MAP) of all the queries.</span>
+<span class="sd">        If a query has an empty ground truth set, the average precision will be zero and</span>
+<span class="sd">        a log warining is generated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;meanAveragePrecision&quot;</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">ndcgAt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the average NDCG value of all the queries, truncated at ranking position k.</span>
+<span class="sd">        The discounted cumulative gain at position k is computed as:</span>
+<span class="sd">        sum,,i=1,,^k^ (2^{relevance of &#39;&#39;i&#39;&#39;th item}^ - 1) / log(i + 1),</span>
+<span class="sd">        and the NDCG is obtained by dividing the DCG value on the ground truth set.</span>
+<span class="sd">        In the current implementation, the relevance value is binary.</span>
+<span class="sd">        If a query has an empty ground truth set, zero will be used as NDCG together with</span>
+<span class="sd">        a log warning.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;ndcgAt&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">MultilabelMetrics</span><span class="p">(</span><span class="n">JavaModelWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluator for multilabel classification.</span>
+
+<span class="sd">    :param predictionAndLabels: an RDD of (predictions, labels) pairs,</span>
+<span class="sd">                                both are non-null Arrays, each with</span>
+<span class="sd">                                unique elements.</span>
+
+<span class="sd">    &gt;&gt;&gt; predictionAndLabels = sc.parallelize([([0.0, 1.0], [0.0, 2.0]), ([0.0, 2.0], [0.0, 1.0]),</span>
+<span class="sd">    ...     ([], [0.0]), ([2.0], [2.0]), ([2.0, 0.0], [2.0, 0.0]),</span>
+<span class="sd">    ...     ([0.0, 1.0, 2.0], [0.0, 1.0]), ([1.0], [1.0, 2.0])])</span>
+<span class="sd">    &gt;&gt;&gt; metrics = MultilabelMetrics(predictionAndLabels)</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precision(0.0)</span>
+<span class="sd">    1.0</span>
+<span class="sd">    &gt;&gt;&gt; metrics.recall(1.0)</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.f1Measure(2.0)</span>
+<span class="sd">    0.5</span>
+<span class="sd">    &gt;&gt;&gt; metrics.precision()</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.recall()</span>
+<span class="sd">    0.64...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.f1Measure()</span>
+<span class="sd">    0.63...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.microPrecision</span>
+<span class="sd">    0.72...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.microRecall</span>
+<span class="sd">    0.66...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.microF1Measure</span>
+<span class="sd">    0.69...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.hammingLoss</span>
+<span class="sd">    0.33...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.subsetAccuracy</span>
+<span class="sd">    0.28...</span>
+<span class="sd">    &gt;&gt;&gt; metrics.accuracy</span>
+<span class="sd">    0.54...</span>
+
+<span class="sd">    .. versionadded:: 1.4.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictionAndLabels</span><span class="p">):</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">predictionAndLabels</span><span class="o">.</span><span class="n">ctx</span>
+        <span class="n">sql_ctx</span> <span class="o">=</span> <span class="n">SQLContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">sql_ctx</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">predictionAndLabels</span><span class="p">,</span>
+                                     <span class="n">schema</span><span class="o">=</span><span class="n">sql_ctx</span><span class="o">.</span><span class="n">_inferSchema</span><span class="p">(</span><span class="n">predictionAndLabels</span><span class="p">))</span>
+        <span class="n">java_class</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">_jvm</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">evaluation</span><span class="o">.</span><span class="n">MultilabelMetrics</span>
+        <span class="n">java_model</span> <span class="o">=</span> <span class="n">java_class</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">_jdf</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MultilabelMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">java_model</span><span class="p">)</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns precision or precision for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;precision&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;precision&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns recall or recall for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;recall&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;recall&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">f1Measure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns f1Measure or f1Measure for a given label (category) if specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;f1Measure&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;f1Measure&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">microPrecision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns micro-averaged label-based precision.</span>
+<span class="sd">        (equals to micro-averaged document-based precision)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;microPrecision&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">microRecall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns micro-averaged label-based recall.</span>
+<span class="sd">        (equals to micro-averaged document-based recall)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;microRecall&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">microF1Measure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns micro-averaged label-based f1-measure.</span>
+<span class="sd">        (equals to micro-averaged document-based f1-measure)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;microF1Measure&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">hammingLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns Hamming-loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;hammingLoss&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">subsetAccuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns subset accuracy.</span>
+<span class="sd">        (for equal sets of labels)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;subsetAccuracy&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@since</span><span class="p">(</span><span class="s1">&#39;1.4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns accuracy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_test</span><span class="p">():</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">SparkSession</span>
+    <span class="kn">import</span> <span class="nn">pyspark.mllib.evaluation</span>
+    <span class="n">globs</span> <span class="o">=</span> <span class="n">pyspark</span><span class="o">.</span><span class="n">mllib</span><span class="o">.</span><span class="n">evaluation</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">spark</span> <span class="o">=</span> <span class="n">SparkSession</span><span class="o">.</span><span class="n">builder</span>\
+        <span class="o">.</span><span class="n">master</span><span class="p">(</span><span class="s2">&quot;local[4]&quot;</span><span class="p">)</span>\
+        <span class="o">.</span><span class="n">appName</span><span class="p">(</span><span class="s2">&quot;mllib.evaluation tests&quot;</span><span class="p">)</span>\
+        <span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
+    <span class="n">globs</span><span class="p">[</span><span class="s1">&#39;sc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span>
+    <span class="p">(</span><span class="n">failure_count</span><span class="p">,</span> <span class="n">test_count</span><span class="p">)</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span><span class="n">globs</span><span class="o">=</span><span class="n">globs</span><span class="p">,</span> <span class="n">optionflags</span><span class="o">=</span><span class="n">doctest</span><span class="o">.</span><span class="n">ELLIPSIS</span><span class="p">)</span>
+    <span class="n">spark</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">failure_count</span><span class="p">:</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">_test</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Daniel Voigt Godoy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
