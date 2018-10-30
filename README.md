@@ -32,7 +32,7 @@ pip install handyspark
 
 ## Documentation
 
-You can find the full documentations at [Read the Docs](http://handyspark.readthedocs.io/).
+You can find the full documentations [here](http://dvgodoy.github.com/handyspark).
 
 ## Quick Start
 
