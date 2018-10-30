@@ -5,11 +5,6 @@
    :alt: Build Status
 
 
-.. image:: http://readthedocs.org/projects/handyspark/badge/?version=latest
-   :target: http://handyspark.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-
-
 HandySpark
 ==========
 
