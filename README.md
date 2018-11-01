@@ -31,7 +31,29 @@ pip install handyspark
 
 ## Documentation
 
-You can find the full documentations [here](http://dvgodoy.github.com/handyspark).
+You can find the full documentation [here](http://dvgodoy.github.com/handyspark).
+
+Here is a ***handy*** list of some classes, objects and methods used:
+
+- [HandyFrame](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.HandyFrame)
+
+  - Objects
+  - [cols](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.HandyColumns)
+  - [pandas](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.pandas.HandyPandas)
+  - [transformers](https://dvgodoy.github.io/handyspark/handyspark.ml.html#handyspark.ml.base.HandyTransformers)
+
+  - Methods
+  - [isnull](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.isnull)
+  - [fill](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.fill)
+  - [outliers](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.outliers)
+  - [fence](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.fence)
+  - [stratify](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.HandyFrame.stratify)
+
+- [Bucket](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.Bucket)
+- [Quantile](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.Quantile)
+
+- [HandyImputer](https://dvgodoy.github.io/handyspark/handyspark.ml.html#handyspark.ml.base.HandyImputer)
+- [HandyFencer](https://dvgodoy.github.io/handyspark/handyspark.ml.html#handyspark.ml.base.HandyFencer)
 
 ## Quick Start
 

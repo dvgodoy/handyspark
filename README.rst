@@ -11,15 +11,15 @@ HandySpark
 Bringing pandas-like capabilities to Spark dataframes!
 ------------------------------------------------------
 
-**\ *HandySpark*\ ** is a package designed to improve **\ *PySpark*\ ** user experience, especially when it comes to **\ *exploratory data analysis*\ **\ , including **\ *visualization*\ ** capabilities!
+*HandySpark* is a package designed to improve *PySpark* user experience, especially when it comes to *exploratory data analysis* , including *visualization* capabilities!
 
-It makes fetching data or computing statistics for columns really easy, returning **\ *pandas objects*\ ** straight away.
+It makes fetching data or computing statistics for columns really easy, returning *pandas objects* straight away.
 
-It also leverages on the recently released **\ *pandas UDFs*\ ** in Spark to allow for an out-of-the-box usage of common **\ *pandas functions*\ ** in a Spark dataframe.
+It also leverages on the recently released *pandas UDFs* in Spark to allow for an out-of-the-box usage of common *pandas functions* in a Spark dataframe.
 
-Moreover, it introduces the **\ *stratify*\ ** operation, so users can perform more sophisticated analysis, imputation and outlier detection on stratified data without incurring in very computationally expensive **\ *groupby*\ ** operations.
+Moreover, it introduces the *stratify* operation, so users can perform more sophisticated analysis, imputation and outlier detection on stratified data without incurring in very computationally expensive *groupby* operations.
 
-Finally, it brings the long missing capability of **\ *plotting*\ ** data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don't ever do that!).
+Finally, it brings the long missing capability of *plotting* data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don't ever do that!).
 
 Google Colab
 ------------
@@ -34,7 +34,7 @@ Open the notebook directly on Google Colab and try it yourself:
 Installation
 ------------
 
-To install **\ *HandySpark*\ ** from `PyPI <https://pypi.org/project/handyspark/>`_\ , just type:
+To install *HandySpark* from `PyPI <https://pypi.org/project/handyspark/>`_, just type:
 
 .. code-block:: python
 
@@ -43,12 +43,12 @@ To install **\ *HandySpark*\ ** from `PyPI <https://pypi.org/project/handyspark/
 Documentation
 -------------
 
-You can find the full documentations `here <http://dvgodoy.github.com/handyspark>`_.
+You can find the full documentation `here <http://dvgodoy.github.com/handyspark>`_.
 
 Quick Start
 -----------
 
-To use **\ *HandySpark*\ **\ , all you need to do is import the package and, after loading your data into a Spark dataframe, call the **\ *toHandy()*\ ** method to get your own **\ *HandyFrame*\ **\ :
+To use *HandySpark* , all you need to do is import the package and, after loading your data into a Spark dataframe, call the *toHandy()* method to get your own *HandyFrame* :
 
 .. code-block:: python
 
@@ -62,7 +62,7 @@ To use **\ *HandySpark*\ **\ , all you need to do is import the package and, aft
 Fetching and plotting data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now you can easily fetch data as if you were using pandas, just use the **\ *cols*\ ** object from your **\ *HandyFrame*\ **\ :
+Now you can easily fetch data as if you were using pandas, just use the *cols* object from your *HandyFrame* :
 
 .. code-block:: python
 
@@ -81,9 +81,9 @@ It should return a pandas Series object:
 
 If you include a list of columns, it will return a pandas DataFrame.
 
-Due to the distributed nature of data in Spark, it is only possible to fetch the top rows of any given **\ *HandyFrame*\ **.
+Due to the distributed nature of data in Spark, it is only possible to fetch the top rows of any given *HandyFrame*.
 
-Using **\ *cols*\ ** you have access to several pandas-like column and DataFrame based methods implemented in Spark:
+Using *cols* you have access to several pandas-like column and DataFrame based methods implemented in Spark:
 
 
 * min / max / median / q1 / q3 / stddev / mode
@@ -124,12 +124,12 @@ You can also make some plots:
    :alt: cols plots
 
 
-Handy, right (pun intended!)? But things can get **\ *even more*\ ** interesting if you use **\ *stratify*\ **\ !
+Handy, right (pun intended!)? But things can get *even more* interesting if you use *stratify* !
 
 Stratify
 ^^^^^^^^
 
-Stratifying a HandyFrame means using a **\ *split-apply-combine*\ ** approach. It will first split your HandyFrame according to the specified (discrete) columns, then it will apply some function to each stratum of data and finally combine the results back together.
+Stratifying a HandyFrame means using a *split-apply-combine* approach. It will first split your HandyFrame according to the specified (discrete) columns, then it will apply some function to each stratum of data and finally combine the results back together.
 
 This is better illustrated with an example - let's try the stratified version of our previous ``value_counts``\ :
 
@@ -151,9 +151,9 @@ This is better illustrated with an example - let's try the stratified version of
            S           353
    Name: value_counts, dtype: int64
 
-Cool, isn't it? Besides, under the hood, not a single **\ *group by*\ ** operation was performed - everything is handled using filter clauses! So, **\ *no data shuffling*\ **\ !
+Cool, isn't it? Besides, under the hood, not a single *group by* operation was performed - everything is handled using filter clauses! So, *no data shuffling* !
 
-What if you want to **\ *stratify*\ ** on a column containing continuous values? No problem!
+What if you want to *stratify* on a column containing continuous values? No problem!
 
 .. code-block:: python
 
@@ -175,9 +175,9 @@ What if you want to **\ *stratify*\ ** on a column containing continuous values?
                                               S            81
    Name: value_counts, dtype: int64
 
-You can use either **\ *Bucket*\ ** or **\ *Quantile*\ ** to discretize your data in any given number of bins!
+You can use either *Bucket* or *Quantile* to discretize your data in any given number of bins!
 
-What about **\ *plotting*\ ** it? Yes, **\ *HandySpark*\ ** can handle that as well!
+What about *plotting* it? Yes, *HandySpark* can handle that as well!
 
 .. code-block:: python
 
@@ -192,7 +192,7 @@ What about **\ *plotting*\ ** it? Yes, **\ *HandySpark*\ ** can handle that as w
 Handling missing data
 ^^^^^^^^^^^^^^^^^^^^^
 
-**\ *HandySpark*\ ** makes it very easy to spot and fill missing values. To figure if there are any missing values, just use **\ *isnull*\ **\ :
+*HandySpark* makes it very easy to spot and fill missing values. To figure if there are any missing values, just use *isnull* :
 
 .. code-block:: python
 
@@ -222,7 +222,7 @@ So, ``Age`` is a continuous variable, while ``Embarked`` is a categorical variab
 
    hdf_filled = hdf.fill(categorical=['Embarked'])
 
-**\ *HandyFrame*\ ** has a **\ *fill*\ ** method which takes up to 3 arguments:
+*HandyFrame* has a *fill* method which takes up to 3 arguments:
 
 
 * categorical: a list of categorical variables
@@ -231,7 +231,7 @@ So, ``Age`` is a continuous variable, while ``Embarked`` is a categorical variab
 
 Categorical variables use a ``mode`` strategy by default.
 
-But you do not need to stick with the basics anymore... you can fancy it up using **\ *stratify*\ ** together with **\ *fill*\ **\ :
+But you do not need to stick with the basics anymore... you can fancy it up using *stratify* together with *fill* :
 
 .. code-block:: python
 
@@ -255,22 +255,22 @@ How do you know which values are being used? Simple enough:
 
 There you go! The filter clauses and the corresponding imputation values!
 
-But there is **\ *more*\ ** - once you're with your imputation procedure, why not generate a **\ *custom transformer*\ ** to do that for you, either on your test set or in production?
+But there is *more* - once you're with your imputation procedure, why not generate a *custom transformer* to do that for you, either on your test set or in production?
 
-You only need to call the **\ *imputer*\ ** method of the **\ *transformer*\ ** object that every **\ *HandyFrame*\ ** has:
+You only need to call the *imputer* method of the *transformer* object that every *HandyFrame* has:
 
 .. code-block:: python
 
    imputer = hdf_filled.transformers.imputer()
 
-In the example above, **\ *imputer*\ ** is now a full-fledged serializable PySpark transformer! What does that mean? You can use it in your **\ *pipeline*\ ** and **\ *save / load*\ ** at will :-)
+In the example above, *imputer* is now a full-fledged serializable PySpark transformer! What does that mean? You can use it in your *pipeline* and *save / load* at will :-)
 
 Detecting outliers
 ^^^^^^^^^^^^^^^^^^
 
 Second only to the problem of missing data, outliers can pose a challenge for training machine learning models.
 
-**\ *HandyFrame*\ ** to the rescue, with its **\ *outliers*\ ** method:
+*HandyFrame* to the rescue, with its *outliers* method:
 
 .. code-block:: python
 
@@ -287,7 +287,7 @@ Second only to the problem of missing data, outliers can pose a challenge for tr
    Fare            53.0
    dtype: float64
 
-Currently, only `\ **\ *Tukey's*\ ** <https://en.wikipedia.org/wiki/Outlier#Tukey's_fences>`_ method is available (I am working on Mahalanobis distance!). This method takes an optional **\ *k*\ ** argument, which you can set to larger values (like 3) to allow for a more loose detection.
+Currently, only `\ *Tukey's* <https://en.wikipedia.org/wiki/Outlier#Tukey's_fences>`_ method is available (I am working on Mahalanobis distance!). This method takes an optional *k* argument, which you can set to larger values (like 3) to allow for a more loose detection.
 
 The good thing is, now we can take a peek at the data by plotting it:
 
@@ -305,7 +305,7 @@ The good thing is, now we can take a peek at the data by plotting it:
    :alt: outliers
 
 
-Let's focus on the ``Fare`` column - what can we do about it? Well, we could use Tukey's fences to, er... **\ *fence*\ ** the outliers :-)
+Let's focus on the ``Fare`` column - what can we do about it? Well, we could use Tukey's fences to, er... *fence* the outliers :-)
 
 .. code-block:: python
 
@@ -321,7 +321,7 @@ Which values were used, you ask?
 
    {'Fare': [-26.7605, 65.6563]}
 
-It works quite similarly to the **\ *fill*\ ** method and, I hope you guessed, it **\ *also*\ ** gives you the ability to create the corresponding **\ *custom transformer*\ ** :-)
+It works quite similarly to the *fill* method and, I hope you guessed, it *also* gives you the ability to create the corresponding *custom transformer* :-)
 
 .. code-block:: python
 
@@ -330,9 +330,9 @@ It works quite similarly to the **\ *fill*\ ** method and, I hope you guessed, i
 Pandas and more pandas!
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-With **\ *HandySpark*\ ** you can feel **\ *almost*\ ** as if you were using traditional pandas :-)
+With *HandySpark* you can feel *almost* as if you were using traditional pandas :-)
 
-To gain access to the whole suite of available pandas functions, you need to leverage the **\ *pandas*\ ** object of your **\ *HandyFrame*\ **\ :
+To gain access to the whole suite of available pandas functions, you need to leverage the *pandas* object of your *HandyFrame* :
 
 .. code-block:: python
 
@@ -343,11 +343,11 @@ To gain access to the whole suite of available pandas functions, you need to lev
 
    Column<b'udf(Embarked) AS `<lambda>(Embarked,)`'>
 
-In the example above, **\ *HandySpark*\ ** treats the ``Embarked`` column as if it were a pandas Series and, therefore, you may call its **\ *isin*\ ** method!
+In the example above, *HandySpark* treats the ``Embarked`` column as if it were a pandas Series and, therefore, you may call its *isin* method!
 
-But, remember Spark has **\ *lazy evaluation*\ **\ , so the result is a **\ *column expression*\ ** which leverages the power of **\ *pandas UDFs*\ ** (provived that PyArrow is installed, otherwise it will fall back to traditional UDFs).
+But, remember Spark has *lazy evaluation* , so the result is a *column expression* which leverages the power of *pandas UDFs* (provived that PyArrow is installed, otherwise it will fall back to traditional UDFs).
 
-The only thing left to do is to actually **\ *assign*\ ** the results to a new column, right?
+The only thing left to do is to actually *assign* the results to a new column, right?
 
 .. code-block:: python
 
@@ -364,7 +364,7 @@ The only thing left to do is to actually **\ *assign*\ ** the results to a new c
    4     True
    Name: is_c_or_q, dtype: bool
 
-You got that right! **\ *HandyFrame*\ ** has a very convenient **\ *assign*\ ** method, just like in pandas!
+You got that right! *HandyFrame* has a very convenient *assign* method, just like in pandas!
 
 It does not get much easier than that :-) There are several column methods available already:
 
@@ -379,7 +379,7 @@ It does not get much easier than that :-) There are several column methods avail
 * round / truncate
 * tz_convert / tz_localize
 
-And this is not all! Both specialized **\ *str*\ ** and **\ *dt*\ ** objects from pandas are available as well!
+And this is not all! Both specialized *str* and *dt* objects from pandas are available as well!
 
 For instance, if you want to find if a given string contains another substring?
 
@@ -397,7 +397,8 @@ For instance, if you want to find if a given string contains another substring?
 There are many, many more available methods:
 
 
-#. **\ *String methods*\ **\ :
+*String methods* :
+
 #. contains
 #. startswith / endswitch
 #. match
@@ -417,11 +418,9 @@ There are many, many more available methods:
 #. zfill
 #. count
 #. find / rfind
-#. 
-   len
+#. len
 
-#. 
-   **\ *Date / Datetime methods*\ **\ :
+*Date / Datetime methods* :
 
 #. is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start
 #. strftime
@@ -439,7 +438,7 @@ Your own functions
 
 The sky is the limit! You can create regular Python functions and use assign to create new columns :-)
 
-No need to worry about turning them into **\ *pandas UDFs*\ ** - everything is handled by **\ *HandySpark*\ ** under the hood!
+No need to worry about turning them into *pandas UDFs* - everything is handled by *HandySpark* under the hood!
 
 The arguments of your function (or ``lambda``\ ) should have the names of the columns you want to use. For instance, to take the ``log`` of ``Fare``\ :
 
@@ -462,9 +461,9 @@ You can also use multiple columns:
 
 Even though the result is kinda pointless, it will work :-)
 
-Keep in mind that the **\ *return type*\ **\ , that is, the column type of the new column, will be the same as the first column used (\ ``Fare``\ , in the example).
+Keep in mind that the *return type* , that is, the column type of the new column, will be the same as the first column used (\ ``Fare``\ , in the example).
 
-What if you want to return something of a **\ *different*\ ** type?! No worries! You only need to **\ *wrap*\ ** your function with the desired return type. An example should make this more clear:
+What if you want to return something of a *different* type?! No worries! You only need to *wrap* your function with the desired return type. An example should make this more clear:
 
 .. code-block:: python
 
@@ -483,7 +482,7 @@ What if you want to return something of a **\ *different*\ ** type?! No worries!
    4    $65.66
    Name: str_fare, dtype: object
 
-Basically, we imported the desired output type - **\ *StringType*\ ** - and used its extended method **\ *ret*\ ** to wrap our ``lambda`` function that formats our numeric ``Fare`` column into a string.
+Basically, we imported the desired output type - *StringType* - and used its extended method *ret* to wrap our ``lambda`` function that formats our numeric ``Fare`` column into a string.
 
 It is also possible to create a more complex type, like an array of doubles:
 
@@ -510,17 +509,17 @@ It is also possible to create a more complex type, like an array of doubles:
 OK, so, what happened here?
 
 
-#. First, we imported the necessary types, **\ *ArrayType*\ ** and **\ *DoubleType*\ **\ , since we are building a function that returns a list of doubles.
-#. We actually built the function - notice that we call **\ *apply*\ ** straight from **\ *Fare*\ **\ , which is treated as a pandas Series under the hood.
-#. We **\ *wrap*\ ** the function with the return type ``ArrayType(DoubleType())`` by invoking the extended method ``ret``.
+#. First, we imported the necessary types, *ArrayType* and *DoubleType* , since we are building a function that returns a list of doubles.
+#. We actually built the function - notice that we call *apply* straight from *Fare* , which is treated as a pandas Series under the hood.
+#. We *wrap* the function with the return type ``ArrayType(DoubleType())`` by invoking the extended method ``ret``.
 #. Finally, we assign it to a new column name, and that's it!
 
 Nicer exceptions
 ^^^^^^^^^^^^^^^^
 
-Now, suppose you make a mistake while creating your function... if you have used Spark for a while, you already realized that, when an exception is raised, it will be **\ *loooong*\ **\ , right?
+Now, suppose you make a mistake while creating your function... if you have used Spark for a while, you already realized that, when an exception is raised, it will be *loooong* , right?
 
-To help you with that, **\ *HandySpark*\ ** analyzes the error message and parses it nicely for you at the very **\ *top*\ ** of the error message, in **\ *bold red*\ **\ :
+To help you with that, *HandySpark* analyzes the error message and parses it nicely for you at the very *top* of the error message, in *bold red* :
 
 
 .. image:: /images/handy_exception.png
@@ -531,9 +530,9 @@ To help you with that, **\ *HandySpark*\ ** analyzes the error message and parse
 Safety first
 ^^^^^^^^^^^^
 
-**\ *HandySpark*\ ** wants to protect your cluster and network, so it implements a **\ *safety*\ ** whenever you perform an operation that are going to retrieve **\ *ALL*\ ** data from your **\ *HandyFrame*\ **\ , like ``collect`` or ``toPandas``.
+*HandySpark* wants to protect your cluster and network, so it implements a *safety* whenever you perform an operation that are going to retrieve *ALL* data from your *HandyFrame* , like ``collect`` or ``toPandas``.
 
-How does that work? Every time a **\ *HandyFrame*\ ** has one of these methods called, it will output up to the **\ *safety limit*\ **\ , which has a default of **\ *1,000 elements*\ **.
+How does that work? Every time a *HandyFrame* has one of these methods called, it will output up to the *safety limit* , which has a default of *1,000 elements*.
 
 
 .. image:: /images/safety_on.png
@@ -541,7 +540,7 @@ How does that work? Every time a **\ *HandyFrame*\ ** has one of these methods c
    :alt: safety on
 
 
-Do you want to set a different safety limit for your **\ *HandyFrame*\ **\ ?
+Do you want to set a different safety limit for your *HandyFrame* ?
 
 
 .. image:: /images/safety_limit.png
@@ -549,7 +548,7 @@ Do you want to set a different safety limit for your **\ *HandyFrame*\ **\ ?
    :alt: safety limit
 
 
-What if you want to retrieve everything nonetheless?! You can invoke the **\ *safety_off*\ ** method prior to the actual method you want to call and you get a **\ *one-time*\ ** unlimited result.
+What if you want to retrieve everything nonetheless?! You can invoke the *safety_off* method prior to the actual method you want to call and you get a *one-time* unlimited result.
 
 
 .. image:: /images/safety_off.png
@@ -560,7 +559,7 @@ What if you want to retrieve everything nonetheless?! You can invoke the **\ *sa
 Don't feel like Handy anymore?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To get back your original Spark dataframe, you only need to call **\ *notHandy*\ ** to make it not handy again:
+To get back your original Spark dataframe, you only need to call *notHandy* to make it not handy again:
 
 .. code-block:: python
 
@@ -573,6 +572,6 @@ To get back your original Spark dataframe, you only need to call **\ *notHandy*\
 Comments, questions, suggestions, bugs
 --------------------------------------
 
-**\ *DISCLAIMER*\ **\ : this is a project **\ *under development*\ **\ , so it is likely you'll run into bugs/problems.
+*DISCLAIMER* : this is a project *under development* , so it is likely you'll run into bugs/problems.
 
 So, if you find any bugs/problems, please open an `issue <https://github.com/dvgodoy/handyspark/issues>`_ or submit a `pull request <https://github.com/dvgodoy/handyspark/pulls>`_.
