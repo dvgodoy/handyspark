@@ -33,16 +33,12 @@ pip install handyspark
 
 You can find the full documentation [here](http://dvgodoy.github.com/handyspark).
 
-Here is a ***handy*** list of some classes, objects and methods used:
+Here is a ***handy*** list of direct links to some classes, objects and methods used:
 
 - [HandyFrame](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.HandyFrame)
-
-  - Objects
   - [cols](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.dataframe.HandyColumns)
   - [pandas](https://dvgodoy.github.io/handyspark/handyspark.sql.html#handyspark.sql.pandas.HandyPandas)
   - [transformers](https://dvgodoy.github.io/handyspark/handyspark.ml.html#handyspark.ml.base.HandyTransformers)
-
-  - Methods
   - [isnull](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.isnull)
   - [fill](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.fill)
   - [outliers](https://dvgodoy.github.io/handyspark/handyspark.html#handyspark.HandyFrame.outliers)
