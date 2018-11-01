@@ -41,16 +41,15 @@
           <div class="body" role="main">
             
   <a class="reference external image-reference" href="https://travis-ci.org/dvgodoy/handyspark"><img alt="Build Status" src="https://travis-ci.org/dvgodoy/handyspark.svg?branch=master" /></a>
-<a class="reference external image-reference" href="http://handyspark.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="http://readthedocs.org/projects/handyspark/badge/?version=latest" /></a>
 <div class="section" id="handyspark">
 <h1>HandySpark<a class="headerlink" href="#handyspark" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="bringing-pandas-like-capabilities-to-spark-dataframes">
 <h2>Bringing pandas-like capabilities to Spark dataframes!<a class="headerlink" href="#bringing-pandas-like-capabilities-to-spark-dataframes" title="Permalink to this headline">¶</a></h2>
-<p><a href="#id1"><span class="problematic" id="id2">**</span></a><em>HandySpark</em>** is a package designed to improve <a href="#id3"><span class="problematic" id="id4">**</span></a><em>PySpark</em>** user experience, especially when it comes to <a href="#id5"><span class="problematic" id="id6">**</span></a><em>exploratory data analysis</em><a href="#id7"><span class="problematic" id="id8">**</span></a>, including <a href="#id9"><span class="problematic" id="id10">**</span></a><em>visualization</em>** capabilities!</p>
-<p>It makes fetching data or computing statistics for columns really easy, returning <a href="#id11"><span class="problematic" id="id12">**</span></a><em>pandas objects</em>** straight away.</p>
-<p>It also leverages on the recently released <a href="#id13"><span class="problematic" id="id14">**</span></a><em>pandas UDFs</em>** in Spark to allow for an out-of-the-box usage of common <a href="#id15"><span class="problematic" id="id16">**</span></a><em>pandas functions</em>** in a Spark dataframe.</p>
-<p>Moreover, it introduces the <a href="#id17"><span class="problematic" id="id18">**</span></a><em>stratify</em>** operation, so users can perform more sophisticated analysis, imputation and outlier detection on stratified data without incurring in very computationally expensive <a href="#id19"><span class="problematic" id="id20">**</span></a><em>groupby</em>** operations.</p>
-<p>Finally, it brings the long missing capability of <a href="#id21"><span class="problematic" id="id22">**</span></a><em>plotting</em>** data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don’t ever do that!).</p>
+<p><em>HandySpark</em> is a package designed to improve <em>PySpark</em> user experience, especially when it comes to <em>exploratory data analysis</em> , including <em>visualization</em> capabilities!</p>
+<p>It makes fetching data or computing statistics for columns really easy, returning <em>pandas objects</em> straight away.</p>
+<p>It also leverages on the recently released <em>pandas UDFs</em> in Spark to allow for an out-of-the-box usage of common <em>pandas functions</em> in a Spark dataframe.</p>
+<p>Moreover, it introduces the <em>stratify</em> operation, so users can perform more sophisticated analysis, imputation and outlier detection on stratified data without incurring in very computationally expensive <em>groupby</em> operations.</p>
+<p>Finally, it brings the long missing capability of <em>plotting</em> data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don’t ever do that!).</p>
 </div>
 <div class="section" id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Permalink to this headline">¶</a></h2>
@@ -62,7 +61,7 @@
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p>To install <a href="#id23"><span class="problematic" id="id24">**</span></a><em>HandySpark</em>** from <a class="reference external" href="https://pypi.org/project/handyspark/">PyPI</a>, just type:</p>
+<p>To install <em>HandySpark</em> from <a class="reference external" href="https://pypi.org/project/handyspark/">PyPI</a>, just type:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">handyspark</span>
 </pre></div>
 </div>
@@ -73,7 +72,7 @@
 </div>
 <div class="section" id="quick-start">
 <h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h2>
-<p>To use <a href="#id25"><span class="problematic" id="id26">**</span></a><em>HandySpark</em><a href="#id27"><span class="problematic" id="id28">**</span></a>, all you need to do is import the package and, after loading your data into a Spark dataframe, call the <a href="#id29"><span class="problematic" id="id30">**</span></a><em>toHandy()</em>** method to get your own <a href="#id31"><span class="problematic" id="id32">**</span></a><em>HandyFrame</em><a href="#id33"><span class="problematic" id="id34">**</span></a>:</p>
+<p>To use <em>HandySpark</em> , all you need to do is import the package and, after loading your data into a Spark dataframe, call the <em>toHandy()</em> method to get your own <em>HandyFrame</em> :</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="kn">import</span> <span class="n">SparkSession</span>
 <span class="n">spark</span> <span class="o">=</span> <span class="n">SparkSession</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
 
@@ -84,14 +83,14 @@
 </div>
 <div class="section" id="fetching-and-plotting-data">
 <h3>Fetching and plotting data<a class="headerlink" href="#fetching-and-plotting-data" title="Permalink to this headline">¶</a></h3>
-<p>Now you can easily fetch data as if you were using pandas, just use the <a href="#id35"><span class="problematic" id="id36">**</span></a><em>cols</em>** object from your <a href="#id37"><span class="problematic" id="id38">**</span></a><em>HandyFrame</em><a href="#id39"><span class="problematic" id="id40">**</span></a>:</p>
+<p>Now you can easily fetch data as if you were using pandas, just use the <em>cols</em> object from your <em>HandyFrame</em> :</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>It should return a pandas Series object:</p>
 <p>If you include a list of columns, it will return a pandas DataFrame.</p>
-<p>Due to the distributed nature of data in Spark, it is only possible to fetch the top rows of any given <a href="#id41"><span class="problematic" id="id42">**</span></a><em>HandyFrame</em><a href="#id43"><span class="problematic" id="id44">**</span></a>.</p>
-<p>Using <a href="#id45"><span class="problematic" id="id46">**</span></a><em>cols</em>** you have access to several pandas-like column and DataFrame based methods implemented in Spark:</p>
+<p>Due to the distributed nature of data in Spark, it is only possible to fetch the top rows of any given <em>HandyFrame</em>.</p>
+<p>Using <em>cols</em> you have access to several pandas-like column and DataFrame based methods implemented in Spark:</p>
 <ul class="simple">
 <li>min / max / median / q1 / q3 / stddev / mode</li>
 <li>nunique</li>
@@ -114,22 +113,22 @@
 </pre></div>
 </div>
 <a class="reference external image-reference" href="/images/cols_plot.png"><img alt="cols plots" src="images/cols_plot.png" /></a>
-<p>Handy, right (pun intended!)? But things can get <a href="#id47"><span class="problematic" id="id48">**</span></a><em>even more</em>** interesting if you use <a href="#id49"><span class="problematic" id="id50">**</span></a><em>stratify</em><a href="#id51"><span class="problematic" id="id52">**</span></a>!</p>
+<p>Handy, right (pun intended!)? But things can get <em>even more</em> interesting if you use <em>stratify</em> !</p>
 </div>
 <div class="section" id="stratify">
 <h3>Stratify<a class="headerlink" href="#stratify" title="Permalink to this headline">¶</a></h3>
-<p>Stratifying a HandyFrame means using a <a href="#id53"><span class="problematic" id="id54">**</span></a><em>split-apply-combine</em>** approach. It will first split your HandyFrame according to the specified (discrete) columns, then it will apply some function to each stratum of data and finally combine the results back together.</p>
+<p>Stratifying a HandyFrame means using a <em>split-apply-combine</em> approach. It will first split your HandyFrame according to the specified (discrete) columns, then it will apply some function to each stratum of data and finally combine the results back together.</p>
 <p>This is better illustrated with an example - let’s try the stratified version of our previous <code class="docutils literal"><span class="pre">value_counts</span></code>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf</span><span class="o">.</span><span class="n">stratify</span><span class="p">([</span><span class="s1">&#39;Pclass&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;Embarked&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>Cool, isn’t it? Besides, under the hood, not a single <a href="#id55"><span class="problematic" id="id56">**</span></a><em>group by</em>** operation was performed - everything is handled using filter clauses! So, <a href="#id57"><span class="problematic" id="id58">**</span></a><em>no data shuffling</em><a href="#id59"><span class="problematic" id="id60">**</span></a>!</p>
-<p>What if you want to <a href="#id61"><span class="problematic" id="id62">**</span></a><em>stratify</em>** on a column containing continuous values? No problem!</p>
+<p>Cool, isn’t it? Besides, under the hood, not a single <em>group by</em> operation was performed - everything is handled using filter clauses! So, <em>no data shuffling</em> !</p>
+<p>What if you want to <em>stratify</em> on a column containing continuous values? No problem!</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf</span><span class="o">.</span><span class="n">stratify</span><span class="p">([</span><span class="s1">&#39;Sex&#39;</span><span class="p">,</span> <span class="n">Bucket</span><span class="p">(</span><span class="s1">&#39;Age&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;Embarked&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>You can use either <a href="#id63"><span class="problematic" id="id64">**</span></a><em>Bucket</em>** or <a href="#id65"><span class="problematic" id="id66">**</span></a><em>Quantile</em>** to discretize your data in any given number of bins!</p>
-<p>What about <a href="#id67"><span class="problematic" id="id68">**</span></a><em>plotting</em>** it? Yes, <a href="#id69"><span class="problematic" id="id70">**</span></a><em>HandySpark</em>** can handle that as well!</p>
+<p>You can use either <em>Bucket</em> or <em>Quantile</em> to discretize your data in any given number of bins!</p>
+<p>What about <em>plotting</em> it? Yes, <em>HandySpark</em> can handle that as well!</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf</span><span class="o">.</span><span class="n">stratify</span><span class="p">([</span><span class="s1">&#39;Sex&#39;</span><span class="p">,</span> <span class="n">Bucket</span><span class="p">(</span><span class="s1">&#39;Age&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;Embarked&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -137,7 +136,7 @@
 </div>
 <div class="section" id="handling-missing-data">
 <h3>Handling missing data<a class="headerlink" href="#handling-missing-data" title="Permalink to this headline">¶</a></h3>
-<p><a href="#id71"><span class="problematic" id="id72">**</span></a><em>HandySpark</em>** makes it very easy to spot and fill missing values. To figure if there are any missing values, just use <a href="#id73"><span class="problematic" id="id74">**</span></a><em>isnull</em><a href="#id75"><span class="problematic" id="id76">**</span></a>:</p>
+<p><em>HandySpark</em> makes it very easy to spot and fill missing values. To figure if there are any missing values, just use <em>isnull</em> :</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">ratio</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -146,14 +145,14 @@
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_filled</span> <span class="o">=</span> <span class="n">hdf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">categorical</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Embarked&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
-<p><a href="#id77"><span class="problematic" id="id78">**</span></a><em>HandyFrame</em>** has a <a href="#id79"><span class="problematic" id="id80">**</span></a><em>fill</em>** method which takes up to 3 arguments:</p>
+<p><em>HandyFrame</em> has a <em>fill</em> method which takes up to 3 arguments:</p>
 <ul class="simple">
 <li>categorical: a list of categorical variables</li>
 <li>continuous: a list of continuous variables</li>
 <li>strategy: which strategy to use for each one of the continuous variables (either <code class="docutils literal"><span class="pre">mean</span></code> or <code class="docutils literal"><span class="pre">median</span></code>)</li>
 </ul>
 <p>Categorical variables use a <code class="docutils literal"><span class="pre">mode</span></code> strategy by default.</p>
-<p>But you do not need to stick with the basics anymore… you can fancy it up using <a href="#id81"><span class="problematic" id="id82">**</span></a><em>stratify</em>** together with <a href="#id83"><span class="problematic" id="id84">**</span></a><em>fill</em><a href="#id85"><span class="problematic" id="id86">**</span></a>:</p>
+<p>But you do not need to stick with the basics anymore… you can fancy it up using <em>stratify</em> together with <em>fill</em> :</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_filled</span> <span class="o">=</span> <span class="n">hdf_filled</span><span class="o">.</span><span class="n">stratify</span><span class="p">([</span><span class="s1">&#39;Pclass&#39;</span><span class="p">,</span> <span class="s1">&#39;Sex&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">continuous</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Age&#39;</span><span class="p">],</span> <span class="n">strategy</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -162,21 +161,21 @@
 </pre></div>
 </div>
 <p>There you go! The filter clauses and the corresponding imputation values!</p>
-<p>But there is <a href="#id87"><span class="problematic" id="id88">**</span></a><em>more</em>** - once you’re with your imputation procedure, why not generate a <a href="#id89"><span class="problematic" id="id90">**</span></a><em>custom transformer</em>** to do that for you, either on your test set or in production?</p>
-<p>You only need to call the <a href="#id91"><span class="problematic" id="id92">**</span></a><em>imputer</em>** method of the <a href="#id93"><span class="problematic" id="id94">**</span></a><em>transformer</em>** object that every <a href="#id95"><span class="problematic" id="id96">**</span></a><em>HandyFrame</em>** has:</p>
+<p>But there is <em>more</em> - once you’re with your imputation procedure, why not generate a <em>custom transformer</em> to do that for you, either on your test set or in production?</p>
+<p>You only need to call the <em>imputer</em> method of the <em>transformer</em> object that every <em>HandyFrame</em> has:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">imputer</span> <span class="o">=</span> <span class="n">hdf_filled</span><span class="o">.</span><span class="n">transformers</span><span class="o">.</span><span class="n">imputer</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>In the example above, <a href="#id97"><span class="problematic" id="id98">**</span></a><em>imputer</em>** is now a full-fledged serializable PySpark transformer! What does that mean? You can use it in your <a href="#id99"><span class="problematic" id="id100">**</span></a><em>pipeline</em>** and <a href="#id101"><span class="problematic" id="id102">**</span></a><em>save / load</em>** at will :-)</p>
+<p>In the example above, <em>imputer</em> is now a full-fledged serializable PySpark transformer! What does that mean? You can use it in your <em>pipeline</em> and <em>save / load</em> at will :-)</p>
 </div>
 <div class="section" id="detecting-outliers">
 <h3>Detecting outliers<a class="headerlink" href="#detecting-outliers" title="Permalink to this headline">¶</a></h3>
 <p>Second only to the problem of missing data, outliers can pose a challenge for training machine learning models.</p>
-<p><a href="#id103"><span class="problematic" id="id104">**</span></a><em>HandyFrame</em>** to the rescue, with its <a href="#id105"><span class="problematic" id="id106">**</span></a><em>outliers</em>** method:</p>
+<p><em>HandyFrame</em> to the rescue, with its <em>outliers</em> method:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_filled</span><span class="o">.</span><span class="n">outliers</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;tukey&#39;</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mf">3.</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Currently, only <a class="reference external" href="https://en.wikipedia.org/wiki/Outlier#Tukey's_fences">***Tukey’s***</a> method is available (I am working on Mahalanobis distance!). This method takes an optional <a href="#id107"><span class="problematic" id="id108">**</span></a><em>k</em>** argument, which you can set to larger values (like 3) to allow for a more loose detection.</p>
+<p>Currently, only <a class="reference external" href="https://en.wikipedia.org/wiki/Outlier#Tukey's_fences">*Tukey’s*</a> method is available (I am working on Mahalanobis distance!). This method takes an optional <em>k</em> argument, which you can set to larger values (like 3) to allow for a more loose detection.</p>
 <p>The good thing is, now we can take a peek at the data by plotting it:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">hdf_filled</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;Parch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -186,7 +185,7 @@
 </pre></div>
 </div>
 <a class="reference external image-reference" href="/images/outliers.png"><img alt="outliers" src="images/outliers.png" /></a>
-<p>Let’s focus on the <code class="docutils literal"><span class="pre">Fare</span></code> column - what can we do about it? Well, we could use Tukey’s fences to, er… <a href="#id109"><span class="problematic" id="id110">**</span></a><em>fence</em>** the outliers :-)</p>
+<p>Let’s focus on the <code class="docutils literal"><span class="pre">Fare</span></code> column - what can we do about it? Well, we could use Tukey’s fences to, er… <em>fence</em> the outliers :-)</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_fenced</span> <span class="o">=</span> <span class="n">hdf_filled</span><span class="o">.</span><span class="n">fence</span><span class="p">([</span><span class="s1">&#39;Fare&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -194,28 +193,28 @@
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_fenced</span><span class="o">.</span><span class="n">fences_</span>
 </pre></div>
 </div>
-<p>It works quite similarly to the <a href="#id111"><span class="problematic" id="id112">**</span></a><em>fill</em>** method and, I hope you guessed, it <a href="#id113"><span class="problematic" id="id114">**</span></a><em>also</em>** gives you the ability to create the corresponding <a href="#id115"><span class="problematic" id="id116">**</span></a><em>custom transformer</em>** :-)</p>
+<p>It works quite similarly to the <em>fill</em> method and, I hope you guessed, it <em>also</em> gives you the ability to create the corresponding <em>custom transformer</em> :-)</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">fencer</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">transformers</span><span class="o">.</span><span class="n">fencer</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="pandas-and-more-pandas">
 <h3>Pandas and more pandas!<a class="headerlink" href="#pandas-and-more-pandas" title="Permalink to this headline">¶</a></h3>
-<p>With <a href="#id117"><span class="problematic" id="id118">**</span></a><em>HandySpark</em>** you can feel <a href="#id119"><span class="problematic" id="id120">**</span></a><em>almost</em>** as if you were using traditional pandas :-)</p>
-<p>To gain access to the whole suite of available pandas functions, you need to leverage the <a href="#id121"><span class="problematic" id="id122">**</span></a><em>pandas</em>** object of your <a href="#id123"><span class="problematic" id="id124">**</span></a><em>HandyFrame</em><a href="#id125"><span class="problematic" id="id126">**</span></a>:</p>
+<p>With <em>HandySpark</em> you can feel <em>almost</em> as if you were using traditional pandas :-)</p>
+<p>To gain access to the whole suite of available pandas functions, you need to leverage the <em>pandas</em> object of your <em>HandyFrame</em> :</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">some_ports</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">pandas</span><span class="p">[</span><span class="s1">&#39;Embarked&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;Q&#39;</span><span class="p">])</span>
 <span class="n">some_ports</span>
 </pre></div>
 </div>
-<p>In the example above, <a href="#id127"><span class="problematic" id="id128">**</span></a><em>HandySpark</em>** treats the <code class="docutils literal"><span class="pre">Embarked</span></code> column as if it were a pandas Series and, therefore, you may call its <a href="#id129"><span class="problematic" id="id130">**</span></a><em>isin</em>** method!</p>
-<p>But, remember Spark has <a href="#id131"><span class="problematic" id="id132">**</span></a><em>lazy evaluation</em><a href="#id133"><span class="problematic" id="id134">**</span></a>, so the result is a <a href="#id135"><span class="problematic" id="id136">**</span></a><em>column expression</em>** which leverages the power of <a href="#id137"><span class="problematic" id="id138">**</span></a><em>pandas UDFs</em>** (provived that PyArrow is installed, otherwise it will fall back to traditional UDFs).</p>
-<p>The only thing left to do is to actually <a href="#id139"><span class="problematic" id="id140">**</span></a><em>assign</em>** the results to a new column, right?</p>
+<p>In the example above, <em>HandySpark</em> treats the <code class="docutils literal"><span class="pre">Embarked</span></code> column as if it were a pandas Series and, therefore, you may call its <em>isin</em> method!</p>
+<p>But, remember Spark has <em>lazy evaluation</em> , so the result is a <em>column expression</em> which leverages the power of <em>pandas UDFs</em> (provived that PyArrow is installed, otherwise it will fall back to traditional UDFs).</p>
+<p>The only thing left to do is to actually <em>assign</em> the results to a new column, right?</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_fenced</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">is_c_or_q</span><span class="o">=</span><span class="n">some_ports</span><span class="p">)</span>
 <span class="c1"># What&#39;s in there?</span>
 <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;is_c_or_q&#39;</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>You got that right! <a href="#id141"><span class="problematic" id="id142">**</span></a><em>HandyFrame</em>** has a very convenient <a href="#id143"><span class="problematic" id="id144">**</span></a><em>assign</em>** method, just like in pandas!</p>
+<p>You got that right! <em>HandyFrame</em> has a very convenient <em>assign</em> method, just like in pandas!</p>
 <p>It does not get much easier than that :-) There are several column methods available already:</p>
 <ul class="simple">
 <li>betweeen / between_time</li>
@@ -228,7 +227,7 @@
 <li>round / truncate</li>
 <li>tz_convert / tz_localize</li>
 </ul>
-<p>And this is not all! Both specialized <a href="#id145"><span class="problematic" id="id146">**</span></a><em>str</em>** and <a href="#id147"><span class="problematic" id="id148">**</span></a><em>dt</em>** objects from pandas are available as well!</p>
+<p>And this is not all! Both specialized <em>str</em> and <em>dt</em> objects from pandas are available as well!</p>
 <p>For instance, if you want to find if a given string contains another substring?</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">col_mrs</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">pandas</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="s1">&#39;Mrs.&#39;</span><span class="p">)</span>
 <span class="n">hdf_fenced</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">is_mrs</span><span class="o">=</span><span class="n">col_mrs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
@@ -236,8 +235,8 @@
 </div>
 <a class="reference external image-reference" href="/images/is_mrs.png"><img alt="is mrs" src="images/is_mrs.png" /></a>
 <p>There are many, many more available methods:</p>
+<p><em>String methods</em> :</p>
 <ol class="arabic simple">
-<li><a href="#id149"><span class="problematic" id="id150">**</span></a><em>String methods</em><a href="#id151"><span class="problematic" id="id152">**</span></a>:</li>
 <li>contains</li>
 <li>startswith / endswitch</li>
 <li>match</li>
@@ -256,13 +255,11 @@
 <li>lower / upper / capitalize / swapcase / title</li>
 <li>zfill</li>
 <li>count</li>
+<li>find / rfind</li>
+<li>len</li>
 </ol>
-<p>#. find / rfind
-#.</p>
-<blockquote>
-<div>len</div></blockquote>
+<p><em>Date / Datetime methods</em> :</p>
 <ol class="arabic simple">
-<li><a href="#id153"><span class="problematic" id="id154">**</span></a><em>Date / Datetime methods</em><a href="#id155"><span class="problematic" id="id156">**</span></a>:</li>
 <li>is_leap_year / is_month_end / is_month_start / is_quarter_end / is_quarter_start / is_year_end / is_year_start</li>
 <li>strftime</li>
 <li>tz / time / tz_convert / tz_localize</li>
@@ -278,7 +275,7 @@
 <div class="section" id="your-own-functions">
 <h3>Your own functions<a class="headerlink" href="#your-own-functions" title="Permalink to this headline">¶</a></h3>
 <p>The sky is the limit! You can create regular Python functions and use assign to create new columns :-)</p>
-<p>No need to worry about turning them into <a href="#id157"><span class="problematic" id="id158">**</span></a><em>pandas UDFs</em>** - everything is handled by <a href="#id159"><span class="problematic" id="id160">**</span></a><em>HandySpark</em>** under the hood!</p>
+<p>No need to worry about turning them into <em>pandas UDFs</em> - everything is handled by <em>HandySpark</em> under the hood!</p>
 <p>The arguments of your function (or <code class="docutils literal"><span class="pre">lambda</span></code>) should have the names of the columns you want to use. For instance, to take the <code class="docutils literal"><span class="pre">log</span></code> of <code class="docutils literal"><span class="pre">Fare</span></code>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="n">hdf_fenced</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">logFare</span><span class="o">=</span><span class="k">lambda</span> <span class="n">Fare</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Fare</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
@@ -290,8 +287,8 @@
 </pre></div>
 </div>
 <p>Even though the result is kinda pointless, it will work :-)</p>
-<p>Keep in mind that the <a href="#id161"><span class="problematic" id="id162">**</span></a><em>return type</em><a href="#id163"><span class="problematic" id="id164">**</span></a>, that is, the column type of the new column, will be the same as the first column used (<code class="docutils literal"><span class="pre">Fare</span></code>, in the example).</p>
-<p>What if you want to return something of a <a href="#id165"><span class="problematic" id="id166">**</span></a><em>different</em>** type?! No worries! You only need to <a href="#id167"><span class="problematic" id="id168">**</span></a><em>wrap</em>** your function with the desired return type. An example should make this more clear:</p>
+<p>Keep in mind that the <em>return type</em> , that is, the column type of the new column, will be the same as the first column used (<code class="docutils literal"><span class="pre">Fare</span></code>, in the example).</p>
+<p>What if you want to return something of a <em>different</em> type?! No worries! You only need to <em>wrap</em> your function with the desired return type. An example should make this more clear:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="kn">import</span> <span class="n">StringType</span>
 
 <span class="n">hdf_fenced</span> <span class="o">=</span> <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">str_fare</span><span class="o">=</span><span class="n">StringType</span><span class="o">.</span><span class="n">ret</span><span class="p">(</span><span class="k">lambda</span> <span class="n">Fare</span><span class="p">:</span> <span class="n">Fare</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s1">&#39;${:,.2f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">)))</span>
@@ -299,7 +296,7 @@
 <span class="n">hdf_fenced</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;str_fare&#39;</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>Basically, we imported the desired output type - <a href="#id169"><span class="problematic" id="id170">**</span></a><em>StringType</em>** - and used its extended method <a href="#id171"><span class="problematic" id="id172">**</span></a><em>ret</em>** to wrap our <code class="docutils literal"><span class="pre">lambda</span></code> function that formats our numeric <code class="docutils literal"><span class="pre">Fare</span></code> column into a string.</p>
+<p>Basically, we imported the desired output type - <em>StringType</em> - and used its extended method <em>ret</em> to wrap our <code class="docutils literal"><span class="pre">lambda</span></code> function that formats our numeric <code class="docutils literal"><span class="pre">Fare</span></code> column into a string.</p>
 <p>It is also possible to create a more complex type, like an array of doubles:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="kn">import</span> <span class="n">ArrayType</span><span class="p">,</span> <span class="n">DoubleType</span>
 
@@ -313,31 +310,31 @@
 </div>
 <p>OK, so, what happened here?</p>
 <ol class="arabic simple">
-<li>First, we imported the necessary types, <a href="#id173"><span class="problematic" id="id174">**</span></a><em>ArrayType</em>** and <a href="#id175"><span class="problematic" id="id176">**</span></a><em>DoubleType</em><a href="#id177"><span class="problematic" id="id178">**</span></a>, since we are building a function that returns a list of doubles.</li>
-<li>We actually built the function - notice that we call <a href="#id179"><span class="problematic" id="id180">**</span></a><em>apply</em>** straight from <a href="#id181"><span class="problematic" id="id182">**</span></a><em>Fare</em><a href="#id183"><span class="problematic" id="id184">**</span></a>, which is treated as a pandas Series under the hood.</li>
-<li>We <a href="#id185"><span class="problematic" id="id186">**</span></a><em>wrap</em>** the function with the return type <code class="docutils literal"><span class="pre">ArrayType(DoubleType())</span></code> by invoking the extended method <code class="docutils literal"><span class="pre">ret</span></code>.</li>
+<li>First, we imported the necessary types, <em>ArrayType</em> and <em>DoubleType</em> , since we are building a function that returns a list of doubles.</li>
+<li>We actually built the function - notice that we call <em>apply</em> straight from <em>Fare</em> , which is treated as a pandas Series under the hood.</li>
+<li>We <em>wrap</em> the function with the return type <code class="docutils literal"><span class="pre">ArrayType(DoubleType())</span></code> by invoking the extended method <code class="docutils literal"><span class="pre">ret</span></code>.</li>
 <li>Finally, we assign it to a new column name, and that’s it!</li>
 </ol>
 </div>
 <div class="section" id="nicer-exceptions">
 <h3>Nicer exceptions<a class="headerlink" href="#nicer-exceptions" title="Permalink to this headline">¶</a></h3>
-<p>Now, suppose you make a mistake while creating your function… if you have used Spark for a while, you already realized that, when an exception is raised, it will be <a href="#id187"><span class="problematic" id="id188">**</span></a><em>loooong</em><a href="#id189"><span class="problematic" id="id190">**</span></a>, right?</p>
-<p>To help you with that, <a href="#id191"><span class="problematic" id="id192">**</span></a><em>HandySpark</em>** analyzes the error message and parses it nicely for you at the very <a href="#id193"><span class="problematic" id="id194">**</span></a><em>top</em>** of the error message, in <a href="#id195"><span class="problematic" id="id196">**</span></a><em>bold red</em><a href="#id197"><span class="problematic" id="id198">**</span></a>:</p>
+<p>Now, suppose you make a mistake while creating your function… if you have used Spark for a while, you already realized that, when an exception is raised, it will be <em>loooong</em> , right?</p>
+<p>To help you with that, <em>HandySpark</em> analyzes the error message and parses it nicely for you at the very <em>top</em> of the error message, in <em>bold red</em> :</p>
 <a class="reference external image-reference" href="/images/handy_exception.png"><img alt="exception" src="images/handy_exception.png" /></a>
 </div>
 <div class="section" id="safety-first">
 <h3>Safety first<a class="headerlink" href="#safety-first" title="Permalink to this headline">¶</a></h3>
-<p><a href="#id199"><span class="problematic" id="id200">**</span></a><em>HandySpark</em>** wants to protect your cluster and network, so it implements a <a href="#id201"><span class="problematic" id="id202">**</span></a><em>safety</em>** whenever you perform an operation that are going to retrieve <a href="#id203"><span class="problematic" id="id204">**</span></a><em>ALL</em>** data from your <a href="#id205"><span class="problematic" id="id206">**</span></a><em>HandyFrame</em><a href="#id207"><span class="problematic" id="id208">**</span></a>, like <code class="docutils literal"><span class="pre">collect</span></code> or <code class="docutils literal"><span class="pre">toPandas</span></code>.</p>
-<p>How does that work? Every time a <a href="#id209"><span class="problematic" id="id210">**</span></a><em>HandyFrame</em>** has one of these methods called, it will output up to the <a href="#id211"><span class="problematic" id="id212">**</span></a><em>safety limit</em><a href="#id213"><span class="problematic" id="id214">**</span></a>, which has a default of <a href="#id215"><span class="problematic" id="id216">**</span></a><em>1,000 elements</em><a href="#id217"><span class="problematic" id="id218">**</span></a>.</p>
+<p><em>HandySpark</em> wants to protect your cluster and network, so it implements a <em>safety</em> whenever you perform an operation that are going to retrieve <em>ALL</em> data from your <em>HandyFrame</em> , like <code class="docutils literal"><span class="pre">collect</span></code> or <code class="docutils literal"><span class="pre">toPandas</span></code>.</p>
+<p>How does that work? Every time a <em>HandyFrame</em> has one of these methods called, it will output up to the <em>safety limit</em> , which has a default of <em>1,000 elements</em>.</p>
 <a class="reference external image-reference" href="/images/safety_on.png"><img alt="safety on" src="images/safety_on.png" /></a>
-<p>Do you want to set a different safety limit for your <a href="#id219"><span class="problematic" id="id220">**</span></a><em>HandyFrame</em><a href="#id221"><span class="problematic" id="id222">**</span></a>?</p>
+<p>Do you want to set a different safety limit for your <em>HandyFrame</em> ?</p>
 <a class="reference external image-reference" href="/images/safety_limit.png"><img alt="safety limit" src="images/safety_limit.png" /></a>
-<p>What if you want to retrieve everything nonetheless?! You can invoke the <a href="#id223"><span class="problematic" id="id224">**</span></a><em>safety_off</em>** method prior to the actual method you want to call and you get a <a href="#id225"><span class="problematic" id="id226">**</span></a><em>one-time</em>** unlimited result.</p>
+<p>What if you want to retrieve everything nonetheless?! You can invoke the <em>safety_off</em> method prior to the actual method you want to call and you get a <em>one-time</em> unlimited result.</p>
 <a class="reference external image-reference" href="/images/safety_off.png"><img alt="safety off" src="images/safety_off.png" /></a>
 </div>
 <div class="section" id="don-t-feel-like-handy-anymore">
 <h3>Don’t feel like Handy anymore?<a class="headerlink" href="#don-t-feel-like-handy-anymore" title="Permalink to this headline">¶</a></h3>
-<p>To get back your original Spark dataframe, you only need to call <a href="#id227"><span class="problematic" id="id228">**</span></a><em>notHandy</em>** to make it not handy again:</p>
+<p>To get back your original Spark dataframe, you only need to call <em>notHandy</em> to make it not handy again:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">hdf_fenced</span><span class="o">.</span><span class="n">notHandy</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -345,7 +342,7 @@
 </div>
 <div class="section" id="comments-questions-suggestions-bugs">
 <h2>Comments, questions, suggestions, bugs<a class="headerlink" href="#comments-questions-suggestions-bugs" title="Permalink to this headline">¶</a></h2>
-<p><a href="#id229"><span class="problematic" id="id230">**</span></a><em>DISCLAIMER</em><a href="#id231"><span class="problematic" id="id232">**</span></a>: this is a project <a href="#id233"><span class="problematic" id="id234">**</span></a><em>under development</em><a href="#id235"><span class="problematic" id="id236">**</span></a>, so it is likely you’ll run into bugs/problems.</p>
+<p><em>DISCLAIMER</em> : this is a project <em>under development</em> , so it is likely you’ll run into bugs/problems.</p>
 <p>So, if you find any bugs/problems, please open an <a class="reference external" href="https://github.com/dvgodoy/handyspark/issues">issue</a> or submit a <a class="reference external" href="https://github.com/dvgodoy/handyspark/pulls">pull request</a>.</p>
 </div>
 </div>

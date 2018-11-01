@@ -510,7 +510,7 @@ they are simply assigned.</td>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>df</strong> – A new HandyFrame with the new columns in addition to
 all the existing columns.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#handyspark.HandyFrame" title="handyspark.HandyFrame">HandyFrame</a></td>
 </tr>
 </tbody>
 </table>
@@ -559,7 +559,7 @@ To get original <cite>collect</cite> behavior, call <code class="docutils litera
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing Vector or Array elements.</li>
+<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a>) – Column containing Vector or Array elements.</li>
 <li><strong>new_colnames</strong> (<em>list of string</em><em>, </em><em>optional</em>) – Default is None, column names are generated using a sequentially
 generated suffix (e.g., _0, _1, etc.) for <code class="docutils literal"><span class="pre">colname</span></code>.
 If informed, it must have as many column names as elements
@@ -571,7 +571,7 @@ in the shortest vector/array of <code class="docutils literal"><span class="pre"
 all the existing columns.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.HandyFrame" title="handyspark.HandyFrame">HandyFrame</a></p>
 </td>
 </tr>
 </tbody>
@@ -600,7 +600,7 @@ Default is 1.5 (corresponding to Tukey’s outlier, use 3 for “far out” valu
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with capped outliers.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.HandyFrame" title="handyspark.HandyFrame">HandyFrame</a></p>
 </td>
 </tr>
 </tbody>
@@ -639,7 +639,7 @@ each one of the continuous columns.</li>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>df</strong> – A new HandyFrame with filled missing values.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyFrame" title="handyspark.sql.dataframe.HandyFrame">HandyFrame</a></p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.HandyFrame" title="handyspark.HandyFrame">HandyFrame</a></p>
 </td>
 </tr>
 </tbody>
@@ -722,7 +722,7 @@ the specified method for all columns.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>ratio</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, returns proportion instead of counts.
 Default is True.</li>
-<li><strong>method</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Method used to detect outliers. Currently, only Tukey’s method is supported.
+<li><strong>method</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a><em>, </em><em>optional</em>) – Method used to detect outliers. Currently, only Tukey’s method is supported.
 Default is tukey.</li>
 </ul>
 </td>
@@ -773,7 +773,7 @@ Default is tukey.</li>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a>) – </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
 </tr>
@@ -833,9 +833,9 @@ into a RDD suited for use with <code class="docutils literal"><span class="pre">
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>prob_col</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing Vectors of probabilities.
+<li><strong>prob_col</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing Vectors of probabilities.
 Default is ‘probability’.</li>
-<li><strong>label_col</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing labels.
+<li><strong>label_col</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a><em>, </em><em>optional</em>) – Column containing labels.
 Default is ‘label’.</li>
 </ul>
 </td>
@@ -884,7 +884,7 @@ to perform stratification.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a>) – Column containing continuous values</li>
 <li><strong>bins</strong> (<em>integer</em>) – Number of equal sized bins to map original values to.</li>
 </ul>
 </td>
@@ -892,7 +892,7 @@ to perform stratification.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>bucket</strong> – Bucket object to be used as column in stratification.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.Bucket" title="handyspark.sql.dataframe.Bucket">Bucket</a></p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#handyspark.Bucket" title="handyspark.Bucket">Bucket</a></p>
 </td>
 </tr>
 </tbody>
@@ -915,7 +915,7 @@ to perform stratification.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#module-handyspark.sql.string" title="handyspark.sql.string"><em>string</em></a>) – Column containing continuous values</li>
+<li><strong>colname</strong> (<a class="reference internal" href="handyspark.sql.html#handyspark.sql.dataframe.HandyColumns.string" title="handyspark.sql.dataframe.HandyColumns.string"><em>string</em></a>) – Column containing continuous values</li>
 <li><strong>bins</strong> (<em>integer</em>) – Number of quantiles to map original values to.</li>
 </ul>
 </td>
