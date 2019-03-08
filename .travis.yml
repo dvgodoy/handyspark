@@ -31,4 +31,4 @@ install:
   - echo "spark.yarn.jars=$SPARK_HOME/jars/*.jar" > $SPARK_HOME/conf/spark-defaults.conf
   - pip install -r requirements.txt
 script:
-  - pytest ./handyspark/tests
+  - pytest ./tests
