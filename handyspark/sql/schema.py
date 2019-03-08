@@ -22,20 +22,22 @@ _mapping = {str: 'string',
             tuple: 'array',
             dict: 'map'}
 
-def generate_schema(colnames, coltypes, nullables=None):
+def generate_schema(columns, nullable_columns='all'):
     """
     Parameters
     ----------
-    colnames: list of string
-    coltypes: list of type
-    nullables: list of boolean, optional
+    columns: dict of column names (keys) and types (values)
+    nullables: list of nullable columns, optional, default is 'all'
 
     Returns
     -------
     schema: StructType
         Spark DataFrame schema corresponding to Python/numpy types.
     """
-    assert len(colnames) == len(coltypes), "You must specify types for all columns."
+    columns = sorted(columns.items())
+    colnames = list(map(itemgetter(0), columns))
+    coltypes = list(map(itemgetter(1), columns))
+
     invalid_types = []
     new_types = []
     keys = list(map(itemgetter(0), list(_mapping.items())))
@@ -49,8 +51,10 @@ def generate_schema(colnames, coltypes, nullables=None):
                 new_types.append(keys[keys.index(coltype)])
     assert len(invalid_types) == 0, "Invalid type(s) specified: {}".format(str(invalid_types))
 
-    if nullables is None:
+    if nullable_columns == 'all':
         nullables = [True] * len(colnames)
+    else:
+        nullables = [col in nullable_columns for col in colnames]
 
     fields = [{"metadata": {}, "name": name, "nullable": nullable, "type": _mapping[typ]}
               for name, typ, nullable in zip(colnames, new_types, nullables)]

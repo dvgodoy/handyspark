@@ -2,7 +2,7 @@ from math import isnan, isinf
 import pandas as pd
 from pyspark.ml.linalg import DenseVector
 from pyspark.rdd import RDD
-from pyspark.sql import functions as F, DataFrame
+from pyspark.sql import functions as F, DataFrame, Row
 from pyspark.sql.types import ArrayType, DoubleType, StructType, StructField
 from pyspark.mllib.common import _java2py, _py2java
 import traceback
@@ -140,16 +140,12 @@ def get_buckets(rdd, buckets):
 def dense_to_array(sdf, colname, new_colname):
     """Casts a Vector column into a new Array column.
     """
-    sql_ctx = sdf.sql_ctx
     # Gets type of original column
     coltype = sdf.notHandy().select(colname).dtypes[0][1]
     # If it is indeed a vector...
     if coltype == 'vector':
-        idx = sdf.columns.index(colname)
-        schema = StructType(sdf.schema.fields + [StructField(new_colname, ArrayType(DoubleType()), True)])
-        res = sql_ctx.createDataFrame(sdf.rdd.map(tuple)
-                                      .map(lambda t: t + (DenseVector(t[idx]).values.tolist(),)),
-                                      schema=schema)
+        newrow = Row(*sdf.columns, new_colname)
+        res = sdf.rdd.map(lambda row: newrow(*row, row[colname].values.tolist())).toDF(sdf.columns + [new_colname])
     # Otherwise just copy the original column into a new one
     else:
         res = sdf.withColumn(new_colname, F.col(colname))

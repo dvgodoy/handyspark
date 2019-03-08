@@ -13,8 +13,10 @@ def test_confusion_matrix(sdf):
     rf = RandomForestClassifier(featuresCol='features', labelCol='Survived', numTrees=20)
     pipeline = Pipeline(stages=[assem, rf])
     model = pipeline.fit(sdf.fillna(0.0))
-    predictions = model.transform(sdf.fillna(0.0)).toHandy().to_metrics_RDD('probability', 'Survived')
-    bcm = BinaryClassificationMetrics(predictions)
+    predictions = model.transform(sdf.fillna(0.0)).select('probability', 'Survived')
+    bcm = BinaryClassificationMetrics(predictions, scoreCol='probability', labelCol='Survived')
+
+    predictions = predictions.toHandy().to_metrics_RDD('probability', 'Survived')
     predictions = np.array(predictions.collect())
 
     scm = bcm.confusionMatrix().toArray()
@@ -30,10 +32,11 @@ def test_get_metrics_by_threshold(sdf):
     rf = RandomForestClassifier(featuresCol='features', labelCol='Survived', numTrees=20, seed=13)
     pipeline = Pipeline(stages=[assem, rf])
     model = pipeline.fit(sdf.fillna(0.0))
-    predictions = model.transform(sdf.fillna(0.0)).toHandy().to_metrics_RDD('probability', 'Survived')
-    bcm = BinaryClassificationMetrics(predictions)
+    predictions = model.transform(sdf.fillna(0.0)).select('probability', 'Survived')
+    bcm = BinaryClassificationMetrics(predictions, scoreCol='probability', labelCol='Survived')
     metrics = bcm.getMetricsByThreshold()
 
+    predictions = predictions.toHandy().to_metrics_RDD('probability', 'Survived')
     predictions = np.array(predictions.collect())
 
     pr = np.array(bcm.pr().collect())

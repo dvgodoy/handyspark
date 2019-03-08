@@ -72,46 +72,34 @@ class HandyImputer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWri
         # Loads dictionary with values for imputation
         fillingValues = self.getDictValues()
 
-        joined_df = None
-        fill_dict = {}
-        clauses = []
         items = fillingValues.items()
-        # Loops over items...
-        for k, v in items:
+        target = dataset
+        # Loops over columns...
+        for colname, v in items:
             # If value is another dictionary, it means we're dealing with
             # stratified imputation - the key is the filering clause
-            # and the value is the dictionary {column: value}
+            # and its value is going to be used for imputation
             if isinstance(v, dict):
-                clauses.append(k)
-                # Filters dataset according to clause and fills missing values
-                strat_df = dataset.filter(k).fillna(v)
-                # Rejoins the filtered datasets back together
-                joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
+                clauses = v.keys()
+                whens = ' '.join(['WHEN (({clause}) AND (isnan({col}) OR isnull({col}))) THEN {quote}{filling}{quote}'
+                                 .format(clause=clause, col=colname, filling=v[clause],
+                                         quote='"' if isinstance(v[clause], str) else '')
+                                   for clause in clauses])
+            # Otherwise uses the non-stratified dictionary to fill the values
+            else:
+                whens = ('WHEN (isnan({col}) OR isnull({col})) THEN {quote}{filling}{quote}'
+                         .format(col=colname, filling=v,
+                                 quote='"' if isinstance(v, str) else ''))
 
-        # It could happen that not all rows were handled - unseen values, for instance
-        # So, the remainder rows are also rejoined to the resulting DataFrame
-        if len(clauses):
-            remainder = dataset.filter('not ({})'.format(' or '.join(map(lambda v: '({})'.format(v), clauses))))
-            joined_df = joined_df.unionAll(remainder)
-
-        # Time to check all items that are NOT stratified and build a dictionary for them
-        for k, v in items:
-            if not isinstance(v, dict):
-                fill_dict.update({k: v})
-
-        # If there was no stratified filling, assumes the original dataset
-        if joined_df is None:
-            joined_df = dataset
-
-        # Finally, uses the non-stratified dictionary to fill remaining values
-        res = joined_df.na.fill(fill_dict)
+            expression = F.expr('CASE {expr} ELSE {col} END'.format(expr=whens, col=colname))
+            target = target.withColumn(colname, expression)
 
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy()
+            target = target.notHandy()
         except AttributeError:
             pass
-        return res
+        return target
 
     @property
     def statistics(self):
@@ -127,60 +115,41 @@ class HandyFencer(Transformer, HasDict, DefaultParamsReadable, DefaultParamsWrit
         The fence values for each feature. If stratified, first level keys are
         filter clauses for stratification.
     """
-    @staticmethod
-    def __fence(df, values):
-        colname, (lfence, ufence) = list(values.items())[0]
-        # Generates two columns, for lower and upper fences
-        # and then applies `greatest` and `least` functions
-        # to effectively fence the values.
-        return (df.withColumn('__fence', F.lit(lfence))
-                .withColumn(colname, F.greatest(colname, '__fence'))
-                .withColumn('__fence', F.lit(ufence))
-                .withColumn(colname, F.least(colname, '__fence'))
-                .drop('__fence'))
-
     def _transform(self, dataset):
-        columns = dataset.columns
         # Loads dictionary with values for fencing
         fences = self.getDictValues()
-        items = fences.items()
 
-        joined_df = None
-        clauses = []
-        # Loops over items...
-        for k, v in items:
+        items = fences.items()
+        target = dataset
+        for colname, v in items:
             # If value is another dictionary, it means we're dealing with
             # stratified imputation - the key is the filering clause
-            # and the value is the dictionary {column: value}
+            # and its value is going to be used for imputation
             if isinstance(v, dict):
-                clauses.append(k)
-                # Filters dataset according to clause and applies fencing
-                strat_df = HandyFencer.__fence(dataset.filter(k), v)
-                # Rejoins the filtered datasets back together
-                joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
+                clauses = v.keys()
+                whens1 = ' '.join(['WHEN ({clause}) THEN greatest({col}, {fence})'.format(clause=clause,
+                                                                                          col=colname,
+                                                                                          fence=v[clause][0])
+                                   for clause in clauses])
+                whens2 = ' '.join(['WHEN ({clause}) THEN least({col}, {fence})'.format(clause=clause,
+                                                                                       col=colname,
+                                                                                       fence=v[clause][1])
+                                   for clause in clauses])
+                expression1 = F.expr('CASE {} END'.format(whens1))
+                expression2 = F.expr('CASE {} END'.format(whens2))
+            # Otherwise uses the non-stratified dictionary to fill the values
+            else:
+                expression1 = F.expr('greatest({col}, {fence})'.format(col=colname, fence=v[0]))
+                expression2 = F.expr('least({col}, {fence})'.format(col=colname, fence=v[1]))
 
-        # It could happen that not all rows were handled - unseen values, for instance
-        # So, the remainder rows are also rejoined to the resulting DataFrame
-        if len(clauses):
-            remainder = dataset.filter('not ({})'.format(' or '.join(map(lambda v: '({})'.format(v), clauses))))
-            joined_df = joined_df.unionAll(remainder)
+            target = target.withColumn(colname, expression1).withColumn(colname, expression2)
 
-        # If there was no stratified filling, assumes the original dataset
-        if joined_df is None:
-            joined_df = dataset
-
-        # Time to check all items that are NOT stratified and apply fencing to them
-        for k, v in items:
-            if not isinstance(v, dict):
-                joined_df = HandyFencer.__fence(joined_df, {k: v})
-
-        res = joined_df.select(columns)
         # If it is a HandyFrame, make it a regular DataFrame
         try:
-            res = res.notHandy()
+            target = target.notHandy()
         except AttributeError:
             pass
-        return res
+        return target
 
     @property
     def fences(self):

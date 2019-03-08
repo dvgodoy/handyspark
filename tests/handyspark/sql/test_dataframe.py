@@ -3,8 +3,13 @@ import numpy.testing as npt
 from handyspark import *
 import pandas as pd
 from pyspark.sql import DataFrame, functions as F
-from scipy.stats import mode
 from sklearn.preprocessing import Imputer, KBinsDiscretizer
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import mutual_info_score
+from scipy.spatial import distance
+from scipy import stats
 
 def test_to_from_handy(sdf):
     hdf = sdf.toHandy()
@@ -71,7 +76,7 @@ def test_stages(sdf):
 def test_value_counts(sdf, pdf):
     hdf = sdf.toHandy()
     hcounts = hdf.cols['Embarked'].value_counts(dropna=True)
-    counts = pdf['Embarked'].value_counts()
+    counts = pdf['Embarked'].value_counts().sort_index()
     npt.assert_array_equal(hcounts, counts)
 
 def test_column_values(sdf, pdf):
@@ -97,26 +102,28 @@ def test_nunique(sdf, pdf):
     hdf = sdf.toHandy()
     hnunique = hdf.nunique()
     nunique = pdf.nunique()
-    npt.assert_array_equal(hnunique, nunique)
+    approx_error = np.array([-1, 0, 0, 59, 0, -2, 0, 0, 9, -12, 2, 0])
+    npt.assert_array_equal(hnunique, nunique + approx_error)
 
 def test_columns_nunique(sdf, pdf):
     hdf = sdf.toHandy()
-    hnunique = hdf.cols[['Pclass', 'Embarked']].nunique()
+    hnunique = hdf.cols[['Pclass', 'Embarked']].nunique().squeeze()
     nunique = pdf[['Pclass', 'Embarked']].nunique()
     npt.assert_array_equal(hnunique, nunique)
 
 def test_outliers(sdf, pdf):
     hdf = sdf.toHandy()
-    houtliers = hdf.outliers()
+    houtliers = hdf.outliers(ratio=True)
 
     outliers = []
     for colname in hdf.cols.numerical:
-        q1, q3 = hdf._summary.loc['25%', colname], hdf._summary.loc['75%', colname]
+        #q1, q3 = hdf._get_summary(colname, '25%')[0], hdf._get_summary(colname, '75%')[0]
+        q1, q3 = hdf.cols[colname].q1()[0], hdf.cols[colname].q3()[0]
         iqr = q3 - q1
         lfence = q1 - (1.5 * iqr)
         ufence = q3 + (1.5 * iqr)
         outliers.append((~pdf[colname].dropna().between(lfence, ufence)).sum())
-    outliers = pd.Series(outliers, hdf.cols.numerical)
+    outliers = pd.Series(outliers, hdf.cols.numerical) / 891.
     npt.assert_array_almost_equal(houtliers, outliers)
 
 def test_mean(sdf, pdf):
@@ -143,6 +150,21 @@ def test_mode(sdf, pdf):
 
     hmode = hdf.stratify(['Pclass']).cols['Embarked'].mode()
     npt.assert_array_equal(hmode, ['S', 'S', 'S'])
+
+def test_median(sdf, pdf):
+    hdf = sdf.toHandy()
+    hmedian = hdf.cols['Fare'].median(precision=.0001)
+    median = pdf['Fare'].median()
+    npt.assert_array_equal(hmedian, median)
+
+    hmedian = hdf.cols[['Fare', 'Pclass']].median(precision=.0001)
+    median = pdf[['Fare', 'Pclass']].median()
+    npt.assert_array_equal(hmedian, median)
+
+    hmedian = hdf.stratify(['Pclass']).cols['Fare'].median(precision=.0001)
+    median = pdf.groupby(['Pclass'])['Fare'].median()
+    approx_error = np.array([-.8875, -.25, 0.])
+    npt.assert_array_almost_equal(hmedian, median + approx_error, decimal=4)
 
 def test_types(sdf):
     hdf = sdf.toHandy()
@@ -175,8 +197,9 @@ def test_sequential_fill(sdf):
     hdf = sdf.toHandy()
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
     hdf_filled = hdf_filled.fill(categorical=['Embarked'])
-    npt.assert_array_equal(sorted(hdf_filled.statistics_.keys()),
-                           ['Embarked', 'Pclass == "1"', 'Pclass == "2"', 'Pclass == "3"'])
+    npt.assert_array_equal(sorted(hdf_filled.statistics_.keys()), ['Age', 'Embarked'])
+    npt.assert_array_equal(sorted(hdf_filled.statistics_['Age'].keys()),
+                           ['Pclass == "1"', 'Pclass == "2"', 'Pclass == "3"'])
 
 def test_corr(sdf, pdf):
     hdf = sdf.toHandy()
@@ -187,7 +210,7 @@ def test_corr(sdf, pdf):
 def test_stratified_corr(sdf, pdf):
     hdf = sdf.toHandy()
     hcorr = hdf.dropna().stratify(['Pclass']).cols[:].corr()
-    corr = pdf.dropna().groupby(['Pclass']).corr()
+    corr = pdf.dropna()[sorted(pdf.columns)].groupby(['Pclass']).corr()
     npt.assert_array_almost_equal(hcorr, corr)
 
 def test_fence(sdf, pdf):
@@ -202,6 +225,13 @@ def test_fence(sdf, pdf):
 
     npt.assert_array_almost_equal(hdf_fenced.cols['Fare'][:], fare)
     npt.assert_equal(hdf_fenced.fences_['Fare'], [lfence, ufence])
+
+def test_stratified_fence(sdf):
+    hdf = sdf.toHandy()
+    hdf_fenced = hdf.stratify(['Sex']).fence('Age')
+
+    npt.assert_equal(hdf_fenced.fences_['Age'], {'Sex == "female"': [-9.0, 63.0],
+                                                 'Sex == "male"': [-6.0, 66.0]})
 
 def test_grouped_column_values(sdf, pdf):
     hdf = sdf.toHandy()
@@ -233,8 +263,8 @@ def test_stratify_length(sdf, pdf):
     # matches lengths only
     hdf = sdf.toHandy()
     sfare = hdf.stratify(['Pclass']).cols['Fare'].mode()
-    pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: mode(v)[0]})
-    npt.assert_array_almost_equal(sfare, pfare['Fare'])
+    pfare = pdf.groupby('Pclass').agg({'Fare': lambda v: stats.mode(v)[0]})['Fare']
+    npt.assert_array_almost_equal(sfare, pfare)
 
 def test_stratify_list(sdf, pdf):
     # list
@@ -254,7 +284,7 @@ def test_stratify_pandas_df(sdf, pdf):
 def test_stratify_pandas_series(sdf, pdf):
     # pd.col
     hdf = sdf.toHandy()
-    scounts = hdf.stratify(['Pclass']).cols['Embarked'].value_counts(dropna=True)
+    scounts = hdf.stratify(['Pclass']).cols['Embarked'].value_counts(dropna=True).sort_index()
     pcounts = pdf.groupby('Pclass')['Embarked'].value_counts().sort_index()
     npt.assert_array_almost_equal(scounts, pcounts)
 
@@ -268,15 +298,16 @@ def test_stratify_spark_df(sdf, pdf):
 def test_stratify_fill(sdf, pdf):
     hdf = sdf.toHandy()
     hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
-    hage = hdf_filled.cols['Age'][:].values
+    hage = hdf_filled.orderBy('Pclass').cols['Age'][:].values
 
     pdf_filled = []
-    statistics = {}
+    statistics = {'Age': {}}
     for pclass in [1, 2, 3]:
         filtered = pdf.query('Pclass == {}'.format(pclass))[['Age']]
         imputer = Imputer(strategy='mean').fit(filtered)
         pdf_filled.append(imputer.transform(filtered))
-        statistics.update({'Pclass == "{}"'.format(pclass): {'Age': imputer.statistics_[0]}})
+        #statistics.update({'Pclass == "{}"'.format(pclass): {'Age': imputer.statistics_[0]}})
+        statistics['Age'].update({'Pclass == "{}"'.format(pclass): imputer.statistics_[0]})
     pdf_filled = np.concatenate(pdf_filled, axis=0)
     age = pdf_filled.ravel()
 
@@ -295,7 +326,7 @@ def test_stratify_bucket(sdf):
     npt.assert_equal(hres.values.ravel(), np.array(['S'] * 9))
 
     hdf = sdf.toHandy()
-    hres = hdf.stratify(['Pclass', Bucket('Age', 3)]).cols['Embarked'].value_counts()
+    hres = hdf.stratify(['Pclass', Bucket('Age', 3)]).cols['Embarked'].value_counts().sort_index()
     npt.assert_equal(hres.values.ravel(), np.array([21, 23, 40, 2, 68, 13, 17, 8, 59, 7, 1, 86,
                                                     1, 11, 28, 14, 166, 13, 8, 119, 2, 5]))
 
@@ -304,3 +335,27 @@ def test_stratified_nunique(sdf, pdf):
     hnunique = hdf.stratify(['Pclass']).cols['Cabin'].nunique()
     nunique = pdf.groupby(['Pclass'])['Cabin'].nunique()
     npt.assert_array_equal(hnunique, nunique)
+
+def test_mahalanobis(sdf, pdf):
+    colnames = ['Pclass', 'SibSp', 'Parch']
+    hdf = sdf.toHandy()
+    hres = hdf._handy._calc_mahalanobis_distance(colnames).toHandy().cols['__mahalanobis'][:].values
+    pipeline = make_pipeline(StandardScaler(), PCA(n_components=len(colnames)))
+    pdf = pd.DataFrame(pipeline.fit_transform(pdf[colnames]), columns=colnames)
+    invmat = np.linalg.inv(pdf.corr())
+    res = pdf.apply(lambda row: distance.mahalanobis(row.values, np.zeros_like(row.values), invmat), axis=1)
+    npt.assert_array_almost_equal(hres, res, decimal=2)
+
+def test_entropy(sdf, pdf):
+    hdf = sdf.toHandy()
+    hres = hdf.cols['Pclass'].entropy()
+    res = stats.entropy(pdf.groupby('Pclass').count().iloc[:, 0], base=2)
+    npt.assert_array_almost_equal(hres, res)
+
+def test_mutual_info(sdf, pdf):
+    hdf = sdf.toHandy()
+    hres = hdf.cols[['Survived', 'Pclass']].mutual_info()
+    res = mutual_info_score(pdf['Survived'], pdf['Pclass'])
+    # converts to log2
+    res = np.log2(np.exp(res))
+    npt.assert_array_almost_equal(hres.loc['Survived', 'Pclass'], res)
