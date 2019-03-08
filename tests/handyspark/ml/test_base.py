@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.testing as npt
-from handyspark.ml import HandyImputer, HandyFencer
+import handyspark
 from operator import itemgetter
 from sklearn.preprocessing import Imputer
 
@@ -34,7 +34,7 @@ def test_fencer(sdf, pdf):
     pdf_fenced = []
     for pclass in [1, 2, 3]:
         filtered = pdf.query('Pclass == {}'.format(pclass))[['PassengerId', 'Fare']]
-        lower, upper = fences['Pclass == "{}"'.format(pclass)]['Fare']
+        lower, upper = fences['Fare']['Pclass == "{}"'.format(pclass)]
         filtered['Fare'] = filtered['Fare'].clip(lower=lower, upper=upper)
         pdf_fenced.append(filtered)
     pdf_fenced = sorted(np.concatenate(pdf_fenced, axis=0), key=itemgetter(0))

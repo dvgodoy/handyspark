@@ -34,7 +34,7 @@ def test_boxplot_single(sdf, pdf):
     p64 = plot_to_base64(pax.figure)
 
     hdf = sdf.toHandy()
-    sax = hdf.cols['Fare'].boxplot(showfliers=False)
+    sax = hdf.cols['Fare'].boxplot(showfliers=False, precision=.0001)
     s64 = plot_to_base64(sax.figure)
     npt.assert_equal(p64, s64)
 
@@ -44,15 +44,15 @@ def test_boxplot_multiple(sdf, pdf):
     pax.set_ylabel('')
     p64 = plot_to_pixels(pax.figure, (480, 640, 3))
 
-    # Spark computes Q1 to be 20.0, instead of 20.125 for Age
+    # Spark computes quartiles approximately,
     # so it results in a small difference between the plots
     hdf = sdf.toHandy()
-    sax = hdf.cols[['Fare', 'Age']].boxplot(showfliers=False)
+    sax = hdf.cols[['Fare', 'Age']].boxplot(showfliers=False, precision=.0001)
     s64 = plot_to_pixels(sax.figure, (480, 640, 3))
 
     diff = s64 - p64
-    npt.assert_equal(110414, diff.sum())
-    npt.assert_equal(871, (diff != 0).sum())
+    npt.assert_equal(diff.sum(), 110414)
+    npt.assert_equal((diff != 0).sum(), 871)
 
 def test_hist_categorical(sdf, pdf):
     hdf = sdf.toHandy()
@@ -61,7 +61,6 @@ def test_hist_categorical(sdf, pdf):
 
     pdf = pdf.groupby(['Embarked'])['PassengerId'].count().sort_index()
     pax = pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=None, title='Embarked')
-    pax.set_xlabel('')
     p64 = plot_to_base64(pax.figure)
 
     npt.assert_equal(p64, s64)
@@ -101,12 +100,12 @@ def test_scatterplot(sdf, pdf):
 
     # Differences arise from bucketized vs not bucketized scatterplots
     diff = s64 - p64
-    npt.assert_equal(4759745, diff.sum())
-    npt.assert_equal(45616, (diff != 0).sum())
+    npt.assert_equal(diff.sum(), 4759745)
+    npt.assert_equal((diff != 0).sum(), 45616)
 
 def test_stratified_boxplot(sdf, pdf):
     hdf = sdf.toHandy()
-    sfig, _ = hdf.stratify(['Pclass']).cols['Fare'].boxplot(showfliers=False)
+    sfig, _ = hdf.stratify(['Pclass']).cols['Fare'].boxplot(showfliers=False, precision=.0001)
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 
     pax = pdf.boxplot('Fare', by='Pclass', showfliers=False)
@@ -118,12 +117,12 @@ def test_stratified_boxplot(sdf, pdf):
 
     # Differences arise from quantile calculations
     diff = s64 - p64
-    npt.assert_equal(275042, diff.sum())
-    npt.assert_equal(2134, (diff != 0).sum())
+    npt.assert_equal(diff.sum(), 275042)
+    npt.assert_equal((diff != 0).sum(), 2134)
 
 def test_stratified_hist(sdf, pdf):
     hdf = sdf.toHandy()
-    bins, _ = strat_histogram(sdf, 'Fare', bins=10, categorical=False)
+    bins, _ = strat_histogram(hdf, 'Fare', bins=10, categorical=False)
     sfig, _ = hdf.stratify(['Pclass', 'Embarked']).cols['Fare'].hist()
     s64 = plot_to_pixels(sfig, (480, 640, 3))
 

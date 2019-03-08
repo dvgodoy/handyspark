@@ -1,6 +1,9 @@
+import pandas as pd
 from operator import itemgetter
+from handyspark.plot import roc_curve, pr_curve
 from pyspark.mllib.evaluation import BinaryClassificationMetrics, MulticlassMetrics
-from pyspark.sql import SQLContext
+from pyspark.sql import SQLContext, DataFrame, functions as F
+from pyspark.sql.types import StructField, StructType, DoubleType
 
 def thresholds(self):
     """
@@ -55,6 +58,13 @@ def recallByThreshold(self):
     return self.call2('recallByThreshold')
 
 def getMetricsByThreshold(self):
+    """Returns DataFrame containing all metrics (FPR, Recall and
+    Precision) for every threshold.
+
+    Returns
+    -------
+    metrics: DataFrame
+    """
     thresholds = self.call('thresholds').collect()
     roc = self.call2('roc').collect()[1:-1]
     pr = self.call2('pr').collect()[1:]
@@ -84,6 +94,64 @@ def confusionMatrix(self, threshold=0.5):
     mcm = MulticlassMetrics(scoreAndLabels)
     return mcm.confusionMatrix()
 
+def print_confusion_matrix(self, threshold=0.5):
+    """Returns confusion matrix: predicted classes are in columns,
+    they are ordered by class label ascending, as in "labels".
+
+    Predicted classes are computed according to informed threshold.
+
+    Parameters
+    ----------
+    threshold: double, optional
+        Threshold probability for the positive class.
+        Default is 0.5.
+
+    Returns
+    -------
+    confusionMatrix: pd.DataFrame
+    """
+    cm = self.confusionMatrix(threshold).toArray()
+    df = pd.concat([pd.DataFrame(cm)], keys=['Actual'], names=[])
+    df.columns = pd.MultiIndex.from_product([['Predicted'], df.columns])
+    return df
+
+def plot_roc_curve(self, ax=None):
+    """Makes a plot of Receiver Operating Characteristic (ROC) curve.
+
+    Parameter
+    ---------
+    ax : matplotlib axes object, default None
+    """
+    metrics = self.getMetricsByThreshold().toPandas()
+    return roc_curve(metrics.fpr, metrics.recall, self.areaUnderROC, ax)
+
+def plot_pr_curve(self, ax=None):
+    """Makes a plot of Precision-Recall (PR) curve.
+
+    Parameter
+    ---------
+    ax : matplotlib axes object, default None
+    """
+    metrics = self.getMetricsByThreshold().toPandas()
+    return pr_curve(metrics.precision, metrics.recall, self.areaUnderPR, ax)
+
+def __init__(self, scoreAndLabels, scoreCol='score', labelCol='label'):
+    if isinstance(scoreAndLabels, DataFrame):
+        scoreAndLabels = (scoreAndLabels
+                          .select(scoreCol, labelCol)
+                          .rdd.map(lambda row:(float(row[scoreCol][1]), float(row[labelCol]))))
+
+    sc = scoreAndLabels.ctx
+    sql_ctx = SQLContext.getOrCreate(sc)
+    df = sql_ctx.createDataFrame(scoreAndLabels, schema=StructType([
+        StructField("score", DoubleType(), nullable=False),
+        StructField("label", DoubleType(), nullable=False)]))
+
+    java_class = sc._jvm.org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+    java_model = java_class(df._jdf)
+    super(BinaryClassificationMetrics, self).__init__(java_model)
+
+BinaryClassificationMetrics.__init__ = __init__
 BinaryClassificationMetrics.thresholds = thresholds
 BinaryClassificationMetrics.roc = roc
 BinaryClassificationMetrics.pr = pr
@@ -92,3 +160,6 @@ BinaryClassificationMetrics.precisionByThreshold = precisionByThreshold
 BinaryClassificationMetrics.recallByThreshold = recallByThreshold
 BinaryClassificationMetrics.getMetricsByThreshold = getMetricsByThreshold
 BinaryClassificationMetrics.confusionMatrix = confusionMatrix
+BinaryClassificationMetrics.plot_roc_curve = plot_roc_curve
+BinaryClassificationMetrics.plot_pr_curve = plot_pr_curve
+BinaryClassificationMetrics.print_confusion_matrix = print_confusion_matrix

@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from handyspark.util import get_buckets, none2zero
+from sklearn.utils.fixes import signature
+from handyspark.util import get_buckets, none2zero, ensure_list
 from operator import add, itemgetter
 from pyspark.ml.feature import Bucketizer
 from pyspark.ml.pipeline import Pipeline
-from pyspark.mllib.stat import Statistics
 from pyspark.sql import functions as F
 from matplotlib.artist import setp
 import matplotlib as mpl
@@ -29,10 +29,10 @@ def consolidate_plots(fig, axs, title, clauses):
             ax.set_title(subtitle, fontdict={'fontsize': 10})
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
-            if ax.colNum > 0:
-                ax.get_yaxis().set_visible(False)
-            if ax.rowNum < (ax.numRows - 1):
-                ax.get_xaxis().set_visible(False)
+            #if ax.colNum > 0:
+            #    ax.get_yaxis().set_visible(False)
+            #if ax.rowNum < (ax.numRows - 1):
+            #    ax.get_xaxis().set_visible(False)
         if isinstance(title, list):
             title = ', '.join(title)
         fig.suptitle(title)
@@ -41,25 +41,20 @@ def consolidate_plots(fig, axs, title, clauses):
     return fig, axs
 
 ### Correlations
-def correlations(sdf, colnames, method='pearson', ax=None, plot=True):
-    sdf = sdf.notHandy()
-    correlations = Statistics.corr(sdf.select(colnames).dropna().rdd.map(lambda row: row[0:]), method=method)
-    pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
-    if plot:
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
-        return sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
-    else:
-        return pdf
+def plot_correlations(pdf, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    return sns.heatmap(round(pdf,2), annot=True, cmap="coolwarm", fmt='.2f', linewidths=.05, ax=ax)
 
 ### Scatterplot
 def strat_scatterplot(sdf, col1, col2, n=30):
     stages = []
     for col in [col1, col2]:
-        splits = get_buckets(sdf.select(col).rdd.map(itemgetter(0)), n)
+        splits = np.linspace(*sdf.agg(F.min(col), F.max(col)).rdd.map(tuple).collect()[0], n + 1)
+        bucket_name = '__{}_bucket'.format(col)
         stages.append(Bucketizer(splits=splits,
                                  inputCol=col,
-                                 outputCol="__{}_bucket".format(col),
+                                 outputCol=bucket_name,
                                  handleInvalid="skip"))
 
     pipeline = Pipeline(stages=stages)
@@ -68,7 +63,6 @@ def strat_scatterplot(sdf, col1, col2, n=30):
 
 def scatterplot(sdf, col1, col2, n=30, ax=None):
     strat_ax, data = sdf._get_strata()
-    sdf = sdf.notHandy()
     if data is None:
         data = strat_scatterplot(sdf, col1, col2, n)
     else:
@@ -78,48 +72,83 @@ def scatterplot(sdf, col1, col2, n=30, ax=None):
     if ax is None:
         fig, ax = plt.subplots(1, 1)
 
-    counts = (model
-              .transform(sdf.select(col1, col2).dropna())
-              .select(*("__{}_bucket".format(col) for col in (col1, col2)))
-              .rdd
-              .map(lambda row: (row[0:], 1))
-              .reduceByKey(add)
-              .collect())
+    axes = ensure_list(ax)
+    clauses = sdf._handy._strata_raw_clauses
+    if not len(clauses):
+        clauses = [None]
+
+    bucket_name1, bucket_name2 = '__{}_bucket'.format(col1), '__{}_bucket'.format(col2)
+    strata = sdf._handy.strata_colnames
+    colnames = strata + [bucket_name1, bucket_name2]
+    result = model.transform(sdf).select(colnames).groupby(colnames).agg(F.count('*').alias('count')).toPandas().sort_values(by=colnames)
+
     splits = [bucket.getSplits() for bucket in model.stages]
     splits = [list(map(np.mean, zip(split[1:], split[:-1]))) for split in splits]
+    splits1 = pd.DataFrame({bucket_name1: np.arange(0, n), col1: splits[0]})
+    splits2 = pd.DataFrame({bucket_name2: np.arange(0, n), col2: splits[1]})
 
-    df_counts = pd.DataFrame([(splits[0][int(v[0][0])],
-                               splits[1][int(v[0][1])],
-                               v[1]) for v in counts],
-                             columns=[col1, col2, 'Proportion'])
+    df_counts = result.merge(splits1).merge(splits2)[strata + [col1, col2, 'count']].rename(columns={'count': 'Proportion'})
 
     df_counts.loc[:, 'Proportion'] = df_counts.Proportion.apply(lambda p: round(p / total, 4))
 
-    return sns.scatterplot(data=df_counts,
-                           x=col1,
-                           y=col2,
-                           size='Proportion',
-                           ax=ax,
-                           legend=False)
+    for ax, clause in zip(axes, clauses):
+        data = df_counts
+        if clause is not None:
+            data = data.query(clause)
+        sns.scatterplot(data=data,
+                        x=col1,
+                        y=col2,
+                        size='Proportion',
+                        ax=ax,
+                        legend=False)
+
+    if len(axes) == 1:
+        axes = axes[0]
+
+    return axes
 
 ### Histogram
 def strat_histogram(sdf, colname, bins=10, categorical=False):
     if categorical:
-        start_values = (sdf.select(colname)
-                        .rdd
-                        .map(lambda row: (itemgetter(0)(row), 1))
-                        .reduceByKey(add)
-                        .sortBy(itemgetter(1), ascending=False)
-                        .collect())
-        counts = list(map(itemgetter(1), start_values))
-        start_values = list(map(itemgetter(0), start_values))
+        result = sdf.cols[colname]._value_counts(dropna=False, raw=True)
+
+        if hasattr(result.index, 'levels'):
+            indexes = pd.MultiIndex.from_product(result.index.levels[:-1] +
+                                                 [result.reset_index()[colname].unique().tolist()],
+                                                 names=result.index.names)
+            result = (pd.DataFrame(index=indexes)
+                      .join(result.to_frame(), how='left')
+                      .fillna(0)[result.name]
+                      .astype(result.dtype))
+
+        start_values = result.index.tolist()
     else:
-        start_values, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(bins)
-    return start_values, counts
+        bucket_name = '__{}_bucket'.format(colname)
+        strata = sdf._handy.strata_colnames
+        colnames = strata + ensure_list(bucket_name)
+
+        start_values = np.linspace(*sdf.agg(F.min(colname), F.max(colname)).rdd.map(tuple).collect()[0], bins + 1)
+        bucketizer = Bucketizer(splits=start_values, inputCol=colname, outputCol=bucket_name, handleInvalid="skip")
+        result = (bucketizer
+                  .transform(sdf)
+                  .select(colnames)
+                  .groupby(colnames)
+                  .agg(F.count('*').alias('count'))
+                  .toPandas()
+                  .sort_values(by=colnames))
+
+        indexes = pd.DataFrame({bucket_name: np.arange(0, bins), 'bucket': start_values[:-1]})
+        if len(strata):
+            indexes = (indexes
+                       .assign(key=1)
+                       .merge(result[strata].drop_duplicates().assign(key=1), on='key')
+                       .drop(columns=['key']))
+        result = indexes.merge(result, how='left', on=strata + [bucket_name]).fillna(0)[strata + [bucket_name, 'count']]
+
+    return start_values, result
 
 def histogram(sdf, colname, bins=10, categorical=False, ax=None):
     strat_ax, data = sdf._get_strata()
-    sdf = sdf.notHandy()
     if data is None:
         data = strat_histogram(sdf, colname, bins, categorical)
     else:
@@ -129,48 +158,29 @@ def histogram(sdf, colname, bins=10, categorical=False, ax=None):
     if ax is None:
         fig, ax = plt.subplots(1, 1)
 
-    if categorical:
-        values = dict(sdf.select(colname)
-                      .rdd
-                      .map(lambda row: (itemgetter(0)(row), 1))
-                      .reduceByKey(add)
-                      .sortBy(itemgetter(1), ascending=False)
-                      .collect())
+    axes = ensure_list(ax)
+    clauses = sdf._handy._strata_raw_clauses
+    if not len(clauses):
+        clauses = [None]
 
-        values = list(map(lambda k: (k, values.get(k, 0)), start_values))
+    for ax, clause in zip(axes, clauses):
+        if categorical:
+            pdf = counts.sort_index().to_frame()
+            if clause is not None:
+                pdf = pdf.query(clause).reset_index(sdf._handy.strata_colnames).drop(columns=sdf._handy.strata_colnames)
+            pdf.iloc[:bins].plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
+        else:
+            mid_point_bins = start_values[:-1]
+            weights = counts
+            if clause is not None:
+                weights = counts.query(clause)
+            ax.hist(mid_point_bins, bins=start_values, weights=weights['count'].values)
+            ax.set_title(colname)
 
-        pdf = pd.Series(map(itemgetter(1), values),
-                        index=map(itemgetter(0), values),
-                        name=colname).sort_index().to_frame().iloc[:bins]
-        pdf.plot(kind='bar', color='C0', legend=False, rot=0, ax=ax, title=colname)
-    else:
-        _, counts = sdf.select(colname).rdd.map(itemgetter(0)).histogram(start_values)
-        mid_point_bins = start_values[:-1]
-        ax.hist(mid_point_bins, bins=start_values, weights=counts)
-        ax.set_title(colname)
+    if len(axes) == 1:
+        axes = axes[0]
 
-    return ax
-
-### Stratified Histogram
-def stratified_histogram(sdf, colname, strat_colname, strat_values, ax=None):
-    buckets = get_buckets(sdf.select(colname).rdd.map(itemgetter(0)), 20)
-    for value in strat_values:
-        start_values, counts = (sdf
-                                .select(colname)
-                                .filter('{} == {}'.format(strat_colname, value))
-                                .rdd
-                                .map(itemgetter(0))
-                                .histogram(buckets))
-        sns.distplot(start_values[:len(counts)],
-                     bins=start_values,
-                     color='C{}'.format(value - 1),
-                     norm_hist=True,
-                     kde=False,
-                     hist_kws={"weights":counts},
-                     label='{}'.format(value),
-                     ax=ax)
-    ax.set_legend()
-    return ax
+    return axes
 
 ### Boxplot
 def _gen_dict(rc_name, properties):
@@ -210,85 +220,75 @@ def draw_boxplot(ax, stats):
     setp(bp['medians'], color=colors[2], alpha=1)
     return ax
 
-def _calc_tukey(col_summ, k=1.5):
-    q1, q3 = float(none2zero(col_summ['25%'])), float(none2zero(col_summ['75%']))
-    iqr = q3 - q1
-    lfence = q1 - (k * iqr)
-    ufence = q3 + (k * iqr)
-    return lfence, ufence
-
-def boxplot(sdf, colnames, ax=None, showfliers=True, k=1.5):
+def boxplot(sdf, colnames, ax=None, showfliers=True, k=1.5, precision=.0001):
     strat_ax, data = sdf._get_strata()
-    sdf = sdf.notHandy()
     if data is None:
         if ax is None:
             fig, ax = plt.subplots(1, 1)
 
-    pdf = sdf.select(colnames).summary().toPandas().set_index('summary')
-    pdf.loc['fence', :] = pdf.apply(lambda v: _calc_tukey(v, k))
+    title_clauses = sdf._handy._strata_clauses
+    if not len(title_clauses):
+        title_clauses = [None]
 
-    # faster than stats()
-    def minmax(a, b):
-        return min(a[0], b[0]), max(a[1], b[1])
-
+    pdf = sdf._handy._calc_fences(colnames, k, precision)
     stats = []
     for colname in colnames:
-        col_summ = pdf[colname]
-        lfence, ufence = col_summ.fence
+        items, _, _ = sdf._handy._calc_bxp_stats(pdf, colname, showfliers=showfliers)
+        for title_clause, item in zip(title_clauses, items):
+            name = colname if len(colnames) > 1 else (title_fom_clause(title_clause) if title_clause is not None else colname)
+            item.update({'label': name})
 
-        outlier = sdf.withColumn('__{}_outlier'.format(colname),
-                                 ~F.col(colname).between(lfence, ufence))
+        # each list of items corresponds to a different column
+        stats.append(items)
 
-        fliers = []
-        try:
-            minv, maxv = (outlier
-                          .filter('not __{}_outlier'.format(colname))
-                          .select(colname)
-                          .rdd
-                          .map(lambda x: (x[0], x[0]))
-                          .reduce(minmax))
-
-            if showfliers:
-                fliers = (outlier
-                          .filter('__{}_outlier'.format(colname))
-                          .select(colname)
-                          .rdd
-                          .map(itemgetter(0))
-                          .sortBy(lambda v: -abs(v))
-                          .take(1000))
-        except ValueError:
-            minv = 0.
-            maxv = 0.
-
-        item = {'label': colname,
-                'mean': float(none2zero(col_summ['mean'])),
-                'med': float(none2zero(col_summ['50%'])),
-                'q1': float(none2zero(col_summ['25%'])),
-                'q3': float(none2zero(col_summ['75%'])),
-                'whislo': minv,
-                'whishi': maxv,
-                'fliers': fliers}
-
-        stats.append(item)
-
+    # Stats is a list of columns, containing each a list of clauses
     if ax is not None:
+        if title_clauses[0] is None:
+            if len(colnames) == 1:
+                stats = stats[0]
+            else:
+                stats = np.squeeze(stats).tolist()
         return draw_boxplot(ax, stats)
     else:
+        if len(strat_ax) > 1:
+            stats = [[stats[j][i] for j in range(len(stats))] for i in range(len(title_clauses))]
         return stats
 
-def post_boxplot(axs, stats, clauses):
-    if len(axs) == len(stats):
-        new_res = []
-        for ax, stat in zip(axs, stats):
-            ax = draw_boxplot(ax, stat)
-            new_res.append(ax)
-    else:
-        ax = axs[0]
-        items = []
-        for clause, stats in zip(clauses, stats):
-            label = title_fom_clause(clause)
-            stats[0].update({'label': label})
-            items.append(stats[0])
-        ax = draw_boxplot(ax, items)
-        new_res = [ax]
+def post_boxplot(axs, stats):
+    new_res = []
+    for ax, stat in zip(axs, stats):
+        ax = draw_boxplot(ax, stat)
+        new_res.append(ax)
     return new_res
+
+def roc_curve(fpr, tpr, roc_auc, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
+    ax.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.4f)' % roc_auc)
+    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('Receiver Operating Characteristic Curve')
+    ax.legend(loc="lower right")
+    return ax
+
+def pr_curve(precision, recall, pr_auc, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
+    # In matplotlib < 1.5, plt.fill_between does not have a 'step' argument
+    step_kwargs = ({'step': 'post'}
+                   if 'step' in signature(plt.fill_between).parameters
+                   else {})
+    ax.step(recall, precision, color='b', alpha=0.2, where='post', label='PR curve (area = %0.4f)' % pr_auc)
+    ax.fill_between(recall, precision, alpha=0.2, color='b', **step_kwargs)
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim([0.0, 1.0])
+    ax.legend(loc="lower left")
+    ax.set_title('Precision-Recall Curve')
+    return ax

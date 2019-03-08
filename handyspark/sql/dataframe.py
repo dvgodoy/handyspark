@@ -1,19 +1,24 @@
 from copy import deepcopy
 from handyspark.ml.base import HandyTransformers
-from handyspark.plot import correlations, histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram,\
+from handyspark.plot import histogram, boxplot, scatterplot, strat_scatterplot, strat_histogram,\
     consolidate_plots, post_boxplot
 from handyspark.sql.pandas import HandyPandas
 from handyspark.sql.transform import _MAPPING, HandyTransform
-from handyspark.util import HandyException, get_buckets, dense_to_array, disassemble, ensure_list, check_columns, \
+from handyspark.util import HandyException, dense_to_array, disassemble, ensure_list, check_columns, \
     none2default
 import inspect
 from matplotlib.axes import Axes
+from collections import OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 from operator import itemgetter, add
 import pandas as pd
 from pyspark.ml.feature import Bucketizer
-from pyspark.sql import DataFrame, GroupedData, Window, functions as F
+from pyspark.mllib.stat import Statistics
+from pyspark.sql import DataFrame, GroupedData, Window, functions as F, Column, Row
+from pyspark.ml.feature import VectorAssembler, StandardScaler, PCA
+from pyspark.ml.pipeline import Pipeline
+from scipy.stats import chi2
 
 def toHandy(self):
     """Converts Spark DataFrame into HandyFrame.
@@ -25,6 +30,14 @@ def notHandy(self):
 
 DataFrame.toHandy = toHandy
 DataFrame.notHandy = notHandy
+
+def agg(f):
+    f.__is_agg = True
+    return f
+
+def inccol(f):
+    f.__is_inccol = True
+    return f
 
 class Handy(object):
     def __init__(self, df):
@@ -41,6 +54,7 @@ class Handy(object):
 
         # groups / strata
         self._group_cols = None
+        self._strata = None
         self._strata_object = None
         self._strata_plot = None
 
@@ -140,20 +154,33 @@ class Handy(object):
         if self._strata is not None:
             return pd.DataFrame(data=self._strata_combinations, columns=self._strata)
 
+    @property
+    def strata_colnames(self):
+        if self._strata is not None:
+            return list(map(str, ensure_list(self._strata)))
+        else:
+            return []
+
     def _stratify(self, strata):
         return HandyStrata(self, strata)
 
     def _clear_stratification(self):
         self._strata = None
+        self._strata_object = None
+        self._strata_plot = None
         self._strata_combinations = []
+        self._strata_raw_combinations = []
         self._strata_clauses = []
+        self._strata_raw_clauses = []
         self._n_cols = 1
         self._n_rows = 1
 
-    def _set_stratification(self, strata, combinations, clauses):
+    def _set_stratification(self, strata, raw_combinations, raw_clauses, combinations, clauses):
         if strata is not None:
             assert len(combinations[0]) == len(strata), "Mismatched number of combinations and strata!"
             self._strata = strata
+            self._strata_raw_combinations = raw_combinations
+            self._strata_raw_clauses = raw_clauses
             self._strata_combinations = combinations
             self._strata_clauses = clauses
             self._n_cols = len(set(map(itemgetter(0), combinations)))
@@ -193,65 +220,77 @@ class Handy(object):
 
         return np.array(data, dtype=_MAPPING.get(datatype, 'object'))
 
-    def _value_counts(self, colnames, dropna=True):
+    def _value_counts(self, colnames, dropna=True, raw=False):
+        colnames = ensure_list(colnames)
+        strata = self.strata_colnames
+        colnames = strata + colnames
+
         check_columns(self._df, colnames)
         data = self._df.notHandy().select(colnames)
         if dropna:
             data = data.dropna()
-        values = (data
-                  .rdd
-                  .map(tuple)
-                  .map(lambda t: (t, 1))
-                  .reduceByKey(add)
-                  .sortBy(itemgetter(1), ascending=False))
+
+        values = (data.groupby(colnames).agg(F.count('*').alias('value_counts'))
+                  .toPandas().set_index(colnames).sort_index()['value_counts'])
+
+        if not raw:
+            for level, col in enumerate(ensure_list(self._strata)):
+                if not isinstance(col, str):
+                    values.index.set_levels(pd.Index(col._clauses[1:-1]), level=level, inplace=True)
+                    values.index.set_names(col.colname, level=level, inplace=True)
+
         return values
 
-    def __fill_target(self, target):
+    def _fillna(self, target, values):
         assert isinstance(target, DataFrame), "Target must be a DataFrame"
-        joined_df = None
-        fill_dict = {}
-        clauses = []
-        items = self._imputed_values.items()
-        for k, v in items:
+
+        items = values.items()
+        for colname, v in items:
             if isinstance(v, dict):
-                clauses.append(k)
-                strat_df = target.filter(k).fillna(v)
-                joined_df = strat_df if joined_df is None else joined_df.unionAll(strat_df)
+                clauses = v.keys()
+                whens = ' '.join(['WHEN (({clause}) AND (isnan({col}) OR isnull({col}))) THEN {quote}{filling}{quote}'
+                                 .format(clause=clause, col=colname, filling=v[clause],
+                                         quote='"' if isinstance(v[clause], str) else '')
+                                   for clause in clauses])
+            else:
+                whens = ('WHEN (isnan({col}) OR isnull({col})) THEN {quote}{filling}{quote}'
+                         .format(col=colname, filling=v,
+                                 quote='"' if isinstance(v, str) else ''))
 
-        if len(clauses):
-            remainder = target.filter('not ({})'.format(' or '.join(map(lambda v: '({})'.format(v), clauses))))
-            joined_df = joined_df.unionAll(remainder)
+            expression = F.expr('CASE {expr} ELSE {col} END'.format(expr=whens, col=colname))
+            target = target.withColumn(colname, expression)
 
-        for k, v in items:
-            if not isinstance(v, dict):
-                fill_dict.update({k: v})
+        return target
 
-        if joined_df is None:
-            joined_df = target
-
-        res = HandyFrame(joined_df.na.fill(fill_dict), self)
-        return res
+    def __stat_to_dict(self, colname, stat):
+        if len(self._strata_clauses):
+            return {clause: stat.query(raw_clause)[colname].iloc[0]
+                    for clause, raw_clause in zip(self._strata_clauses, self._strata_raw_clauses)}
+        else:
+            return stat[colname]
 
     def _fill_values(self, continuous, categorical, strategy):
         values = {}
-        values.update(dict(self._df._means[map(itemgetter(0),
-                                     filter(lambda t: t[1] == 'mean', zip(continuous, strategy)))]))
-        values.update(dict(self._df._medians[map(itemgetter(0),
-                                       filter(lambda t: t[1] == 'median', zip(continuous, strategy)))]))
-        values.update(dict([(col, self.mode(col).values[0])
+        colnames = list(map(itemgetter(0), filter(lambda t: t[1] == 'mean', zip(continuous, strategy))))
+        values.update(dict([(col, self.__stat_to_dict(col, self.mean(col))) for col in colnames]))
+
+        colnames = list(map(itemgetter(0), filter(lambda t: t[1] == 'median', zip(continuous, strategy))))
+        values.update(dict([(col, self.__stat_to_dict(col, self.median(col))) for col in colnames]))
+
+        values.update(dict([(col, self.__stat_to_dict(col, self.mode(col)))
                             for col in categorical if col in self._categorical]))
         return values
 
     def __fill_self(self, continuous, categorical, strategy):
-        continuous = none2default(continuous, [])
-        categorical = none2default(categorical, [])
+        continuous = ensure_list(continuous)
+        categorical = ensure_list(categorical)
         check_columns(self._df, continuous + categorical)
 
         strategy = none2default(strategy, 'mean')
 
-        if continuous == 'all':
+        if continuous == ['all']:
             continuous = self._continuous
-        if categorical == 'all':
+        if categorical == ['all']:
             categorical = self._categorical
 
         if isinstance(strategy, (list, tuple)):
@@ -261,7 +300,7 @@ class Handy(object):
 
         values = self._fill_values(continuous, categorical, strategy)
         self._imputed_values.update(values)
-        res = HandyFrame(self._df.notHandy().na.fill(values), self)
+        res = HandyFrame(self._fillna(self._df, values), self)
         return res
 
     def _dense_to_array(self, colname, array_colname):
@@ -269,80 +308,145 @@ class Handy(object):
         res = dense_to_array(self._df.notHandy(), colname, array_colname)
         return HandyFrame(res, self)
 
-    def disassemble(self, colname, new_colnames=None):
-        check_columns(self._df, colname)
-        res = disassemble(self._df.notHandy(), colname, new_colnames)
-        return HandyFrame(res, self)
+    def _agg(self, name, func, colnames):
+        colnames = none2default(colnames, self._df.columns)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, self.strata_colnames + [col for col in colnames if not isinstance(col, Column)])
+        if func is None:
+            func = getattr(F, name)
 
-    def to_metrics_RDD(self, prob_col, label):
-        check_columns(self._df, [prob_col, label])
-        return self.disassemble(prob_col).select('{}_1'.format(prob_col), F.col(label).cast('double')).rdd.map(tuple)
+        res = (self._df.notHandy()
+               .groupby(self.strata_colnames)
+               .agg(*(func(col).alias(str(col)) for col in colnames if str(col) not in self.strata_colnames))
+               .toPandas())
 
-    def fill(self, *args, continuous=None, categorical=None, strategy=None):
-        if len(args) and isinstance(args[0], DataFrame):
-            return self.__fill_target(args[0])
-        else:
-            return self.__fill_self(continuous=continuous, categorical=categorical, strategy=strategy)
+        if len(res) == 1:
+            res = res.iloc[0]
+            res.name = name
+        return res
 
-    def isnull(self, ratio=False):
-        name = 'missing'
-        nrows = self.nrows
-        missing = (nrows - self._df._counts)
-        if ratio:
-            base = nrows
-            name += '(ratio)'
-            missing /= base
-        missing.name = name
-        return missing
-
-    def outliers(self, colnames=None, ratio=False, method='tukey', **kwargs):
+    def _calc_fences(self, colnames, k=1.5, precision=.01):
         colnames = none2default(colnames, self._numerical)
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
+        strata = self.strata_colnames
 
-        if method == 'tukey':
-            outliers = []
-            try:
-                k = kwargs['k']
-            except KeyError:
-                k = 1.5
-            for colname in colnames:
-                q1, q3 = self._df._summary.loc['25%', colname], self._df._summary.loc['75%', colname]
-                iqr = q3 - q1
-                lfence = q1 - (k * iqr)
-                ufence = q3 + (k * iqr)
-                outliers.append(self._df.filter(~F.col(colname).between(lfence, ufence)).count())
-                if ratio:
-                    outliers[-1] /= self._df._counts[colname]
-            res = pd.Series(outliers, index=colnames, dtype=np.float64)
+        pdf = (self._df.notHandy()
+               .groupby(strata)
+               .agg(F.count(F.lit(1)).alias('nrows'),
+                    *[F.expr('approx_percentile({}, {}, {})'.format(c, q, 1./precision)).alias('{}_{}%'.format(c, int(q * 100)))
+                      for q in [.25, .50, .75] for c in colnames],
+                    *[F.mean(c).alias('{}_mean'.format(c)) for c in colnames]).toPandas())
 
-        return res
+        for col in colnames:
+            pdf.loc[:, '{}_iqr'.format(col)] = pdf.loc[:, '{}_75%'.format(col)] - pdf.loc[:, '{}_25%'.format(col)]
+            pdf.loc[:, '{}_lfence'.format(col)] = pdf.loc[:, '{}_25%'.format(col)] - k * pdf.loc[:, '{}_iqr'.format(col)]
+            pdf.loc[:, '{}_ufence'.format(col)] = pdf.loc[:, '{}_75%'.format(col)] + k * pdf.loc[:, '{}_iqr'.format(col)]
 
-    def nunique(self, colnames=None):
-        colnames = none2default(colnames, self._df.columns)
-        colnames = ensure_list(colnames)
-        check_columns(self._df, colnames)
-        return pd.Series([self._df.notHandy().select(col).dropna().distinct().count() for col in colnames],
-                         index=colnames)
+        return pdf
 
-    def fence(self, colnames, k=1.5):
-        colnames = ensure_list(colnames)
-        check_columns(self._df, colnames)
-        colnames = [col for col in colnames if col in self._numerical]
-        df = self._df.notHandy()
-        for colname in colnames:
-            q1, q3 = self._df.approxQuantile(col=colname, probabilities=[.25, .75], relativeError=0.01)
-            iqr = q3 - q1
-            lfence = q1 - (k * iqr)
-            ufence = q3 + (k * iqr)
-            self._fenced_values.update({colname: [lfence, ufence]})
-            df = (df
-                  .withColumn('__fence', F.lit(lfence))
-                  .withColumn(colname, F.greatest(colname, '__fence'))
-                  .withColumn('__fence', F.lit(ufence))
-                  .withColumn(colname, F.least(colname, '__fence')))
-        return HandyFrame(df.select(self._df.columns), self)
+    def _calc_mahalanobis_distance(self, colnames, output_col='__mahalanobis'):
+        """Computes Mahalanobis distance from origin
+        """
+        sdf = self._df.notHandy()
+        check_columns(sdf, colnames)
+        # Builds pipeline to assemble feature columns and scale them
+        assembler = VectorAssembler(inputCols=colnames, outputCol='__features')
+        scaler = StandardScaler(inputCol='__features', outputCol='__scaled', withMean=True)
+        pca = PCA(k=len(colnames), inputCol='__scaled', outputCol='__pca')
+        pipeline = Pipeline(stages=[assembler, scaler, pca])
+
+        features = pipeline.fit(sdf).transform(sdf)
+        distance = (features.rdd
+                    .map(lambda row: Row(**{**row.asDict(), **{output_col: float(row['__pca'].norm(2))}})).toDF()
+                    .drop('__features', '__scaled', '__pca'))
+        return distance
+
+    def _set_mahalanobis_outliers(self, colnames, critical_value=.999,
+                                  input_col='__mahalanobis', output_col='__outlier'):
+        """Compares Mahalanobis distances to critical values using
+         Chi-Squared distribution to identify possible outliers.
+        """
+        distance = self._calc_mahalanobis_distance(colnames)
+        # Computes critical value
+        critical_value = chi2.ppf(critical_value, len(colnames))
+        # Computes Mahalanobis distance and flags as outliers all elements above critical value
+        outlier = (distance.withColumn(output_col, F.col(input_col) > critical_value))
+        return outlier
+
+    def _calc_bxp_stats(self, fences_df, colname, showfliers=False):
+        strata = self.strata_colnames
+        clauses = self._strata_raw_clauses
+        if not len(clauses):
+            clauses = [None]
+
+        qnames = ['25%', '50%', '75%', 'mean', 'lfence', 'ufence']
+        col_summ = fences_df[strata + ['{}_{}'.format(colname, q) for q in qnames] + ['nrows']]
+        col_summ.columns = strata + qnames + ['nrows']
+        if len(strata):
+            col_summ = col_summ.set_index(strata)
+        lfence, ufence = col_summ[['lfence']], col_summ[['ufence']]
+
+        expression = None
+        for clause in clauses:
+            if clause is not None:
+                partial = F.col(colname).between(lfence.query(clause).iloc[0, 0], ufence.query(clause).iloc[0, 0])
+                partial &= F.expr(clause)
+            else:
+                partial = F.col(colname).between(lfence.iloc[0, 0], ufence.iloc[0, 0])
+
+            if expression is None:
+                expression = partial
+            else:
+                expression |= partial
+
+        outlier = self._df.notHandy().withColumn('__{}_outlier'.format(colname), ~expression)
+        minmax = (outlier
+                  .filter('not __{}_outlier'.format(colname))
+                  .groupby(strata)
+                  .agg(F.min(colname).alias('min'),
+                       F.max(colname).alias('max'))
+                  .toPandas())
+
+        if len(strata):
+            minmax = [minmax.query(clause).iloc[0][['min', 'max']].values for clause in clauses]
+        else:
+            minmax = [minmax.iloc[0][['min', 'max']].values]
+
+        fliers_df = outlier.filter('__{}_outlier'.format(colname))
+        fliers_df = [fliers_df.filter(clause) for clause in clauses] if len(strata) else [fliers_df]
+        fliers_count = [df.count() for df in fliers_df]
+
+        if showfliers:
+            fliers = [(df
+                       .select(F.abs(F.col(colname)).alias(colname))
+                       .orderBy(F.desc(colname))
+                       .limit(1000)
+                       .toPandas()[colname].values) for df in fliers_df]
+        else:
+            fliers = [[]] * len(clauses)
+
+        stats = []  # each item corresponds to a different clause - all items belong to the same column
+        nrows = []
+        for clause, whiskers, outliers in zip(clauses, minmax, fliers):
+            summary = col_summ
+            if clause is not None:
+                summary = summary.query(clause)
+            item = {'mean': summary['mean'].values[0],
+                    'med': summary['50%'].values[0],
+                    'q1': summary['25%'].values[0],
+                    'q3': summary['75%'].values[0],
+                    'whislo': whiskers[0],
+                    'whishi': whiskers[1],
+                    'fliers': outliers}
+            stats.append(item)
+            nrows.append(summary['nrows'].values[0])
+
+        if not len(nrows):
+            nrows = summary['nrows'].values[0]
+
+        return stats, fliers_count, nrows
 
     def set_response(self, colname):
         check_columns(self._df, colname)
@@ -355,16 +459,14 @@ class Handy(object):
 
         return self
 
-    def value_counts(self, colname, dropna=True):
-        values = self._value_counts(colname, dropna).collect()
-        return pd.Series(map(itemgetter(1), values),
-                         index=map(lambda t: t[0][0], values),
-                         name=colname)
+    def disassemble(self, colname, new_colnames=None):
+        check_columns(self._df, colname)
+        res = disassemble(self._df.notHandy(), colname, new_colnames)
+        return HandyFrame(res, self)
 
-    def mode(self, colname):
-        return pd.Series(self._value_counts(colname).filter(lambda t: t[0] is not None).take(1)[0][0][0],
-                         index=[colname],
-                         name='mode')
+    def to_metrics_RDD(self, prob_col, label):
+        check_columns(self._df, [prob_col, label])
+        return self.disassemble(prob_col).select('{}_1'.format(prob_col), F.col(label).cast('double')).rdd.map(tuple)
 
     def corr(self, colnames=None, method='pearson'):
         colnames = none2default(colnames, self._numerical)
@@ -372,63 +474,315 @@ class Handy(object):
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
         if self._strata is not None:
-            colnames = sorted([col for col in colnames if col not in self._strata])
-        pdf = correlations(self._df.notHandy(), colnames, method=method, ax=None, plot=False)
+            colnames = sorted([col for col in colnames if col not in self.strata_colnames])
+
+        correlations = Statistics.corr(self._df.notHandy().select(colnames).dropna().rdd.map(lambda row: row[0:]), method=method)
+        pdf = pd.DataFrame(correlations, columns=colnames, index=colnames)
         return pdf
 
+    def fill(self, *args, continuous=None, categorical=None, strategy=None):
+        if len(args) and isinstance(args[0], DataFrame):
+            return self._fillna(args[0], self._imputed_values)
+        else:
+            return self.__fill_self(continuous=continuous, categorical=categorical, strategy=strategy)
+
+    @agg
+    def isnull(self, ratio=False):
+        def func(colname):
+            return F.sum(F.isnull(colname).cast('int')).alias(colname)
+
+        name = 'missing'
+        if ratio:
+            name += '(ratio)'
+        missing = self._agg(name, func, self._df.columns)
+
+        if ratio:
+            nrows = self._agg('nrows', F.sum, F.lit(1))
+            if isinstance(missing, pd.Series):
+                missing = missing / nrows["Column<b'1'>"]
+            else:
+                missing.iloc[:, 1:] = missing.iloc[:, 1:].values / nrows["Column<b'1'>"].values.reshape(-1, 1)
+
+        if len(self.strata_colnames):
+            missing = missing.set_index(self.strata_colnames).T.unstack()
+            missing.name = name
+
+        return missing
+
+    @agg
+    def nunique(self, colnames=None):
+        res = self._agg('nunique', F.approx_count_distinct, colnames)
+        if len(self.strata_colnames):
+            res = res.set_index(self.strata_colnames).T.unstack()
+            res.name = 'nunique'
+        return res
+
+    def outliers(self, colnames=None, ratio=False, method='tukey', **kwargs):
+        colnames = none2default(colnames, self._numerical)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+
+        res = None
+        if method == 'tukey':
+            outliers = []
+            try:
+                k = kwargs['k']
+            except KeyError:
+                k = 1.5
+            fences_df = self._calc_fences(colnames, k=k, precision=.01)
+
+            index = fences_df[self.strata_colnames].set_index(self.strata_colnames).index \
+                if len(self.strata_colnames) else None
+
+            for colname in colnames:
+                stats, counts, nrows = self._calc_bxp_stats(fences_df, colname, showfliers=False)
+                outliers.append(pd.Series(counts, index=index, name=colname))
+                if ratio:
+                    outliers[-1] /= nrows
+
+            res = pd.DataFrame(outliers).unstack()
+            if not len(self.strata_colnames):
+                res = res.droplevel(0)
+            name = 'outliers'
+            if ratio:
+                name += '(ratio)'
+            res.name = name
+
+        return res
+
+    def get_outliers(self, colnames=None, critical_value=.999):
+        colnames = none2default(colnames, self._numerical)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+
+        outliers = self._set_mahalanobis_outliers(colnames, critical_value)
+        df = outliers.filter('__outlier').orderBy(F.desc('__mahalanobis')).drop('__outlier', '__mahalanobis')
+        return HandyFrame(df, self)
+
+    def remove_outliers(self, colnames=None, critical_value=.999):
+        colnames = none2default(colnames, self._numerical)
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+
+        outliers = self._set_mahalanobis_outliers(colnames, critical_value)
+        df = outliers.filter('not __outlier').drop('__outlier', '__mahalanobis')
+        return HandyFrame(df, self)
+
+    def fence(self, colnames, k=1.5):
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        colnames = [col for col in colnames if col in self._numerical]
+
+        pdf = self._calc_fences(colnames, k=k)
+        if len(self.strata_colnames):
+            pdf = pdf.set_index(self.strata_colnames)
+
+        df = self._df.notHandy()
+        for colname in colnames:
+            lfence, ufence = pdf.loc[:, ['{}_lfence'.format(colname)]], pdf.loc[:, ['{}_ufence'.format(colname)]]
+            if len(self._strata_raw_clauses):
+                whens1 = ' '.join(['WHEN ({clause}) THEN greatest({col}, {fence})'.format(clause=clause,
+                                                                                          col=colname,
+                                                                                          fence=lfence.query(clause).iloc[0, 0])
+                                   for clause in self._strata_raw_clauses])
+                whens2 = ' '.join(['WHEN ({clause}) THEN least({col}, {fence})'.format(clause=clause,
+                                                                                       col=colname,
+                                                                                       fence=ufence.query(clause).iloc[0, 0])
+                                   for clause in self._strata_raw_clauses])
+                expression1 = F.expr('CASE {} END'.format(whens1))
+                expression2 = F.expr('CASE {} END'.format(whens2))
+                self._fenced_values.update({colname: {clause: [lfence.query(clause).iloc[0, 0],
+                                                               ufence.query(clause).iloc[0, 0]]
+                                                      for clause in self._strata_clauses}})
+            else:
+                self._fenced_values.update({colname: [lfence.iloc[0, 0], ufence.iloc[0, 0]]})
+
+                expression1 = F.expr('greatest({col}, {fence})'.format(col=colname, fence=lfence.iloc[0, 0]))
+                expression2 = F.expr('least({col}, {fence})'.format(col=colname, fence=ufence.iloc[0, 0]))
+            df = df.withColumn(colname, expression1).withColumn(colname, expression2)
+
+        return HandyFrame(df.select(self._df.columns), self)
+
+    @inccol
+    def value_counts(self, colnames, dropna=True):
+        return self._value_counts(colnames, dropna)
+
+    @inccol
+    def mode(self, colname):
+        check_columns(self._df, [colname])
+
+        if self._strata is None:
+            values = (self._df.notHandy().select(colname).dropna()
+                      .groupby(colname).agg(F.count('*').alias('mode'))
+                      .orderBy(F.desc('mode')).limit(1)
+                      .toPandas()[colname][0])
+            return pd.Series(values, index=[colname], name='mode')
+        else:
+            strata = self.strata_colnames
+            colnames = strata + [colname]
+            values = (self._df.notHandy().select(colnames).dropna()
+                      .groupby(colnames).agg(F.count('*').alias('mode'))
+                      .withColumn('order', F.row_number().over(Window.partitionBy(strata).orderBy(F.desc('mode'))))
+                      .filter('order == 1').drop('order')
+                      .toPandas().set_index(strata).sort_index()[colname])
+            values.name = 'mode'
+            return values
+
+    @inccol
+    def entropy(self, colnames):
+        colnames = ensure_list(colnames)
+        check_columns(self._df, colnames)
+        sdf = self._df.notHandy()
+        n = sdf.count()
+        entropy = []
+        for colname in colnames:
+            if colname in self._categorical:
+                res = (self._df
+                       .groupby(self.strata_colnames + [colname])
+                       .agg(F.count('*').alias('value_counts')).withColumn('probability', F.col('value_counts') / n)
+                       .groupby(self.strata_colnames)
+                       .agg(F.sum(F.expr('-log2(probability) * probability')).alias(colname))
+                       .safety_off()
+                       .cols[self.strata_colnames + [colname]][:])
+
+                if len(self.strata_colnames):
+                    res.set_index(self.strata_colnames, inplace=True)
+                    res = res.unstack()
+                else:
+                    res = res[colname]
+                    res.index = [colname]
+            else:
+                res = pd.Series(None, index=[colname])
+            res.name = 'entropy'
+            entropy.append(res)
+        return pd.concat(entropy).sort_index()
+
+    @inccol
+    def mutual_info(self, colnames):
+        def distribution(sdf, colnames):
+            return sdf.groupby(colnames).agg(F.count('*').alias('__count'))
+
+        check_columns(self._df, colnames)
+        n = len(colnames)
+        probs = []
+        sdf = self._df.notHandy()
+        for i in range(n):
+            probs.append(distribution(sdf, self.strata_colnames + [colnames[i]]))
+
+        if len(self.strata_colnames):
+            nrows = sdf.groupby(self.strata_colnames).agg(F.count('*').alias('__n'))
+        else:
+            nrows = sdf.count()
+
+        entropies = self.entropy(colnames)
+        res = []
+        for i in range(n):
+            for j in range(i, n):
+                if i == j:
+                    mi = pd.Series(entropies[colnames[i]], name='mi').to_frame()
+                else:
+                    tdf = distribution(sdf, self.strata_colnames + [colnames[i], colnames[j]])
+                    if len(self.strata_colnames):
+                        tdf = tdf.join(nrows, on=self.strata_colnames)
+                    else:
+                        tdf = tdf.withColumn('__n', F.lit(nrows))
+                    tdf = tdf.join(probs[i].toDF(*self.strata_colnames, colnames[i], '__count0'), on=self.strata_colnames + [colnames[i]])
+                    tdf = tdf.join(probs[j].toDF(*self.strata_colnames, colnames[j], '__count1'), on=self.strata_colnames + [colnames[j]])
+                    mi = (tdf
+                          .groupby(self.strata_colnames)
+                          .agg(F.sum(F.expr('log2(__count * __n / (__count0 * __count1)) * __count / __n')).alias('mi'))
+                          .toPandas())
+
+                    if len(self.strata_colnames):
+                        mi.set_index(self.strata_colnames, inplace=True)
+
+                    res.append(mi.assign(ci=colnames[j], cj=colnames[i]))
+
+                res.append(mi.assign(ci=colnames[i], cj=colnames[j]))
+
+        res = pd.concat(res).set_index(['ci', 'cj'], append=len(self.strata_colnames)).sort_index()
+        res = pd.pivot_table(res, index=self.strata_colnames + ['ci'], columns=['cj'])
+        res.index.names = self.strata_colnames + ['']
+        res.columns = res.columns.droplevel(0).rename('')
+        return res
+
+    @agg
     def mean(self, colnames):
-        return self._df._get_summary(colnames, 'mean').dropna()
+        return self._agg('mean', F.mean, colnames)
 
+    @agg
     def min(self, colnames):
-        return self._df._get_summary(colnames, 'min').dropna()
+        return self._agg('min', F.min, colnames)
 
+    @agg
     def max(self, colnames):
-        return self._df._get_summary(colnames, 'max').dropna()
+        return self._agg('max', F.max, colnames)
 
-    def median(self, colnames):
-        return self._df._get_summary(colnames, '50%').dropna()
+    @agg
+    def percentile(self, colnames, perc=50, precision=.01):
+        def func(c):
+            return F.expr('approx_percentile({}, {}, {})'.format(c, perc/100., 1./precision))
+        try:
+            name = {25: 'q1', 50: 'median', 75: 'q3'}[perc]
+        except KeyError:
+            name = 'percentile_{}'.format(perc)
+        return self._agg(name, func, colnames)
 
+    @agg
+    def median(self, colnames, precision=.01):
+        return self.percentile(colnames, 50, precision)
+
+    @agg
     def stddev(self, colnames):
-        return self._df._get_summary(colnames, 'stddev').dropna()
+        return self._agg('stddev', F.stddev, colnames)
 
+    @agg
     def var(self, colnames):
-        return self._df._get_summary(colnames, 'stddev').dropna() ** 2
+        return self._agg('var', F.stddev, colnames) ** 2
 
-    def q1(self, colnames):
-        return self._df._get_summary(colnames, '25%').dropna()
+    @agg
+    def q1(self, colnames, precision=.01):
+        return self.percentile(colnames, 25, precision)
 
-    def q3(self, colnames):
-        return self._df._get_summary(colnames, '75%').dropna()
+    @agg
+    def q3(self, colnames, precision=.01):
+        return self.percentile(colnames, 75, precision)
 
     ### Boxplot functions
     def _strat_boxplot(self, colnames, **kwargs):
         n_rows = n_cols = 1
         kwds = deepcopy(kwargs)
-        try:
-            del kwds['showfliers']
-        except KeyError:
-            pass
+        for kw in ['showfliers', 'precision']:
+            try:
+                del kwds[kw]
+            except KeyError:
+                pass
         if isinstance(colnames, (tuple, list)) and (len(colnames) > 1):
             n_rows = self._n_rows
             n_cols = self._n_cols
         self._build_strat_plot(n_rows, n_cols, **kwds)
         return None
 
-    def boxplot(self, colnames, ax=None, showfliers=True, k=1.5, **kwargs):
+    @inccol
+    def boxplot(self, colnames, ax=None, showfliers=True, k=1.5, precision=.01, **kwargs):
         colnames = ensure_list(colnames)
         check_columns(self._df, colnames)
         colnames = [col for col in colnames if col in self._numerical]
         assert len(colnames), "Only numerical columns can be plot!"
-        return boxplot(self._df, colnames, ax, showfliers, k)
+        return boxplot(self._df, colnames, ax, showfliers, k, precision)
 
     def _post_boxplot(self, res):
-        return post_boxplot(self._strata_plot[1], res, self._strata_clauses)
+        return post_boxplot(self._strata_plot[1], res)
 
     ### Scatterplot functions
     def _strat_scatterplot(self, colnames, **kwargs):
         self._build_strat_plot(self._n_rows, self._n_cols, **kwargs)
         return strat_scatterplot(self._df.notHandy(), colnames[0], colnames[1])
 
+    @inccol
     def scatterplot(self, colnames, ax=None, **kwargs):
         assert len(colnames) == 2, "There must be two columns to plot!"
         check_columns(self._df, colnames)
@@ -442,11 +796,13 @@ class Handy(object):
         categorical = True
         if colname in self._continuous:
             categorical = False
-        res = strat_histogram(self._df.notHandy(), colname, bins, categorical)
+        #res = strat_histogram(self._df.notHandy(), colname, bins, categorical)
+        res = strat_histogram(self._df, colname, bins, categorical)
         self._strata_plot[0].suptitle('')
         plt.tight_layout()
         return res
 
+    @inccol
     def hist(self, colname, bins=10, ax=None, **kwargs):
         # TO DO
         # include split per response/columns
@@ -518,7 +874,9 @@ class HandyFrame(DataFrame):
     - stratify: used to perform stratified operations
     - isnull: checks for missing values
     - fill: fills missing values
-    - outliers: checks for outliers
+    - outliers: returns counts of outliers, columnwise, using Tukey's method
+    - get_outliers: returns list of outliers using Mahalanobis distance
+    - remove_outliers: filters out outliers using Mahalanobis distance
     - fence: fences outliers
     - set_safety_limit: defines new safety limit for collect operations
     - safety_off: disables safety limit for a single operation
@@ -543,13 +901,6 @@ class HandyFrame(DataFrame):
         self.__overriden = ['collect', 'take']
         self._strat_handy = None
         self._strat_index = None
-
-        # statistics
-        self._summary = None
-        self._means = None
-        self._medians = None
-        self._counts = None
-        self._summaries()
 
     def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)
@@ -588,8 +939,9 @@ class HandyFrame(DataFrame):
                 object = True
             try:
                 plots = self._strat_handy._strata_plot[1]
-                if len(plots) > 1:
-                    plot = plots[self._strat_index]
+                #if len(plots) > 1:
+                #    plot = plots[self._strat_index]
+                plot = plots
             except (AttributeError, IndexError):
                 pass
         return plot, object
@@ -607,21 +959,6 @@ class HandyFrame(DataFrame):
         assert '_row_id' in self.columns, "Cannot use LOC without generating `row_id`s first!"
         clause = F.col('_row_id').between(lower_bound, upper_bound)
         return self.filter(clause)
-
-    def _summaries(self):
-        self._summary = self.notHandy().summary().toPandas().set_index('summary')
-        for col in self._handy._numerical:
-            self._summary[col] = self._summary[col].astype('double')
-
-        self._means = self._summary.loc['mean', self._handy._continuous]
-        self._medians = self._summary.loc['50%', self._handy._continuous]
-        self._counts = self._summary.loc['count'].astype('double')
-
-    def _get_summary(self, colnames, statistic):
-        colnames = ensure_list(colnames)
-        colnames = [col for col in colnames if col in self._handy._numerical]
-        check_columns(self, colnames)
-        return self._summary.loc[statistic, colnames]
 
     @property
     def cols(self):
@@ -795,6 +1132,7 @@ class HandyFrame(DataFrame):
         rely on three iterative steps, namely: filtering the underlying HandyFrame, performing
         the operation and aggregating the results.
         """
+        strata = ensure_list(strata)
         check_columns(self, strata)
         return self._handy._stratify(strata)
 
@@ -829,6 +1167,7 @@ class HandyFrame(DataFrame):
         """
         return HandyTransform.assign(self, **kwargs)
 
+    @agg
     def isnull(self, ratio=False):
         """Returns array with counts of missing value for each column in the HandyFrame.
 
@@ -843,15 +1182,22 @@ class HandyFrame(DataFrame):
         """
         return self._handy.isnull(ratio)
 
+    @agg
     def nunique(self):
         """Return Series with number of distinct observations for all columns.
+
+        Parameters
+        ----------
+        exact: boolean, optional
+            If True, computes exact number of unique values, otherwise uses an approximation.
 
         Returns
         -------
         nunique: Series
         """
-        return self._handy.nunique(self.columns)
+        return self._handy.nunique(self.columns) #, exact)
 
+    @inccol
     def outliers(self, ratio=False, method='tukey', **kwargs):
         """Return Series with number of outlier observations according to
          the specified method for all columns.
@@ -871,6 +1217,38 @@ class HandyFrame(DataFrame):
         """
         return self._handy.outliers(self.columns, ratio=ratio, method=method, **kwargs)
 
+    def get_outliers(self, colnames=None, critical_value=.999):
+        """Returns HandyFrame containing all rows deemed as outliers using
+        Mahalanobis distance and informed critical value.
+
+        Parameters
+        ----------
+        colnames: list of str, optional
+            List of columns to be used for computing Mahalanobis distance.
+            Default includes all numerical columns
+        critical_value: float, optional
+            Critical value for chi-squared distribution to classify outliers
+            according to Mahalanobis distance.
+            Default is .999 (99.9%).
+        """
+        return self._handy.get_outliers(colnames, critical_value)
+
+    def remove_outliers(self, colnames=None, critical_value=.999):
+        """Returns HandyFrame containing only rows NOT deemed as outliers
+        using  Mahalanobis distance and informed critical value.
+
+        Parameters
+        ----------
+        colnames: list of str, optional
+            List of columns to be used for computing Mahalanobis distance.
+            Default includes all numerical columns
+        critical_value: float, optional
+            Critical value for chi-squared distribution to classify outliers
+            according to Mahalanobis distance.
+            Default is .999 (99.9%).
+        """
+        return self._handy.remove_outliers(colnames, critical_value)
+
     def set_response(self, colname):
         """Sets column to be used as response in supervised learning algorithms.
 
@@ -885,6 +1263,7 @@ class HandyFrame(DataFrame):
         check_columns(self, colname)
         return self._handy.set_response(colname)
 
+    @inccol
     def fill(self, *args, categorical=None, continuous=None, strategy=None):
         """Fill NA/NaN values using the specified methods.
 
@@ -912,6 +1291,7 @@ class HandyFrame(DataFrame):
         """
         return self._handy.fill(*args, continuous=continuous, categorical=categorical, strategy=strategy)
 
+    @inccol
     def fence(self, colnames, k=1.5):
         """Caps outliers using lower and upper fences given by Tukey's method,
         using 1.5 times the interquartile range (IQR).
@@ -997,6 +1377,8 @@ class Bucket(object):
     def __init__(self, colname, bins=5):
         self._colname = colname
         self._bins = bins
+        self._buckets = None
+        self._clauses = None
 
     def __repr__(self):
         return 'Bucket_{}_{}'.format(self._colname, self._bins)
@@ -1008,9 +1390,12 @@ class Bucket(object):
     def _get_buckets(self, df):
         check_columns(df, self._colname)
         buckets = ([-float('inf')] +
-                   get_buckets(df.select(self._colname).rdd.map(itemgetter(0)), self._bins) +
+                   np.linspace(*df.agg(F.min(self._colname),
+                                       F.max(self._colname)).rdd.map(tuple).collect()[0],
+                               self._bins + 1).tolist() +
                    [float('inf')])
-        buckets[-2] += 1e-14
+        buckets[-2] += 1e-7
+        self._buckets = buckets
         return buckets
 
     def _get_clauses(self, buckets):
@@ -1020,6 +1405,7 @@ class Bucket(object):
             clauses.append('{} >= {:.4f} and {} < {:.4f}'.format(self._colname, b, self._colname, e))
         clauses[-1] = clauses[-1].replace('<', '<=')
         clauses.append('{} > {:.4f}'.format(self._colname, buckets[-2]))
+        self._clauses = clauses
         return clauses
 
 
@@ -1048,7 +1434,7 @@ class Quantile(Bucket):
                                      probabilities=np.linspace(0, 1, self._bins + 1).tolist(),
                                      relativeError=0.01) +
                    [float('inf')])
-        buckets[-2] += 1e-14
+        buckets[-2] += 1e-7
         return buckets
 
 
@@ -1176,28 +1562,65 @@ class HandyColumns(object):
         return self._handy._array
 
     def mean(self):
-        return self._df._get_summary(self._colnames, 'mean').dropna()
+        return self._handy.mean(self._colnames)
 
     def min(self):
-        return self._df._get_summary(self._colnames, 'min').dropna()
+        return self._handy.min(self._colnames)
 
     def max(self):
-        return self._df._get_summary(self._colnames, 'max').dropna()
+        return self._handy.max(self._colnames)
 
-    def median(self):
-        return self._df._get_summary(self._colnames, '50%').dropna()
+    def median(self, precision=.01):
+        """Returns approximate median with given precision.
+
+        Parameters
+        ----------
+        precision: float, optional
+            Default is 0.01
+        """
+        return self._handy.median(self._colnames, precision)
 
     def stddev(self):
-        return self._df._get_summary(self._colnames, 'stddev').dropna()
+        return self._handy.stddev(self._colnames)
 
     def var(self):
-        return self._df._get_summary(self._colnames, 'stddev').dropna() ** 2
+        return self._handy.var(self._colnames)
 
-    def q1(self):
-        return self._df._get_summary(self._colnames, '25%').dropna()
+    def percentile(self, perc, precision=.01):
+        """Returns approximate percentile with given precision.
 
-    def q3(self):
-        return self._df._get_summary(self._colnames, '75%').dropna()
+        Parameters
+        ----------
+        perc: integer
+            Percentile to be computed
+        precision: float, optional
+            Default is 0.01
+        """
+        return self._handy.percentile(self._colnames, perc, precision)
+
+    def q1(self, precision=.01):
+        """Returns approximate first quartile with given precision.
+
+        Parameters
+        ----------
+        precision: float, optional
+            Default is 0.01
+        """
+        return self._handy.q1(self._colnames, precision)
+
+    def q3(self, precision=.01):
+        """Returns approximate third quartile with given precision.
+
+        Parameters
+        ----------
+        precision: float, optional
+            Default is 0.01
+        """
+        return self._handy.q3(self._colnames, precision)
+
+    def _value_counts(self, dropna=True, raw=True):
+        assert len(ensure_list(self._colnames)) == 1, "A single column must be selected!"
+        return self._handy._value_counts(self._colnames, dropna, raw)
 
     def value_counts(self, dropna=True):
         """Returns object containing counts of unique values.
@@ -1218,6 +1641,25 @@ class HandyColumns(object):
         """
         assert len(ensure_list(self._colnames)) == 1, "A single column must be selected!"
         return self._handy.value_counts(self._colnames, dropna)
+
+    def entropy(self):
+        """Returns object containing entropy (base 2) of each column.
+
+        Returns
+        -------
+        entropy: Series
+        """
+        return self._handy.entropy(self._colnames)
+
+    def mutual_info(self):
+        """Returns object containing matrix of mutual information
+        between every pair of columns.
+
+        Returns
+        -------
+        mutual_info: pd.DataFrame
+        """
+        return self._handy.mutual_info(self._colnames)
 
     def mode(self):
         """Returns same-type modal (most common) value for each column.
@@ -1252,11 +1694,16 @@ class HandyColumns(object):
     def nunique(self):
         """Return Series with number of distinct observations for specified columns.
 
+        Parameters
+        ----------
+        exact: boolean, optional
+            If True, computes exact number of unique values, otherwise uses an approximation.
+
         Returns
         -------
         nunique: Series
         """
-        return self._handy.nunique(self._colnames)
+        return self._handy.nunique(self._colnames) #, exact)
 
     def outliers(self, ratio=False, method='tukey'):
         """Return Series with number of outlier observations according to
@@ -1277,6 +1724,32 @@ class HandyColumns(object):
         """
         return self._handy.outliers(self._colnames, ratio=ratio, method=method)
 
+    def get_outliers(self, critical_value=.999):
+        """Returns HandyFrame containing all rows deemed as outliers using
+        Mahalanobis distance and informed critical value.
+
+        Parameters
+        ----------
+        critical_value: float, optional
+            Critical value for chi-squared distribution to classify outliers
+            according to Mahalanobis distance.
+            Default is .999 (99.9%).
+        """
+        return self._handy.get_outliers(self._colnames, critical_value)
+
+    def remove_outliers(self, critical_value=.999):
+        """Returns HandyFrame containing only rows NOT deemed as outliers
+        using  Mahalanobis distance and informed critical value.
+
+        Parameters
+        ----------
+        critical_value: float, optional
+            Critical value for chi-squared distribution to classify outliers
+            according to Mahalanobis distance.
+            Default is .999 (99.9%).
+        """
+        return self._handy.remove_outliers(self._colnames, critical_value)
+
     def hist(self, bins=10, ax=None):
         """Draws histogram of the HandyFrame's column using matplotlib / pylab.
 
@@ -1288,7 +1761,7 @@ class HandyColumns(object):
         """
         return self._handy.hist(self._colnames, bins, ax)
 
-    def boxplot(self, ax=None, showfliers=True, k=1.5):
+    def boxplot(self, ax=None, showfliers=True, k=1.5, precision=.01):
         """Makes a box plot from HandyFrame column.
 
         Parameters
@@ -1300,7 +1773,7 @@ class HandyColumns(object):
             Constant multiplier for the IQR.
             Default is 1.5 (corresponding to Tukey's outlier, use 3 for "far out" values)
         """
-        return self._handy.boxplot(self._colnames, ax, showfliers, k)
+        return self._handy.boxplot(self._colnames, ax, showfliers, k, precision)
 
     def scatterplot(self, ax=None):
         """Makes a scatter plot of two HandyFrame columns.
@@ -1326,23 +1799,38 @@ class HandyStrata(object):
         self._strata = strata
         self._col_clauses = []
         self._colnames = []
+        self._temp_colnames = []
 
         temp_df = self._df
+        temp_df._handy = self._handy
         for col in self._strata:
             clauses = []
             colname = str(col)
             self._colnames.append(colname)
             if isinstance(col, Bucket):
+                self._temp_colnames.append(colname)
                 buckets = col._get_buckets(self._df)
                 clauses = col._get_clauses(buckets)
                 bucketizer = Bucketizer(splits=buckets, inputCol=col.colname, outputCol=colname)
                 temp_df = HandyFrame(bucketizer.transform(temp_df), self._handy)
             self._col_clauses.append(clauses)
 
-        combinations = sorted(temp_df._handy._value_counts(self._colnames).map(itemgetter(0)).collect())
-        self._combinations = [tuple(value if not len(clauses) else clauses[int(value)]
+        self._df = temp_df
+        self._handy._df = temp_df
+        self._df._handy = self._handy
+
+        value_counts = self._df._handy._value_counts(self._colnames, raw=True).reset_index()
+        self._raw_combinations = sorted(list(map(tuple, zip(*[value_counts[colname].values
+                                                              for colname in self._colnames]))))
+        self._raw_clauses = [' and '.join('{} == {}'.format(str(col), value) if isinstance(col, Bucket)
+                                      else  '{} == "{}"'.format(str(col),
+                                                                value[0] if isinstance(value, tuple) else value)
+                                      for col, value in zip(self._strata, comb))
+                         for comb in self._raw_combinations]
+
+        self._combinations = [tuple(value if not len(clauses) else clauses[int(float(value))]
                                     for value, clauses in zip(comb, self._col_clauses))
-                              for comb in combinations]
+                              for comb in self._raw_combinations]
         self._clauses = [' and '.join(value if isinstance(col, Bucket)
                                       else  '{} == "{}"'.format(str(col),
                                                                 value[0] if isinstance(value, tuple) else value)
@@ -1350,6 +1838,7 @@ class HandyStrata(object):
                          for comb in self._combinations]
         self._strat_df = [self._df.filter(clause) for clause in self._clauses]
 
+        self._df._strat_handy = self._handy
         # Shares the same HANDY object among all sub dataframes
         for i, df in enumerate(self._strat_df):
             df._strat_index = i
@@ -1374,11 +1863,14 @@ class HandyStrata(object):
         except AttributeError as e:
             if name in self.__handy_methods:
                 def wrapper(*args, **kwargs):
+                    raised = True
                     try:
                         # Makes stratification
                         for df in self._strat_df:
                             df._handy._strata = self._strata
-                        self._handy._set_stratification(self._strata, self._combinations, self._clauses)
+                        self._handy._set_stratification(self._strata,
+                                                        self._raw_combinations, self._raw_clauses,
+                                                        self._combinations, self._clauses)
 
                         if self._handycolumns is not None:
                             args = (self._handycolumns,) + args
@@ -1389,10 +1881,35 @@ class HandyStrata(object):
                         except AttributeError:
                             pass
 
-                        if self._handycolumns is not None:
-                            res = [getattr(df._handy, name)(*args, **kwargs) for df in self._strat_df]
+                        try:
+                            if self._handycolumns is not None:
+                                f = object.__getattribute__(self._handy, name)
+                            else:
+                                f = object.__getattribute__(self._df, name)
+                            is_agg = getattr(f, '__is_agg', False)
+                            is_inccol = getattr(f, '__is_inccol', False)
+                        except AttributeError:
+                            is_agg = False
+                            is_inccol = False
+
+                        if is_agg or is_inccol:
+                            if self._handycolumns is not None:
+                                colnames = ensure_list(args[0])
+                            else:
+                                colnames = self._df.columns
+                            res = getattr(self._handy, name)(*args, **kwargs)
                         else:
-                            res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
+                            if self._handycolumns is not None:
+                                res = [getattr(df._handy, name)(*args, **kwargs) for df in self._strat_df]
+                            else:
+                                res = [getattr(df, name)(*args, **kwargs) for df in self._strat_df]
+
+                        if isinstance(res, pd.DataFrame):
+                            if len(self._handy.strata_colnames):
+                                res = res.set_index(self._handy.strata_colnames).sort_index()
+                            if is_agg:
+                                if len(colnames) == 1:
+                                    res = res[colnames[0]]
 
                         try:
                             attr_post = getattr(self._handy, '_post_{}'.format(name))
@@ -1400,92 +1917,112 @@ class HandyStrata(object):
                         except AttributeError:
                             pass
 
-                        strata = list(map(lambda v: v[1].to_dict(), self._handy.strata.iterrows()))
+                        strata = list(map(lambda v: v[1].to_dict(OrderedDict), self._handy.strata.iterrows()))
                         strata_cols = [c if isinstance(c, str) else c.colname for c in self._strata]
-                        if isinstance(res[0], DataFrame):
-                            joined_df = res[0]
-                            self._imputed_values = joined_df.statistics_
-                            self._fenced_values = joined_df.fences_
-                            if len(res) > 1:
-                                if len(joined_df.statistics_):
-                                    self._imputed_values = {self._clauses[0]: joined_df.statistics_}
-                                if len(joined_df.fences_):
-                                    self._fenced_values = {self._clauses[0]: joined_df.fences_}
-                                for strat_df, clause in zip(res[1:], self._clauses[1:]):
+                        if isinstance(res, list):
+                            if isinstance(res[0], DataFrame):
+                                joined_df = res[0]
+                                self._imputed_values = joined_df.statistics_
+                                self._fenced_values = joined_df.fences_
+                                if len(res) > 1:
                                     if len(joined_df.statistics_):
-                                        self._imputed_values.update({clause: strat_df.statistics_})
+                                        self._imputed_values = {self._clauses[0]: joined_df.statistics_}
                                     if len(joined_df.fences_):
-                                        self._fenced_values.update({clause: strat_df.fences_})
-                                    joined_df = joined_df.unionAll(strat_df)
-                                # Clears stratification
-                                self._handy._clear_stratification()
+                                        self._fenced_values = {self._clauses[0]: joined_df.fences_}
+                                    for strat_df, clause in zip(res[1:], self._clauses[1:]):
+                                        if len(joined_df.statistics_):
+                                            self._imputed_values.update({clause: strat_df.statistics_})
+                                        if len(joined_df.fences_):
+                                            self._fenced_values.update({clause: strat_df.fences_})
+                                        joined_df = joined_df.unionAll(strat_df)
+                                    # Clears stratification
+                                    self._handy._clear_stratification()
+                                    self._df._strat_handy = None
+                                    self._df._strat_index = None
 
-                                res = HandyFrame(joined_df, self._handy)
-                                res._handy._imputed_values = self._imputed_values
-                                res._handy._fenced_values = self._fenced_values
-                        elif isinstance(res[0], pd.DataFrame):
-                            strat_res = []
-                            indexes = res[0].index.names
-                            if indexes[0] is None:
-                                indexes = ['index']
-                            for r, s in zip(res, strata):
-                                strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
-                                strat_res.append(r.assign(**strata_dict)
-                                                 .reset_index())
-                            res = (pd.concat(strat_res)
-                                   .sort_values(by=strata_cols)
-                                   .set_index(strata_cols + indexes)
-                                   .sort_index())
-                        elif isinstance(res[0], pd.Series):
-                            strat_res = []
-                            for r, s in zip(res, strata):
-                                strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
-                                series_name = none2default(r.name, 0)
-                                if series_name == name:
-                                    series_name = 'index'
-                                strat_res.append(r.reset_index()
-                                                 .rename(columns={series_name: name, 'index': series_name})
-                                                 .assign(**strata_dict)
-                                                 .set_index(strata_cols + [series_name])[name])
-                            res = pd.concat(strat_res).sort_index()
-                            if len(ensure_list(self._handycolumns)) > 1:
-                                try:
-                                    res = res.astype(np.float64)
-                                    res = res.to_frame().reset_index().pivot_table(values=name,
-                                                                                   index=strata_cols,
-                                                                                   columns=series_name)
-                                    res.columns.name = ''
-                                except ValueError:
-                                    pass
-                        elif isinstance(res[0], np.ndarray):
-                            # TO TEST
-                            strat_res = []
-                            for r, s in zip(res, strata):
-                                strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
-                                strat_res.append(pd.DataFrame(r, columns=[name])
-                                                 .assign(**strata_dict)
-                                                 .set_index(strata_cols)[name])
-                            res = pd.concat(strat_res).sort_index()
-                        elif isinstance(res[0], Axes):
-                            res, axs = self._handy._strata_plot
-                            res = consolidate_plots(res, axs, args[0], self._clauses)
-                        elif isinstance(res[0], list):
-                            joined_list = res[0]
-                            for l in res[1:]:
-                                joined_list += l
-                            return joined_list
-                        elif len(res) == len(self._combinations):
-                            res = (pd.concat([pd.DataFrame(res, columns=[name]),
-                                              pd.DataFrame(strata, columns=strata_cols)], axis=1)
-                                   .set_index(strata_cols)
-                                   .sort_index())
+                                    if len(self._temp_colnames):
+                                        joined_df = joined_df.drop(*self._temp_colnames)
+
+                                    res = HandyFrame(joined_df, self._handy)
+                                    res._handy._imputed_values = self._imputed_values
+                                    res._handy._fenced_values = self._fenced_values
+                            elif isinstance(res[0], pd.DataFrame):
+                                strat_res = []
+                                indexes = res[0].index.names
+                                if indexes[0] is None:
+                                    indexes = ['index']
+                                for r, s in zip(res, strata):
+                                    strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
+                                    strat_res.append(r.assign(**strata_dict)
+                                                     .reset_index())
+                                res = (pd.concat(strat_res)
+                                       .sort_values(by=strata_cols)
+                                       .set_index(strata_cols + indexes)
+                                       .sort_index())
+                            elif isinstance(res[0], pd.Series):
+                                # TODO: TEST
+                                strat_res = []
+                                for r, s in zip(res, strata):
+                                    strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
+                                    series_name = none2default(r.name, 0)
+                                    if series_name == name:
+                                        series_name = 'index'
+                                    strat_res.append(r.reset_index()
+                                                     .rename(columns={series_name: name, 'index': series_name})
+                                                     .assign(**strata_dict)
+                                                     .set_index(strata_cols + [series_name])[name])
+                                res = pd.concat(strat_res).sort_index()
+                                if len(ensure_list(self._handycolumns)) > 1:
+                                    try:
+                                        res = res.astype(np.float64)
+                                        res = res.to_frame().reset_index().pivot_table(values=name,
+                                                                                       index=strata_cols,
+                                                                                       columns=series_name)
+                                        res.columns.name = ''
+                                    except ValueError:
+                                        pass
+                            elif isinstance(res[0], np.ndarray):
+                                # TODO: TEST
+                                strat_res = []
+                                for r, s in zip(res, strata):
+                                    strata_dict = dict([(k if isinstance(k, str) else k.colname, v) for k, v in s.items()])
+                                    strat_res.append(pd.DataFrame(r, columns=[name])
+                                                     .assign(**strata_dict)
+                                                     .set_index(strata_cols)[name])
+                                res = pd.concat(strat_res).sort_index()
+                            elif isinstance(res[0], Axes):
+                                res, axs = self._handy._strata_plot
+                                res = consolidate_plots(res, axs, args[0], self._clauses)
+                            elif isinstance(res[0], list):
+                                joined_list = res[0]
+                                for l in res[1:]:
+                                    joined_list += l
+                                return joined_list
+                            elif len(res) == len(self._combinations):
+                                # TODO: TEST
+                                strata_df = pd.DataFrame(strata)
+                                strata_df.columns = strata_cols
+                                res = (pd.concat([pd.DataFrame(res, columns=[name]), strata_df], axis=1)
+                                       .set_index(strata_cols)
+                                       .sort_index())
+                        raised = False
                         return res
                     except HandyException as e:
                         raise HandyException(str(e), summary=False)
                     except Exception as e:
                         raise HandyException(str(e), summary=True)
                     finally:
+                        if not raised:
+                            if isinstance(res, HandyFrame):
+                                res._handy._clear_stratification()
+
                         self._handy._clear_stratification()
+                        self._df._strat_handy = None
+                        self._df._strat_index = None
+
+                        if len(self._temp_colnames):
+                            self._df = self._df.drop(*self._temp_colnames)
+                            self._handy._df = self._df
                 return wrapper
             else:
                 raise e
