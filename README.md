@@ -12,7 +12,9 @@ It also leverages on the recently released ***pandas UDFs*** in Spark to allow f
 
 Moreover, it introduces the ***stratify*** operation, so users can perform more sophisticated analysis, imputation and outlier detection on stratified data without incurring in very computationally expensive ***groupby*** operations.
 
-Finally, it brings the long missing capability of ***plotting*** data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don't ever do that!).
+It brings the long missing capability of ***plotting*** data while retaining the advantage of performing distributed computation (unlike many tutorials on the internet, which just convert the whole dataset to pandas and then plot it - don't ever do that!).
+
+Finally, it also extends ***evaluation metrics*** for ***binary classification***, so you can easily choose which threshold to use!
 
 ## Google Colab
 
@@ -226,13 +228,13 @@ hdf_filled.statistics_
 ```
 
 ```
-{'Embarked': 'S',
- 'Pclass == "1" and Sex == "female"': {'Age': 34.61176470588235},
- 'Pclass == "1" and Sex == "male"': {'Age': 41.28138613861386},
- 'Pclass == "2" and Sex == "female"': {'Age': 28.722972972972972},
- 'Pclass == "2" and Sex == "male"': {'Age': 30.74070707070707},
- 'Pclass == "3" and Sex == "female"': {'Age': 21.75},
- 'Pclass == "3" and Sex == "male"': {'Age': 26.507588932806325}}
+{'Age': {'Pclass == "1" and Sex == "female"': 34.61176470588235,
+  'Pclass == "1" and Sex == "male"': 41.28138613861386,
+  'Pclass == "2" and Sex == "female"': 28.722972972972972,
+  'Pclass == "2" and Sex == "male"': 30.74070707070707,
+  'Pclass == "3" and Sex == "female"': 21.75,
+  'Pclass == "3" and Sex == "male"': 26.507588932806325},
+ 'Embarked': 'S'}
 ```
 
 There you go! The filter clauses and the corresponding imputation values!
@@ -267,7 +269,7 @@ Fare            53.0
 dtype: float64
 ```
 
-Currently, only [***Tukey's***](https://en.wikipedia.org/wiki/Outlier#Tukey's_fences) method is available (I am working on Mahalanobis distance!). This method takes an optional ***k*** argument, which you can set to larger values (like 3) to allow for a more loose detection.
+Currently, only [***Tukey's***](https://en.wikipedia.org/wiki/Outlier#Tukey's_fences) method is available. This method takes an optional ***k*** argument, which you can set to larger values (like 3) to allow for a more loose detection.
 
 The good thing is, now we can take a peek at the data by plotting it:
 
@@ -293,7 +295,7 @@ hdf_fenced.fences_
 ```
 
 ```
-{'Fare': [-26.7605, 65.6563]}
+{'Fare': [-26.0105, 64.4063]}
 ```
 
 It works quite similarly to the ***fill*** method and, I hope you guessed, it ***also*** gives you the ability to create the corresponding ***custom transformer*** :-)
@@ -301,6 +303,82 @@ It works quite similarly to the ***fill*** method and, I hope you guessed, it **
 ```python
 fencer = hdf_fenced.transformers.fencer()
 ```
+
+You can also use [***Mahalanobis distance***](https://en.wikipedia.org/wiki/Mahalanobis_distance) to identify outliers in a multi-dimensional space, given a critical value (usually 99.9%, but you are free to have either more restriced or relaxed threshold).
+
+To get the outliers for a subset of columns (only ***numerical*** columns are considered!):
+
+```
+outliers = hdf_filled.cols[['Age', 'Fare', 'SibSp']].get_outliers(critical_value=.90)
+```
+
+Let's take a look at the first 5 outliers found:
+
+```
+outliers.cols[:][:5]
+```
+
+![outliers](/images/mahalanobis_outliers.png)
+
+What if you want to discard these sample? You just need to call `remove_outliers`:
+
+```
+hdf_without_outliers = hdf_filled.cols[['Age', 'Fare', 'SibSp']].remove_outliers(critical_value=0.90)
+```
+
+### Evaluating your model!
+
+You cleaned your data, you trained your classification model, you fine-tuned it and now you want to ***evaluate*** it, right?
+
+```
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.pipeline import Pipeline
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+
+assem = VectorAssembler(inputCols=['Fare', 'Pclass', 'Age'], outputCol='features')
+rf = RandomForestClassifier(featuresCol='features', labelCol='Survived', numTrees=20)
+pipeline = Pipeline(stages=[assem, rf])
+model = pipeline.fit(hdf_fenced)
+
+predictions = model.transform(hdf_fenced)
+evaluator = BinaryClassificationEvaluator(labelCol='Survived')
+evaluator.evaluate(predictions)
+```
+
+Then you realize evaluators only give you `areaUnderROC` and `areaUnderPR`. How about ***plotting ROC or PR curves***? How about ***finding a threshold*** that suits your needs for False Positive or False negatives?
+
+***HandySpark*** extends the ***BinaryClassificationMetrics*** object to take ***DataFrames*** and output ***all your evaluation needs***!
+
+```
+bcm = BinaryClassificationMetrics(predictions, scoreCol='probability', labelCol='Survived')
+```
+
+Now you can ***plot*** the curves...
+
+```
+fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+bcm.plot_roc_curve(ax=axs[0])
+bcm.plot_pr_curve(ax=axs[1])
+```
+
+![curves](/images/evaluation_curves.png)
+
+...or get metrics for every ***threshold***...
+
+```
+bcm.getMetricsByThreshold().toPandas()[100:105]
+```
+
+![metrics](/images/metrics_thresholds.png)
+
+...or the ***confusion matrix*** for the threshold you chose:
+
+```
+bcm.print_confusion_matrix(.572006)
+```
+
+![cm](/images/confusion.png)
 
 ### Pandas and more pandas!
 
