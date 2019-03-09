@@ -527,7 +527,7 @@ class Handy(object):
         if method == 'tukey':
             outliers = []
             try:
-                k = kwargs['k']
+                k = float(kwargs['k'])
             except KeyError:
                 k = 1.5
             fences_df = self._calc_fences(colnames, k=k, precision=.01)
@@ -1705,7 +1705,7 @@ class HandyColumns(object):
         """
         return self._handy.nunique(self._colnames) #, exact)
 
-    def outliers(self, ratio=False, method='tukey'):
+    def outliers(self, ratio=False, method='tukey', **kwargs):
         """Return Series with number of outlier observations according to
          the specified method for all columns.
 
@@ -1722,7 +1722,7 @@ class HandyColumns(object):
          -------
          outliers: Series
         """
-        return self._handy.outliers(self._colnames, ratio=ratio, method=method)
+        return self._handy.outliers(self._colnames, ratio=ratio, method=method, **kwargs)
 
     def get_outliers(self, critical_value=.999):
         """Returns HandyFrame containing all rows deemed as outliers using

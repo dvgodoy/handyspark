@@ -23,7 +23,7 @@ before_install:
   - pip install -U pip
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
 install:
-  # Download spark 2.3.1
+  # Download spark 2.3.3
   - "[ -f spark ] || mkdir spark && cd spark && axel http://www-us.apache.org/dist/spark/spark-2.3.3/spark-2.3.3-bin-hadoop2.7.tgz && cd .."
   - "tar -xf ./spark/spark-2.3.3-bin-hadoop2.7.tgz"
   - "export SPARK_HOME=`pwd`/spark-2.3.3-bin-hadoop2.7"
