@@ -13,12 +13,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from operator import itemgetter, add
 import pandas as pd
+from pyspark.ml.stat import Correlation
 from pyspark.ml.feature import Bucketizer
 from pyspark.mllib.stat import Statistics
 from pyspark.sql import DataFrame, GroupedData, Window, functions as F, Column, Row
 from pyspark.ml.feature import VectorAssembler, StandardScaler, PCA
 from pyspark.ml.pipeline import Pipeline
 from scipy.stats import chi2
+from scipy.linalg import inv
 
 def toHandy(self):
     """Converts Spark DataFrame into HandyFrame.
@@ -354,13 +356,33 @@ class Handy(object):
         # Builds pipeline to assemble feature columns and scale them
         assembler = VectorAssembler(inputCols=colnames, outputCol='__features')
         scaler = StandardScaler(inputCol='__features', outputCol='__scaled', withMean=True)
-        pca = PCA(k=len(colnames), inputCol='__scaled', outputCol='__pca')
-        pipeline = Pipeline(stages=[assembler, scaler, pca])
-
+        pipeline = Pipeline(stages=[assembler, scaler])
         features = pipeline.fit(sdf).transform(sdf)
-        distance = (features.rdd
-                    .map(lambda row: Row(**{**row.asDict(), **{output_col: float(row['__pca'].norm(2))}})).toDF()
-                    .drop('__features', '__scaled', '__pca'))
+
+        # Computes correlation between features and inverts it
+        # Since we scaled the features, we can assume they have unit variance
+        # and therefore, correlation and covariance matrices are the same!
+        mat = Correlation.corr(features, '__scaled').head()[0].toArray()
+        inv_mat = inv(mat)
+
+        # Builds Pandas UDF to compute Mahalanobis distance from origin
+        # sqrt((V - 0) * inv_M * (V - 0))
+        try:
+            import pyarrow
+            @F.pandas_udf('double')
+            def pudf_mult(v):
+                return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
+        except:
+            @F.udf('double')
+            def pudf_mult(v):
+                return v.apply(lambda v: np.sqrt(np.dot(np.dot(v, inv_mat), v)))
+
+        # Convert feature vector into array
+        features = dense_to_array(features, '__scaled', '__array_scaled')
+        # Computes Mahalanobis distance and flags as outliers all elements above critical value
+        distance = (features
+                    .withColumn('__mahalanobis', pudf_mult('__array_scaled'))
+                    .drop('__features', '__scaled', '__array_scaled'))
         return distance
 
     def _set_mahalanobis_outliers(self, colnames, critical_value=.999,
