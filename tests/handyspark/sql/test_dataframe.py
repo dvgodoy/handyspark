@@ -337,14 +337,14 @@ def test_stratified_nunique(sdf, pdf):
     npt.assert_array_equal(hnunique, nunique)
 
 def test_mahalanobis(sdf, pdf):
-    colnames = ['Pclass', 'SibSp', 'Parch']
+    colnames = ['Fare', 'SibSp', 'Parch']
     hdf = sdf.toHandy()
     hres = hdf._handy._calc_mahalanobis_distance(colnames).toHandy().cols['__mahalanobis'][:].values
-    pipeline = make_pipeline(StandardScaler(), PCA(n_components=len(colnames)))
+    pipeline = make_pipeline(StandardScaler())
     pdf = pd.DataFrame(pipeline.fit_transform(pdf[colnames]), columns=colnames)
-    invmat = np.linalg.inv(pdf.corr())
+    invmat = np.linalg.inv(pdf.cov())
     res = pdf.apply(lambda row: distance.mahalanobis(row.values, np.zeros_like(row.values), invmat), axis=1)
-    npt.assert_array_almost_equal(hres, res, decimal=2)
+    npt.assert_array_almost_equal(hres, res, decimal=4)
 
 def test_entropy(sdf, pdf):
     hdf = sdf.toHandy()
