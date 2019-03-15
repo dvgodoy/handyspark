@@ -297,8 +297,9 @@ def test_stratify_spark_df(sdf, pdf):
 
 def test_stratify_fill(sdf, pdf):
     hdf = sdf.toHandy()
-    hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'])
+    hdf_filled = hdf.stratify(['Pclass']).fill(continuous=['Age'], categorical=['Embarked'])
     hage = hdf_filled.orderBy('Pclass').cols['Age'][:].values
+    hembarked = hdf_filled.orderBy('PassengerId').cols['Embarked'][:].values
 
     pdf_filled = []
     statistics = {'Age': {}}
@@ -306,14 +307,14 @@ def test_stratify_fill(sdf, pdf):
         filtered = pdf.query('Pclass == {}'.format(pclass))[['Age']]
         imputer = Imputer(strategy='mean').fit(filtered)
         pdf_filled.append(imputer.transform(filtered))
-        #statistics.update({'Pclass == "{}"'.format(pclass): {'Age': imputer.statistics_[0]}})
         statistics['Age'].update({'Pclass == "{}"'.format(pclass): imputer.statistics_[0]})
     pdf_filled = np.concatenate(pdf_filled, axis=0)
     age = pdf_filled.ravel()
 
     npt.assert_array_equal(hage, age)
-    npt.assert_array_equal(sorted(list(hdf_filled.statistics_.items())),
-                           sorted(list(statistics.items())))
+    npt.assert_array_equal(hembarked, pdf.fillna({'Embarked': 'S'}).sort_values(by='PassengerId')['Embarked'].values)
+    npt.assert_array_equal(sorted(list(hdf_filled.statistics_['Age'])),
+                           sorted(list(statistics['Age'])))
 
 def test_repr(sdf):
     hdf = sdf.toHandy()

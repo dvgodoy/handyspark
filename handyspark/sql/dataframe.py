@@ -266,6 +266,8 @@ class Handy(object):
 
     def __stat_to_dict(self, colname, stat):
         if len(self._strata_clauses):
+            if isinstance(stat, pd.Series):
+                stat = stat.to_frame(colname)
             return {clause: stat.query(raw_clause)[colname].iloc[0]
                     for clause, raw_clause in zip(self._strata_clauses, self._strata_raw_clauses)}
         else:
