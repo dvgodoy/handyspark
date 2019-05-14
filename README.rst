@@ -112,6 +112,7 @@ You can also make some plots:
 
 .. code-block:: python
 
+   from matplotlib import pyplot as plt
    fig, axs = plt.subplots(1, 4, figsize=(12, 4))
    hdf.cols['Embarked'].hist(ax=axs[0])
    hdf.cols['Age'].boxplot(ax=axs[1])
@@ -293,6 +294,7 @@ The good thing is, now we can take a peek at the data by plotting it:
 
 .. code-block:: python
 
+   from matplotlib import pyplot as plt
    fig, axs = plt.subplots(1, 4, figsize=(16, 4))
    hdf_filled.cols['Parch'].hist(ax=axs[0])
    hdf_filled.cols['SibSp'].hist(ax=axs[1])

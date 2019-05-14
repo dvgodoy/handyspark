@@ -111,6 +111,7 @@ Name: Embarked, dtype: int64
 
 You can also make some plots:
 ```python
+from matplotlib import pyplot as plt
 fig, axs = plt.subplots(1, 4, figsize=(12, 4))
 hdf.cols['Embarked'].hist(ax=axs[0])
 hdf.cols['Age'].boxplot(ax=axs[1])
@@ -274,6 +275,7 @@ Currently, only [***Tukey's***](https://en.wikipedia.org/wiki/Outlier#Tukey's_fe
 The good thing is, now we can take a peek at the data by plotting it:
 
 ```python
+from matplotlib import pyplot as plt
 fig, axs = plt.subplots(1, 4, figsize=(16, 4))
 hdf_filled.cols['Parch'].hist(ax=axs[0])
 hdf_filled.cols['SibSp'].hist(ax=axs[1])
@@ -357,6 +359,7 @@ bcm = BinaryClassificationMetrics(predictions, scoreCol='probability', labelCol=
 Now you can ***plot*** the curves...
 
 ```
+from matplotlib import pyplot as plt
 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 bcm.plot_roc_curve(ax=axs[0])
 bcm.plot_pr_curve(ax=axs[1])
