@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.utils.fixes import signature
+from inspect import signature
 from handyspark.util import get_buckets, none2zero, ensure_list
 from operator import add, itemgetter
 from pyspark.ml.feature import Bucketizer
