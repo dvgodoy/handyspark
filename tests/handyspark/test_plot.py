@@ -117,8 +117,8 @@ def test_stratified_boxplot(sdf, pdf):
 
     # Differences arise from quantile calculations
     diff = s64 - p64
-    npt.assert_equal(diff.sum(), 275042)
-    npt.assert_equal((diff != 0).sum(), 2134)
+    npt.assert_equal(diff.sum(), 276595)
+    npt.assert_equal((diff != 0).sum(), 2146)
 
 def test_stratified_hist(sdf, pdf):
     hdf = sdf.toHandy()
